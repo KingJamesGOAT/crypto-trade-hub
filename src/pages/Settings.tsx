@@ -1,0 +1,236 @@
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { useToast } from "@/hooks/use-toast"
+import { binanceService } from "@/api/binance-service"
+import { Loader2, Trash2, ShieldCheck, AlertTriangle, Sparkles } from "lucide-react"
+
+export function Settings() {
+  const { toast } = useToast()
+  
+  const [apiKey, setApiKey] = useState("")
+  const [secretKey, setSecretKey] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  
+  // Real Trading Mode State
+  const [realTradingEnabled, setRealTradingEnabled] = useState(false)
+
+  // Gemini State
+  const [geminiKey, setGeminiKey] = useState("")
+
+  useEffect(() => {
+     // Load initial state
+     const creds = binanceService.getCredentials()
+     if (creds) {
+         setApiKey(creds.apiKey)
+         setSecretKey(creds.secretKey)
+         setIsSaved(true)
+     }
+
+     const mode = localStorage.getItem("trading_mode")
+     if (mode === "real") setRealTradingEnabled(true)
+     
+     const gKey = localStorage.getItem("gemini_api_key")
+     if (gKey) setGeminiKey(gKey)
+
+  }, [])
+
+  const handleSaveGemini = () => {
+      localStorage.setItem("gemini_api_key", geminiKey)
+      // We should ideally reload the service, but simple storage set works for now as service reads on demand or we reload page
+      // Let's force a window reload or notifies service if we could, but a toast is fine.
+      // Better: Update service instance
+      import("@/api/gemini-service").then(({ geminiService }) => {
+          geminiService.initializeModel(geminiKey)
+      })
+      toast({ title: "Gemini Key Saved", description: "AI Assistant is now active." })
+  }
+
+  const handleClearGemini = () => {
+      localStorage.removeItem("gemini_api_key")
+      setGeminiKey("")
+      import("@/api/gemini-service").then(({ geminiService }) => {
+          geminiService.clearKey()
+      })
+      toast({ title: "Gemini Key Removed", description: "AI Assistant reverted to Mock Mode." })
+  }
+
+  const handleSave = async () => {
+     if (!apiKey || !secretKey) {
+         toast({ title: "Error", description: "Please enter both API Key and Secret Key", variant: "destructive" })
+         return
+     }
+
+     setIsLoading(true)
+     try {
+         // Validate
+         binanceService.setCredentials(apiKey, secretKey)
+         const isValid = await binanceService.validateConnection()
+         
+         if (isValid) {
+             setIsSaved(true)
+             toast({ title: "Success", description: "API Credentials verified and saved." })
+         } else {
+             binanceService.clearCredentials()
+             toast({ title: "Connection Failed", description: "Could not verify credentials.", variant: "destructive" })
+         }
+     } catch (error) {
+         toast({ title: "Error", description: "Failed to connect to API", variant: "destructive" })
+     } finally {
+         setIsLoading(false)
+     }
+  }
+
+  const handleClear = () => {
+      binanceService.clearCredentials()
+      setApiKey("")
+      setSecretKey("")
+      setIsSaved(false)
+      setRealTradingEnabled(false)
+      localStorage.setItem("trading_mode", "simulator")
+      toast({ title: "Cleared", description: "Credentials removed." })
+  }
+
+  const handleModeToggle = (enabled: boolean) => {
+      if (enabled && !isSaved) {
+          toast({ title: "Restricted", description: "Configure API Credentials before enabling Real Trading.", variant: "destructive" })
+          return
+      }
+      setRealTradingEnabled(enabled)
+      localStorage.setItem("trading_mode", enabled ? "real" : "simulator")
+      
+      if (enabled) {
+          toast({ title: "Real Trading ENABLED", description: "You are now trading with REAL funds. Be careful.", className: "bg-red-900 border-red-800 text-white" })
+      } else {
+          toast({ title: "Simulator Mode", description: "Switched back to paper trading." })
+      }
+  }
+
+  return (
+    <div className="space-y-6">
+       <div>
+        <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+        <p className="text-muted-foreground">
+            Manage your API connection and trading preferences.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-orange-500/20 bg-orange-500/5">
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5 text-orange-500" />
+                      Binance API Connection
+                  </CardTitle>
+                  <CardDescription>
+                      Your keys are stored locally in your browser.
+                  </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                       <Label>API Key</Label>
+                       <Input 
+                         type="password" 
+                         value={apiKey} 
+                         onChange={e => setApiKey(e.target.value)}
+                         placeholder="Paste your Binance API Key" 
+                        />
+                  </div>
+                  <div className="space-y-2">
+                       <Label>Secret Key</Label>
+                       <Input 
+                         type="password" 
+                         value={secretKey} 
+                         onChange={e => setSecretKey(e.target.value)}
+                         placeholder="Paste your Binance Secret Key" 
+                        />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                      <Button onClick={handleSave} disabled={isLoading || isSaved} className="flex-1">
+                          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {isSaved ? "Saved" : "Verify & Save"}
+                      </Button>
+                      {isSaved && (
+                          <Button variant="outline" onClick={handleClear} className="w-12 px-0 text-red-500 hover:text-red-400">
+                             <Trash2 className="h-4 w-4" />
+                          </Button>
+                      )}
+                  </div>
+              </CardContent>
+          </Card>
+
+          <Card className={realTradingEnabled ? "border-red-500/50 bg-red-500/10" : ""}>
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className={`h-5 w-5 ${realTradingEnabled ? "text-red-500" : "text-muted-foreground"}`} />
+                      Trading Mode
+                  </CardTitle>
+                  <CardDescription>
+                      Switch between Simulator (Test funds) and Real Trading.
+                  </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                   <div className="flex items-center justify-between space-x-2">
+                      <div className="space-y-0.5">
+                          <Label className="text-base">Real Trading</Label>
+                          <p className="text-sm text-muted-foreground">
+                             Enable actual order execution on Binance.
+                          </p>
+                      </div>
+                      <Switch 
+                         checked={realTradingEnabled}
+                         onCheckedChange={handleModeToggle}
+                      />
+                   </div>
+                   
+                   {realTradingEnabled && (
+                       <div className="p-4 bg-red-500/20 rounded-lg border border-red-500/30 text-sm text-red-200">
+                           <strong>WARNING:</strong> You are in LIVE mode. Actions in the Order Entry form will execute real trades on your Binance account. Proceed with caution.
+                       </div>
+                   )}
+              </CardContent>
+          </Card>
+
+          {/* GEMINI AI SETTINGS */}
+          <Card className="border-blue-500/20 bg-blue-500/5 md:col-span-2">
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-blue-500" />
+                      Gemini AI Assistant
+                  </CardTitle>
+                  <CardDescription>
+                      Configure your AI assistant for personalized trading insights.
+                  </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                       <Label>Gemini API Key</Label>
+                       <div className="flex gap-2">
+                           <Input 
+                             type="password" 
+                             value={geminiKey} 
+                             onChange={e => setGeminiKey(e.target.value)}
+                             placeholder="Paste your Google Gemini API Key" 
+                           />
+                           <Button onClick={handleSaveGemini} disabled={!geminiKey}>
+                               Save Key
+                           </Button>
+                           <Button variant="outline" onClick={handleClearGemini}>
+                               Clear
+                           </Button>
+                       </div>
+                       <p className="text-xs text-muted-foreground">
+                           An API key is required for the AI to answer specific questions. Without it, the assistant will run in "Mock Mode".
+                       </p>
+                  </div>
+              </CardContent>
+          </Card>
+      </div>
+    </div>
+  )
+}
