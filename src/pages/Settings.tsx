@@ -177,69 +177,7 @@ export function Settings() {
           </Card>
 
           {/* GEMINI AI SETTINGS */}
-          <Card className="border-blue-500/20 bg-blue-500/5 md:col-span-2">
-              <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-blue-500" />
-                      Gemini AI Assistant (Optional)
-                  </CardTitle>
-                  <CardDescription>
-                      Get a free API key from Google AI Studio (no credit card required)
-                  </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                       <Label>Gemini API Key</Label>
-                       <Input 
-                         type="password" 
-                         placeholder="Paste your Gemini API Key (optional)" 
-                         id="gemini-api-key"
-                        />
-                  </div>
-                  
-                  <div className="flex gap-2">
-                      <Button 
-                        onClick={() => {
-                          const input = document.getElementById('gemini-api-key') as HTMLInputElement;
-                          if (input?.value) {
-                            localStorage.setItem('gemini_api_key', input.value);
-                            toast({ title: "Success", description: "Gemini API key saved! Refresh the page to use the AI assistant." });
-                          }
-                        }}
-                        className="flex-1"
-                      >
-                          Save API Key
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          localStorage.removeItem('gemini_api_key');
-                          const input = document.getElementById('gemini-api-key') as HTMLInputElement;
-                          if (input) input.value = '';
-                          toast({ title: "Cleared", description: "API key removed." });
-                        }}
-                        className="w-12 px-0 text-red-500 hover:text-red-400"
-                      >
-                         <Trash2 className="h-4 w-4" />
-                      </Button>
-                  </div>
-
-                  <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 text-sm">
-                      <p className="text-blue-200 mb-2">
-                          <strong>How to get your free API key:</strong>
-                      </p>
-                      <ol className="list-decimal list-inside space-y-1 text-blue-200/80 text-xs">
-                          <li>Visit <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a></li>
-                          <li>Sign in with your Google account</li>
-                          <li>Click "Create API Key"</li>
-                          <li>Copy and paste it above</li>
-                      </ol>
-                      <p className="text-blue-200/60 text-xs mt-2">
-                          Free tier: 1,500 requests/day • No credit card required
-                      </p>
-                  </div>
-              </CardContent>
-          </Card>
+{/* Gemini AI Settings Removed (Using Puter.js) */}
       </div>
     </div>
   )
