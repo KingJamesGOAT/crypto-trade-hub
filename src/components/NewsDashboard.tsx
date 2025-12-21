@@ -21,14 +21,18 @@ export function NewsDashboard({ embedded }: { embedded?: boolean }) {
   }, []);
 
   const Container = embedded ? "div" : Card;
-  const containerProps = embedded ? { className: "w-full" } : { className: "w-full bg-slate-950 border-slate-800 text-white shadow-xl" };
+  const containerProps = embedded 
+    ? { className: "w-full border border-border/40 rounded-xl p-4 bg-background/50 backdrop-blur-sm" } 
+    : { className: "w-full bg-slate-950 border-slate-800 text-white shadow-xl" };
 
   return (
     // @ts-ignore
     <Container {...containerProps}>
-      <CardHeader className={`flex flex-row items-center justify-between ${embedded ? "p-0 pb-4" : "pb-2"}`}>
+      <CardHeader className={`flex flex-row items-center justify-between ${embedded ? "p-0 pb-3" : "pb-2"}`}>
         <div className="flex items-center gap-2">
-           <CardTitle className={embedded ? "text-base font-medium" : ""}>Live Market Intelligence</CardTitle>
+           <CardTitle className={embedded ? "text-sm font-semibold tracking-wide uppercase text-muted-foreground" : ""}>
+              Live Market Intelligence
+           </CardTitle>
         </div>
         
         {/* Sentiment Badge */}
@@ -37,7 +41,7 @@ export function NewsDashboard({ embedded }: { embedded?: boolean }) {
               ${sentiment.mode === "BULLISH" ? "text-green-400 border-green-400/30 bg-green-400/10" : 
                 sentiment.mode === "BEARISH" ? "text-red-400 border-red-400/30 bg-red-400/10" : 
                 "text-slate-400 border-slate-700 bg-slate-800/50"}
-              font-mono text-xs capitalize
+              font-mono text-[10px] capitalize px-2 py-0.5 h-5
            `}>
               {sentiment.mode === "BULLISH" && <TrendingUp className="mr-1 h-3 w-3" />}
               {sentiment.mode === "BEARISH" && <TrendingDown className="mr-1 h-3 w-3" />}
@@ -47,7 +51,7 @@ export function NewsDashboard({ embedded }: { embedded?: boolean }) {
       </CardHeader>
       
       <CardContent className={embedded ? "p-0" : ""}>
-        <ScrollArea className={`${embedded ? "h-[250px]" : "h-[400px]"} pr-4`}>
+        <ScrollArea className={`${embedded ? "h-[350px]" : "h-[400px]"} pr-3`}>
           <div className="space-y-3">
             {news.map((item) => (
               <div key={item.id} className="group flex gap-3 py-2 border-b border-border/40 last:border-0">
