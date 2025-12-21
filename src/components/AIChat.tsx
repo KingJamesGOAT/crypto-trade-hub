@@ -7,42 +7,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Sparkles, Loader2, Minimize2, LogIn } from "lucide-react";
+import { Send, Sparkles, Loader2, Minimize2 } from "lucide-react";
+
+// REPLACE WITH YOUR PUTER USERNAME TO LOCK IT DOWN
+const ADMIN_USERNAME = ""; // e.g., "kingjamesgoat" (Leave empty to allow all logged-in users)
 
 export function AIChat() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, username } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isPuterSignedIn, setIsPuterSignedIn] = useState(false);
-  const [puterUsername, setPuterUsername] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { 
-      role: "model", 
-      content: "Hello! I'm your AI assistant. Sign in with Puter to start chatting!" 
-    }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Check Puter auth status and auto-trigger sign-in
+  // 1. Initialize Chat on Load
   useEffect(() => {
-    const checkAuth = async () => {
-      const signedIn = await aiService.isSignedIn();
-      setIsPuterSignedIn(signedIn);
-      if (signedIn) {
-        const username = await aiService.getUsername();
-        setPuterUsername(username);
-      } else if (isOpen) {
-        // Auto-trigger sign-in when chat opens
-        setTimeout(() => {
-          handleSignIn();
-        }, 500);
-      }
-    };
-    checkAuth();
-  }, [isOpen]);
+    if (isAuthenticated && messages.length === 0) {
+       setMessages([{ 
+         role: "model", 
+         content: `Welcome back, ${username || 'Admin'}! The market scanner is active. What shall we analyze?` 
+       }]);
+    }
+  }, [isAuthenticated, username]);
 
-  // Auto-scroll to bottom
+  // 2. Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -50,19 +38,6 @@ export function AIChat() {
   }, [messages, isOpen]);
 
   const toggleChat = () => setIsOpen(!isOpen);
-
-  const handleSignIn = async () => {
-    const success = await aiService.signIn();
-    if (success) {
-      setIsPuterSignedIn(true);
-      const username = await aiService.getUsername();
-      setPuterUsername(username);
-      setMessages([{ 
-        role: "model", 
-        content: `Welcome ${username}! Ask me about crypto or trading strategies!` 
-      }]);
-    }
-  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -73,10 +48,11 @@ export function AIChat() {
     setIsLoading(true);
 
     try {
+      // Direct call - Puter session is already active from App Login
       const response = await aiService.chat(userMsg.content);
       setMessages(prev => [...prev, { role: "model", content: response }]);
     } catch (error) {
-       setMessages(prev => [...prev, { role: "model", content: "Sorry, I encountered an error. Please try again." }]);
+       setMessages(prev => [...prev, { role: "model", content: "I'm having trouble connecting. Please check your internet or Puter status." }]);
     } finally {
        setIsLoading(false);
     }
@@ -89,10 +65,16 @@ export function AIChat() {
       }
   };
 
-  // Don't show AI chat if not authenticated
-  if (!isAuthenticated) {
-    return null;
-  }
+  // --- ADMIN GATEKEEPER LOGIC ---
+  
+  // 1. Must be logged in
+  if (!isAuthenticated) return null;
+
+  // 2. (Optional) Must be the specific Admin Username
+  if (ADMIN_USERNAME && username !== ADMIN_USERNAME) return null;
+
+
+  // --- RENDER ---
 
   if (!isOpen) {
     return (
@@ -106,103 +88,84 @@ export function AIChat() {
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col border-blue-500/20">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-gradient-to-r from-blue-600 to-cyan-500">
-        <CardTitle className="text-white flex items-center gap-2">
+    <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col border-blue-500/20 bg-slate-950 text-white animate-in slide-in-from-bottom-5 duration-300">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-t-xl">
+        <CardTitle className="text-white flex items-center gap-2 text-md">
           <Sparkles className="h-5 w-5" />
-          AI Assistant
-          {puterUsername && <span className="text-xs opacity-80">({puterUsername})</span>}
+          AI Analyst
         </CardTitle>
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={toggleChat}
-          className="text-white hover:bg-white/20"
+          className="text-white hover:bg-white/20 h-8 w-8"
         >
           <Minimize2 className="h-4 w-4" />
         </Button>
       </CardHeader>
 
-      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
-        {!isPuterSignedIn && (
-          <div className="flex flex-col items-center justify-center h-full gap-4">
-            <p className="text-center text-muted-foreground">
-              Sign in with Puter to use the AI assistant
-            </p>
-            <Button onClick={handleSignIn} className="bg-blue-600 hover:bg-blue-700">
-              <LogIn className="h-4 w-4 mr-2" />
-              Sign in with Puter
-            </Button>
-          </div>
-        )}
-
-        {isPuterSignedIn && messages.map((msg, idx) => (
-          <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            {msg.role === "model" && (
-              <Avatar className="h-8 w-8 bg-blue-600">
-                <AvatarFallback className="bg-blue-600 text-white">AI</AvatarFallback>
-              </Avatar>
-            )}
-            <div className={`rounded-lg px-4 py-2 max-w-[80%] ${
-              msg.role === "user" 
-                ? "bg-blue-600 text-white" 
-                : "bg-muted text-foreground"
-            }`}>
-              <ReactMarkdown
-                rehypePlugins={[rehypeSanitize]}
-                components={{
-                  p: ({node, ...props}) => <p className="text-sm mb-1 leading-relaxed" {...props} />,
-                  a: ({node, ...props}) => <a className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
-                  code: ({node, ...props}) => <code className="bg-black/20 rounded px-1 py-0.5 text-xs font-mono" {...props} />,
-                  ul: ({node, ...props}) => <ul className="list-disc list-inside text-sm mb-2" {...props} />,
-                  ol: ({node, ...props}) => <ol className="list-decimal list-inside text-sm mb-2" {...props} />,
-                  strong: ({node, ...props}) => <strong className="font-bold text-blue-300" {...props} />
-                }}
-              >
-                {msg.content}
-              </ReactMarkdown>
+      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950" ref={scrollRef}>
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              {msg.role === "model" && (
+                <Avatar className="h-8 w-8 border border-blue-500/30">
+                  <AvatarFallback className="bg-blue-600/20 text-blue-400 text-xs">AI</AvatarFallback>
+                </Avatar>
+              )}
+              <div className={`rounded-lg px-4 py-2 max-w-[85%] text-sm ${
+                msg.role === "user" 
+                  ? "bg-blue-600 text-white" 
+                  : "bg-slate-800 text-slate-200 border border-slate-700"
+              }`}>
+                <ReactMarkdown
+                  rehypePlugins={[rehypeSanitize]}
+                  components={{
+                    p: ({node, ...props}) => <p className="mb-1 last:mb-0 leading-relaxed" {...props} />,
+                    a: ({node, ...props}) => <a className="text-blue-300 underline" target="_blank" rel="noopener noreferrer" {...props} />,
+                    code: ({node, ...props}) => <code className="bg-black/30 rounded px-1 py-0.5 text-xs font-mono" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
+                    ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
+                    strong: ({node, ...props}) => <strong className="font-semibold text-blue-200" {...props} />
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              </div>
             </div>
-            {msg.role === "user" && (
-              <Avatar className="h-8 w-8 bg-cyan-600">
-                <AvatarFallback className="bg-cyan-600 text-white">U</AvatarFallback>
+          ))}
+          {isLoading && (
+            <div className="flex gap-3 justify-start animate-pulse">
+              <Avatar className="h-8 w-8 border border-blue-500/30">
+                <AvatarFallback className="bg-blue-600/20 text-blue-400 text-xs">AI</AvatarFallback>
               </Avatar>
-            )}
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex gap-3 justify-start">
-            <Avatar className="h-8 w-8 bg-blue-600">
-              <AvatarFallback className="bg-blue-600 text-white">AI</AvatarFallback>
-            </Avatar>
-            <div className="bg-muted rounded-lg px-4 py-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="bg-slate-800 rounded-lg px-4 py-2 border border-slate-700 flex items-center">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-400 mr-2" />
+                <span className="text-xs text-slate-400">Analyzing...</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </CardContent>
 
-      {isPuterSignedIn && (
-        <CardFooter className="p-4 border-t">
-          <div className="flex w-full gap-2">
-            <Input
-              placeholder="Ask me anything..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleSend} 
-              disabled={isLoading || !input.trim()}
-              size="icon"
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardFooter>
-      )}
+      <CardFooter className="p-4 border-t border-slate-800 bg-slate-900/50">
+        <div className="flex w-full gap-2">
+          <Input
+            placeholder="Ask about the market..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            className="flex-1 bg-slate-950 border-slate-700 text-white focus-visible:ring-blue-500"
+          />
+          <Button 
+            onClick={handleSend} 
+            disabled={isLoading || !input.trim()}
+            size="icon"
+            className="bg-blue-600 hover:bg-blue-700 shrink-0"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   );
 }
