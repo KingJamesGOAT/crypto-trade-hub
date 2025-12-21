@@ -24,8 +24,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       localStorage.setItem("sidebar_pinned", String(isSidebarPinned))
   }, [isSidebarPinned])
 
-  const isDesktopSidebarVisible = isSidebarPinned || isSidebarHovered
-
   return (
     <div className="min-h-screen bg-background font-sans antialiased flex flex-col">
       <GlossaryModal />
