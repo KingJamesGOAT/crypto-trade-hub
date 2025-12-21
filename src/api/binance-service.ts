@@ -185,6 +185,42 @@ export class BinanceService {
            throw e
        }
   }
+
+  // --- PUBLIC DATA HELPERS ---
+  async fetchPublicCandles(symbol: string, interval: string = "1m", limit: number = 1000): Promise<any[]> {
+      // https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1000
+      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+      
+      try {
+          const res = await fetch(url)
+          if (!res.ok) throw new Error("Failed to fetch klines")
+          const data = await res.json()
+          
+          // [
+          //   [
+          //     1499040000000,      // Open time
+          //     "0.01634790",       // Open
+          //     "0.80000000",       // High
+          //     "0.01575800",       // Low
+          //     "0.01577100",       // Close
+          //     "148976.11427815",  // Volume
+          //     ...
+          //   ]
+          // ]
+
+          return data.map((d: any) => ({
+              time: d[0],
+              open: parseFloat(d[1]),
+              high: parseFloat(d[2]),
+              low: parseFloat(d[3]),
+              close: parseFloat(d[4]),
+              volume: parseFloat(d[5])
+          }))
+      } catch (e) {
+          console.error("fetchPublicCandles failed", e)
+          return []
+      }
+  }
 }
 
 export const binanceService = new BinanceService()

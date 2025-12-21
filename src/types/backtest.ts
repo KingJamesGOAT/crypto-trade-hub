@@ -31,6 +31,17 @@ export interface MomentumConfig extends BaseStrategyConfig {
   type: "Momentum"
   shortPeriod: number // e.g., 9
   longPeriod: number // e.g., 21
+  rsiPeriod?: number // Optional for MeanRev overlap
+}
+
+export interface GridConfig extends BaseStrategyConfig {
+    type: "Grid" // Acts as Mean Reversal in V2
+    rsiPeriod: number
+    rsiLimit: number
+    bollingerSd: number
+    lowerBound?: number // Legacy
+    upperBound?: number // Legacy
+    grids?: number // Legacy
 }
 
 export type StrategyConfig = DCAConfig | GridConfig | MomentumConfig
