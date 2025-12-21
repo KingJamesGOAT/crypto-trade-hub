@@ -4,7 +4,7 @@ import { fetchCryptoNews, type NewsArticle } from "@/api/news-service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ExternalLink, TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import { analyzeMarketSentiment } from "@/lib/news-sentiment";
 
 export function NewsDashboard({ embedded }: { embedded?: boolean }) {
