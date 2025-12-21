@@ -282,8 +282,7 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       
       if (shouldSell) {
           await executeTrade(symbol, "sell", holding.quantity, currentPrice, true)
-          // In a real app we might log the 'reason' to a trade history or toast
-          // console.log(`Sold ${symbol}: ${reason}`)
+          console.log(`[Simulator] Sold ${symbol}: ${reason}`)
       }
   }
 
