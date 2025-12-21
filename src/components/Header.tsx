@@ -34,7 +34,7 @@ export function Header({ onMenuToggle, onDesktopToggle, onMenuHover, onMenuLeave
         <Button 
             variant="ghost" 
             size="icon" 
-            className={`mr-2 ${isSidebarOpen ? "md:hidden" : ""}`}
+            className="mr-2"
             onMouseEnter={onMenuHover} // Trigger sidebar peek on hover
             onMouseLeave={onMenuLeave} // Handle mouse leave
             onClick={() => {
