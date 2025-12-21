@@ -18,13 +18,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background font-sans antialiased">
       <GlossaryModal />
       
-      {/* Notion-style Hover Trigger (only active when sidebar is closed on desktop) */}
-      {!isSidebarOpen && (
+      {/* Notion-style Hover Trigger Removed per request - now only strictly on icon hover */}
+      {/* {!isSidebarOpen && (
         <div 
-          className="fixed inset-y-0 left-0 w-6 z-40 hidden md:block" // 24px hover zone
+          className="fixed inset-y-0 left-0 w-6 z-40 hidden md:block" 
           onMouseEnter={() => setIsSidebarHovered(true)}
         />
-      )}
+      )} */}
 
       <div className="flex h-screen overflow-hidden relative">
         <Sidebar 
@@ -45,6 +45,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
             // Pass desktop toggle to Header if we want a button there (optional, logic handles it)
             onDesktopToggle={() => setSidebarOpen(!isSidebarOpen)}
+            // Trigger overlay on icon hover
+            onMenuHover={() => setIsSidebarHovered(true)}
             isSidebarOpen={isSidebarOpen}
           />
           <main className="flex-1 overflow-y-auto p-4 md:p-6">

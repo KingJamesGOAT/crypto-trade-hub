@@ -17,10 +17,11 @@ import {
 interface HeaderProps {
     onMenuToggle: () => void
     onDesktopToggle?: () => void
+    onMenuHover?: () => void
     isSidebarOpen?: boolean
 }
 
-export function Header({ onMenuToggle, onDesktopToggle, isSidebarOpen = true }: HeaderProps) {
+export function Header({ onMenuToggle, onDesktopToggle, onMenuHover, isSidebarOpen = true }: HeaderProps) {
   const { setTheme, theme } = useTheme()
   const { openGlossary } = useGlossary()
   const { isAuthenticated, username, logout } = useAuth()
@@ -32,13 +33,9 @@ export function Header({ onMenuToggle, onDesktopToggle, isSidebarOpen = true }: 
         <Button 
             variant="ghost" 
             size="icon" 
-            // Mobile: Always visible (md:hidden removed if sidebar closed?). No, mobile uses separate toggle.
-            // Logic:
-            // Mobile: Always show (for mobile menu). 
-            // Desktop: Show ONLY if sidebar is closed.
             className={`mr-2 ${isSidebarOpen ? "md:hidden" : ""}`}
+            onMouseEnter={onMenuHover} // Trigger sidebar peek on hover
             onClick={() => {
-                // If on desktop (hidden md logic check), call desktop toggle
                 if (window.innerWidth >= 768) {
                    onDesktopToggle?.()
                 } else {
