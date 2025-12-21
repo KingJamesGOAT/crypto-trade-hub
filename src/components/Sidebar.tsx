@@ -54,7 +54,7 @@ export function Sidebar({
         {/* Mobile Overlay */}
         {isOpen && (
             <div 
-                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
+                className="fixed inset-0 bg-black/50 z-40 md:hidden"
                 onClick={onClose}
             />
         )}
@@ -62,7 +62,7 @@ export function Sidebar({
         <div 
             // Fixed position, sitting below the 16 (4rem) header
             className={cn(
-                "fixed left-0 bottom-0 top-16 w-64 border-r bg-card/95 backdrop-blur shadow-xl transition-transform duration-300 ease-in-out md:shadow-none z-40",
+                "fixed left-0 bottom-0 top-16 w-64 border-r bg-card shadow-lg transition-transform duration-200 ease-out md:shadow-none z-40 will-change-transform",
                 // Mobile translation
                 isOpen ? "translate-x-0" : "-translate-x-full",
                 // Desktop translation (Always visible if open OR pinned OR hovered)
