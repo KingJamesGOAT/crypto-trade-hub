@@ -1,4 +1,4 @@
-import { Moon, Sun, User, Search, LogOut, LogIn } from "lucide-react"
+import { Moon, Sun, User, Search, LogOut, LogIn, Menu } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { useGlossary } from "./GlossaryModal"
@@ -14,7 +14,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export function Header() {
+interface HeaderProps {
+    onMenuToggle: () => void
+}
+
+export function Header({ onMenuToggle }: HeaderProps) {
   const { setTheme, theme } = useTheme()
   const { openGlossary } = useGlossary()
   const { isAuthenticated, username, logout } = useAuth()
@@ -22,11 +26,20 @@ export function Header() {
 
   return (
     <header className="border-b bg-card">
-      <div className="flex h-16 items-center px-6">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+      <div className="flex h-16 items-center px-4 md:px-6">
+        <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden mr-2" 
+            onClick={onMenuToggle}
+        >
+            <Menu className="h-5 w-5" />
+        </Button>
+
+        <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent truncate">
           CryptoTradeHub
         </h1>
-        <div className="ml-auto flex items-center space-x-4">
+        <div className="ml-auto flex items-center space-x-2 md:space-x-4">
           <Button
             variant="outline"
             size="sm"

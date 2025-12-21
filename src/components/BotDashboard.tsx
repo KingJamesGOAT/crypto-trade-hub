@@ -206,48 +206,50 @@ export function BotDashboard() {
               <CardDescription>Real-time view of bot allocations and manual trades</CardDescription>
           </CardHeader>
           <CardContent>
-              <Table>
-                  <TableHeader>
-                      <TableRow>
-                          <TableHead>Asset</TableHead>
-                          <TableHead>Quantity</TableHead>
-                          <TableHead>Avg. Entry</TableHead>
-                          <TableHead>Current Price</TableHead>
-                          <TableHead>Value (CHF)</TableHead>
-                          <TableHead>P&L</TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {holdings.length === 0 && (
-                          <TableRow>
-                              <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                                  No active positions. The bot is scanning...
-                              </TableCell>
-                          </TableRow>
-                      )}
-                      {holdings.map((h) => {
-                          const value = h.quantity * h.currentPrice
-                          const pnl = value - (h.quantity * h.averageEntryPrice)
-                          const pnlPercent = (pnl / (h.quantity * h.averageEntryPrice)) * 100
-                          
-                          return (
-                              <TableRow key={h.coin}>
-                                  <TableCell className="font-medium flex items-center gap-2">
-                                      {/* Could add icon here */}
-                                      {h.coin}
-                                  </TableCell>
-                                  <TableCell>{h.quantity.toFixed(6)}</TableCell>
-                                  <TableCell>${h.averageEntryPrice.toFixed(2)}</TableCell>
-                                  <TableCell>${h.currentPrice.toFixed(2)}</TableCell>
-                                  <TableCell>CHF {value.toFixed(2)}</TableCell>
-                                  <TableCell className={pnl >= 0 ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
-                                      {pnlPercent.toFixed(2)}% (CHF {pnl.toFixed(2)})
-                                  </TableCell>
-                              </TableRow>
-                          )
-                      })}
-                  </TableBody>
-              </Table>
+              <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Asset</TableHead>
+                            <TableHead>Quantity</TableHead>
+                            <TableHead>Avg. Entry</TableHead>
+                            <TableHead>Current Price</TableHead>
+                            <TableHead>Value (CHF)</TableHead>
+                            <TableHead>P&L</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {holdings.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                    No active positions. The bot is scanning...
+                                </TableCell>
+                            </TableRow>
+                        )}
+                        {holdings.map((h) => {
+                            const value = h.quantity * h.currentPrice
+                            const pnl = value - (h.quantity * h.averageEntryPrice)
+                            const pnlPercent = (pnl / (h.quantity * h.averageEntryPrice)) * 100
+                            
+                            return (
+                                <TableRow key={h.coin}>
+                                    <TableCell className="font-medium flex items-center gap-2">
+                                        {/* Could add icon here */}
+                                        {h.coin}
+                                    </TableCell>
+                                    <TableCell>{h.quantity.toFixed(6)}</TableCell>
+                                    <TableCell>${h.averageEntryPrice.toFixed(2)}</TableCell>
+                                    <TableCell>${h.currentPrice.toFixed(2)}</TableCell>
+                                    <TableCell>CHF {value.toFixed(2)}</TableCell>
+                                    <TableCell className={pnl >= 0 ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
+                                        {pnlPercent.toFixed(2)}% (CHF {pnl.toFixed(2)})
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
+                    </TableBody>
+                </Table>
+              </div>
           </CardContent>
       </Card>
 
@@ -257,9 +259,9 @@ export function BotDashboard() {
               <CardTitle>Recent Activity</CardTitle>
               <CardDescription>Live feed of bot and manual executions</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-auto p-0">
-              <div className="px-6 pb-4">
-                <Table>
+          <CardContent className="flex-1 overflow-hidden p-0">
+              <div className="h-full px-6 pb-4 overflow-auto">
+                <Table className="min-w-[600px]"> 
                     <TableHeader className="sticky top-0 bg-background z-10">
                         <TableRow>
                             <TableHead>Time</TableHead>

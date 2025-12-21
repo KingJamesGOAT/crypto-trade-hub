@@ -17,7 +17,8 @@ const BLUE_CHIPS = [
   "DOGEUSDT",  // Dogecoin
   "AVAXUSDT",  // Avalanche
   "SUIUSDT",   // Sui
-  "TRXUSDT"    // TRON
+  "TRXUSDT",   // TRON
+  "LINKUSDT"   // Chainlink
 ];
 
 export async function getTopCandidates(): Promise<string[]> {

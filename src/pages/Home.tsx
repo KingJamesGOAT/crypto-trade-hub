@@ -150,79 +150,81 @@ export function Home() {
                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                </div>
            ) : (
-               <Table>
-                   <TableHeader>
-                       <TableRow>
-                           <TableHead className="w-[50px]">#</TableHead>
-                           <TableHead>Asset</TableHead>
-                           <TableHead className="text-right">Price</TableHead>
-                           <TableHead className="text-right">1h %</TableHead>
-                           <TableHead className="text-right">24h %</TableHead>
-                           <TableHead className="text-right">7d %</TableHead>
-                           <TableHead className="text-right hidden md:table-cell">Market Cap</TableHead>
-                           <TableHead className="text-right hidden md:table-cell">Volume (24h)</TableHead>
-                           <TableHead className="text-right hidden lg:table-cell">Circulating Supply</TableHead>
-                           <TableHead className="w-[180px] hidden md:table-cell">Last 7 Days</TableHead>
-                       </TableRow>
-                   </TableHeader>
-                   <TableBody>
-                       {coins.map((coin) => (
-                           <TableRow 
-                                key={coin.id} 
-                                className="cursor-pointer hover:bg-muted/50 transition-colors"
-                                onClick={() => { setSelectedCoin(coin); setIsMaximize(false); }}
-                           >
-                               <TableCell className="font-medium text-muted-foreground text-xs">{coin.market_cap_rank}</TableCell>
-                               <TableCell>
-                                   <div className="flex items-center gap-3">
-                                       <img src={coin.image} alt={coin.name} className="h-8 w-8 rounded-full" />
-                                       <div className="flex flex-col">
-                                           <span className="font-bold">{coin.name}</span>
-                                           <span className="text-xs text-muted-foreground uppercase">{coin.symbol}</span>
-                                       </div>
-                                   </div>
-                               </TableCell>
-                               <TableCell className="text-right font-mono font-medium">
-                                   ${coin.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                               </TableCell>
-                               <TableCell className="text-right text-xs">
-                                   <PercentChange value={coin.price_change_percentage_1h_in_currency} />
-                               </TableCell>
-                               <TableCell className="text-right text-sm font-bold">
-                                   <PercentChange value={coin.price_change_percentage_24h_in_currency} />
-                               </TableCell>
-                               <TableCell className="text-right text-xs">
-                                   <PercentChange value={coin.price_change_percentage_7d_in_currency} />
-                               </TableCell>
-                               <TableCell className="text-right hidden md:table-cell text-muted-foreground font-mono text-xs">
-                                   {formatNumber(coin.market_cap)}
-                               </TableCell>
-                               <TableCell className="text-right hidden md:table-cell text-muted-foreground font-mono text-xs">
-                                   {formatNumber(coin.total_volume)}
-                               </TableCell>
-                               <TableCell className="text-right hidden lg:table-cell text-muted-foreground font-mono text-xs">
-                                   {formatNumber(coin.circulating_supply, "")} {coin.symbol.toUpperCase()}
-                               </TableCell>
-                               <TableCell className="hidden md:table-cell p-2">
-                                   <div className="h-[50px] w-[160px] ml-auto">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={coin.sparkline_in_7d.price.map((val, i) => ({ i, val }))}>
-                                                <YAxis domain={['dataMin', 'dataMax']} hide />
-                                                <Line 
-                                                    type="monotone" 
-                                                    dataKey="val" 
-                                                    stroke={coin.price_change_percentage_7d_in_currency >= 0 ? "#22c55e" : "#ef4444"} 
-                                                    strokeWidth={2} 
-                                                    dot={false} 
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                   </div>
-                               </TableCell>
+               <div className="overflow-x-auto">
+                   <Table className="min-w-[800px]">
+                       <TableHeader>
+                           <TableRow>
+                               <TableHead className="w-[50px]">#</TableHead>
+                               <TableHead>Asset</TableHead>
+                               <TableHead className="text-right">Price</TableHead>
+                               <TableHead className="text-right">1h %</TableHead>
+                               <TableHead className="text-right">24h %</TableHead>
+                               <TableHead className="text-right">7d %</TableHead>
+                               <TableHead className="text-right hidden md:table-cell">Market Cap</TableHead>
+                               <TableHead className="text-right hidden md:table-cell">Volume (24h)</TableHead>
+                               <TableHead className="text-right hidden lg:table-cell">Circulating Supply</TableHead>
+                               <TableHead className="w-[180px] hidden md:table-cell">Last 7 Days</TableHead>
                            </TableRow>
-                       ))}
-                   </TableBody>
-               </Table>
+                       </TableHeader>
+                       <TableBody>
+                           {coins.map((coin) => (
+                               <TableRow 
+                                    key={coin.id} 
+                                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                    onClick={() => { setSelectedCoin(coin); setIsMaximize(false); }}
+                               >
+                                   <TableCell className="font-medium text-muted-foreground text-xs">{coin.market_cap_rank}</TableCell>
+                                   <TableCell>
+                                       <div className="flex items-center gap-3">
+                                           <img src={coin.image} alt={coin.name} className="h-8 w-8 rounded-full" />
+                                           <div className="flex flex-col">
+                                               <span className="font-bold">{coin.name}</span>
+                                               <span className="text-xs text-muted-foreground uppercase">{coin.symbol}</span>
+                                           </div>
+                                       </div>
+                                   </TableCell>
+                                   <TableCell className="text-right font-mono font-medium">
+                                       ${coin.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                   </TableCell>
+                                   <TableCell className="text-right text-xs">
+                                       <PercentChange value={coin.price_change_percentage_1h_in_currency} />
+                                   </TableCell>
+                                   <TableCell className="text-right text-sm font-bold">
+                                       <PercentChange value={coin.price_change_percentage_24h_in_currency} />
+                                   </TableCell>
+                                   <TableCell className="text-right text-xs">
+                                       <PercentChange value={coin.price_change_percentage_7d_in_currency} />
+                                   </TableCell>
+                                   <TableCell className="text-right hidden md:table-cell text-muted-foreground font-mono text-xs">
+                                       {formatNumber(coin.market_cap)}
+                                   </TableCell>
+                                   <TableCell className="text-right hidden md:table-cell text-muted-foreground font-mono text-xs">
+                                       {formatNumber(coin.total_volume)}
+                                   </TableCell>
+                                   <TableCell className="text-right hidden lg:table-cell text-muted-foreground font-mono text-xs">
+                                       {formatNumber(coin.circulating_supply, "")} {coin.symbol.toUpperCase()}
+                                   </TableCell>
+                                   <TableCell className="hidden md:table-cell p-2">
+                                       <div className="h-[50px] w-[160px] ml-auto">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={coin.sparkline_in_7d.price.map((val, i) => ({ i, val }))}>
+                                                    <YAxis domain={['dataMin', 'dataMax']} hide />
+                                                    <Line 
+                                                        type="monotone" 
+                                                        dataKey="val" 
+                                                        stroke={coin.price_change_percentage_7d_in_currency >= 0 ? "#22c55e" : "#ef4444"} 
+                                                        strokeWidth={2} 
+                                                        dot={false} 
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                       </div>
+                                   </TableCell>
+                               </TableRow>
+                           ))}
+                       </TableBody>
+                   </Table>
+               </div>
            )}
         </CardContent>
       </Card>
