@@ -13,15 +13,21 @@ const SCOUTED_COINS = "BTC,ETH,SOL,BNB,XRP,ADA,DOGE,AVAX,SUI,TRX,LINK";
 
 export async function fetchCryptoNews(): Promise<NewsArticle[]> {
   try {
-    // CryptoCompare Free News Endpoint
-    // We filter by our specific coins to save bandwidth and relevance
-    const response = await fetch(
+    // 1. Primary Fetch: Scouted Coins
+    let response = await fetch(
       `https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${SCOUTED_COINS}`
     );
-    const data = await response.json();
+    let data = await response.json();
+
+    // 2. Fallback Fetch: General Market News (if valid categories returned no specific news or error)
+    if (data.Message !== "News list successfully returned" || data.Data.length === 0) {
+       console.warn("Primary news fetch empty/failed. Trying fallback...");
+       response = await fetch(`https://min-api.cryptocompare.com/data/v2/news/?lang=EN`);
+       data = await response.json();
+    }
 
     if (data.Message !== "News list successfully returned") {
-      throw new Error("Failed to fetch news");
+      throw new Error("Failed to fetch news from API");
     }
 
     return data.Data.map((item: any) => ({

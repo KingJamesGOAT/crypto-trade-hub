@@ -19,19 +19,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 1. Check Puter Session on Mount
   useEffect(() => {
+    let attempts = 0;
+    const maxAttempts = 10; // 5 seconds (10 * 500ms)
+
     const initAuth = async () => {
-      try {
-        if (typeof puter !== 'undefined' && puter.auth.isSignedIn()) {
-          const user = await puter.auth.getUser();
-          setUsername(user.username);
-          setIsAuthenticated(true);
+      // Check if Puter is declared globally
+      if (typeof puter !== 'undefined') {
+        try {
+          if (puter.auth.isSignedIn()) {
+            const user = await puter.auth.getUser();
+            setUsername(user.username);
+            setIsAuthenticated(true);
+          }
+        } catch (err) {
+          console.warn("Puter auth check failed", err);
+        } finally {
+          setIsLoading(false);
         }
-      } catch (err) {
-        console.warn("Puter auth check failed", err);
-      } finally {
-        setIsLoading(false);
+      } else {
+        // Puter script not loaded yet, retry
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(initAuth, 500);
+        } else {
+          // Timed out waiting for Puter
+          console.warn("Puter.js failed to load within 5 seconds");
+          setIsLoading(false);
+        }
       }
     };
+    
     initAuth();
   }, []);
 
