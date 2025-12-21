@@ -69,7 +69,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
               isPinned={isSidebarPinned}
               isHovered={isSidebarHovered}
               onClose={() => setIsMobileMenuOpen(false)}
-              onTogglePin={() => setIsSidebarPinned(!isSidebarPinned)}
               onMouseEnter={handleHoverOpen}
               onMouseLeave={handleHoverClose}
           />
