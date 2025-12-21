@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { aiService, type ChatMessage } from "@/api/gemini-service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+// import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Bot, X, Zap, ChevronDown } from "lucide-react";
 
 export function AIChat() {
