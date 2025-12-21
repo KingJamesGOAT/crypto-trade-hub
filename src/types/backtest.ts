@@ -50,6 +50,8 @@ export interface BacktestTrade {
 export interface BacktestResult {
   totalReturn: number
   totalReturnPercent: number
+  benchmarkReturn: number
+  benchmarkReturnPercent: number
   maxDrawdown: number
   winRate: number
   trades: BacktestTrade[]

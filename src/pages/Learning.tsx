@@ -1,15 +1,19 @@
 import { useState } from "react"
-import { learningModules } from "@/data/learning-modules"
+import { learningModules, type LearningModule } from "@/data/learning-modules"
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { BookOpen, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+import { QuizInteractive } from "@/components/QuizInteractive"
+
 export function Learning() {
   const [selectedModuleId, setSelectedModuleId] = useState(learningModules[0].id)
   
-  const selectedModule = learningModules.find(m => m.id === selectedModuleId) || learningModules[0]
+  const selectedModule: LearningModule = learningModules.find(m => m.id === selectedModuleId) || learningModules[0]
 
   return (
     <div className="h-full flex flex-col space-y-6">
@@ -68,9 +72,44 @@ export function Learning() {
           </CardHeader>
           <CardContent className="flex-1 overflow-hidden p-0">
              <ScrollArea className="h-full">
-                <div className="p-6 prose dark:prose-invert max-w-none">
-                   <div dangerouslySetInnerHTML={{ __html: selectedModule.content.replace(/\n/g, '<br/>').replace(/# (.*)/g, '<h1 class="text-2xl font-bold mb-4">$1</h1>').replace(/## (.*)/g, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>').replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>').replace(/- (.*)/g, '<li class="ml-4 list-disc">$1</li>') }} />
-                </div>
+                   <div className="space-y-6 p-8 max-w-4xl mx-auto">
+                     <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          h1: ({node, ...props}: any) => <h1 className="text-3xl font-bold tracking-tight border-b pb-4 mt-8 mb-4 text-foreground" {...props} />,
+                          h2: ({node, ...props}: any) => <h2 className="text-2xl font-semibold tracking-tight mt-8 mb-4 text-foreground" {...props} />,
+                          h3: ({node, ...props}: any) => <h3 className="text-xl font-semibold mt-6 mb-3 text-foreground" {...props} />,
+                          p: ({node, ...props}: any) => <p className="leading-7 text-muted-foreground [&:not(:first-child)]:mt-4" {...props} />,
+                          ul: ({node, ...props}: any) => <ul className="my-6 ml-6 list-disc [&>li]:mt-2 text-muted-foreground" {...props} />,
+                          ol: ({node, ...props}: any) => <ol className="my-6 ml-6 list-decimal [&>li]:mt-2 text-muted-foreground" {...props} />,
+                          li: ({node, ...props}: any) => <li {...props} />,
+                          blockquote: ({node, ...props}: any) => (
+                             <blockquote className="mt-6 border-l-4 border-blue-500 pl-6 italic bg-blue-500/10 p-4 rounded-r-lg text-muted-foreground" {...props} />
+                          ),
+                          code: ({node, ...props}: any) => (
+                             <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold" {...props} />
+                          ),
+                          table: ({node, ...props}: any) => (
+                             <div className="my-6 w-full overflow-y-auto">
+                               <table className="w-full border-collapse border border-border text-sm" {...props} />
+                             </div>
+                          ),
+                          thead: ({node, ...props}: any) => <thead className="bg-muted" {...props} />,
+                          tr: ({node, ...props}: any) => <tr className="border-b border-border m-0 p-0 even:bg-muted/50" {...props} />,
+                          th: ({node, ...props}: any) => <th className="border border-border px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right" {...props} />,
+                          td: ({node, ...props}: any) => <td className="border border-border px-4 py-2 text-left [&[align=center]]:text-center [&[align=right]]:text-right" {...props} />,
+                          hr: ({node, ...props}: any) => <hr className="my-8 border-border" {...props} />,
+                          strong: ({node, ...props}: any) => <strong className="font-bold text-foreground" {...props} />,
+                        }}
+                     >
+                       {selectedModule.content}
+                     </ReactMarkdown>
+
+                     {/* Quiz Section */}
+                     {selectedModule.quiz && (
+                        <QuizInteractive questions={selectedModule.quiz} />
+                     )}
+                   </div>
              </ScrollArea>
           </CardContent>
         </Card>

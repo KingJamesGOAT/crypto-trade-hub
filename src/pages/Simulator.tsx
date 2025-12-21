@@ -5,32 +5,31 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { RefreshCw, TrendingUp, TrendingDown, History } from "lucide-react"
+import { RefreshCw, Zap } from "lucide-react"
 
-const AVAILABLE_COINS = [
-  { id: "bitcoin", symbol: "BTC", name: "Bitcoin" },
-  { id: "ethereum", symbol: "ETH", name: "Ethereum" },
-  { id: "solana", symbol: "SOL", name: "Solana" },
-  { id: "binancecoin", symbol: "BNB", name: "BNB" },
-  { id: "ripple", symbol: "XRP", name: "XRP" },
-  { id: "cardano", symbol: "ADA", name: "Cardano" },
-]
+import { BotConfiguration } from "@/components/BotConfiguration"
+import { BotDashboard } from "@/components/BotDashboard"
+import { AVAILABLE_COINS } from "@/data/coins"
 
 export function Simulator() {
-  const { portfolio, executeTrade, resetSimulator } = useSimulator()
+  const { portfolio, executeTrade, resetSimulator, addFunds } = useSimulator()
   const { toast } = useToast()
   
+  // Manual Trade State
   const [selectedCoinId, setSelectedCoinId] = useState("bitcoin")
   const [amount, setAmount] = useState("")
   const [prices, setPrices] = useState<Record<string, number>>({})
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [orderType, setOrderType] = useState<"buy" | "sell">("buy")
   const [inputType, setInputType] = useState<"fiat" | "quantity">("fiat")
+
+  // Add Funds State
+  const [isAddFundsOpen, setIsAddFundsOpen] = useState(false)
+  const [fundsAmount, setFundsAmount] = useState("")
 
   const selectedCoin = AVAILABLE_COINS.find(c => c.id === selectedCoinId) || AVAILABLE_COINS[0]
   const currentPrice = prices[selectedCoinId] || 0
@@ -84,6 +83,27 @@ export function Simulator() {
     }
   }
 
+  const handleAddFunds = (isDeposit: boolean) => {
+      let val = parseFloat(fundsAmount)
+      if (val <= 0) return
+
+      if (!isDeposit) {
+          if (val > portfolio.simulator.currentBalance) {
+              toast({ title: "Error", description: "Insufficient funds to withdraw", variant: "destructive" })
+              return
+          }
+          val = -val
+      }
+
+      addFunds(val)
+      toast({ 
+          title: isDeposit ? "Funds Added" : "Funds Withdrawn", 
+          description: `Successfully ${isDeposit ? "added" : "withdrawn"} CHF ${Math.abs(val).toLocaleString()}` 
+      })
+      setIsAddFundsOpen(false)
+      setFundsAmount("")
+  }
+
   const calculateEstimate = () => {
     const val = parseFloat(amount)
     if (isNaN(val) || !currentPrice) return "0.00"
@@ -98,188 +118,188 @@ export function Simulator() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 pb-12">
+      {/* Header & Balance */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Simulator</h2>
+          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+              Pro Simulator
+          </h2>
           <p className="text-muted-foreground">
-            Practice trading with virtual capital. Risk-free environment.
+            Advanced autonomous trading environment
           </p>
         </div>
         <div className="flex items-center gap-4">
-             <Badge variant="outline" className="text-lg py-1 px-4 border-blue-500 text-blue-500">
-                Balance: CHF {portfolio.simulator.currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-             </Badge>
-             <Button variant="destructive" size="sm" onClick={resetSimulator}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Reset Account
+             <Card className="px-4 py-2 border-primary/50 bg-primary/10">
+                 <div className="flex flex-col items-end">
+                     <span className="text-xs text-muted-foreground uppercase font-bold">Available Capital</span>
+                     <span className="text-xl font-mono font-bold text-primary">
+                        CHF {portfolio.simulator.currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                     </span>
+                 </div>
+             </Card>
+
+             <Dialog open={isAddFundsOpen} onOpenChange={setIsAddFundsOpen}>
+                 <DialogTrigger asChild>
+                     <Button variant="outline" size="sm" className="h-full">
+                         Manage Funds
+                     </Button>
+                 </DialogTrigger>
+                 <DialogContent>
+                     <DialogHeader>
+                         <DialogTitle>Manage Simulator Funds</DialogTitle>
+                         <DialogDescription>
+                             Add or withdraw capital from your simulator balance.
+                         </DialogDescription>
+                     </DialogHeader>
+                     
+                     <Tabs defaultValue="deposit" className="w-full">
+                         <TabsList className="grid w-full grid-cols-2 mb-4">
+                             <TabsTrigger value="deposit">Deposit</TabsTrigger>
+                             <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
+                         </TabsList>
+                         
+                         <TabsContent value="deposit" className="space-y-4">
+                             <div className="space-y-2">
+                                 <Label>Amount to Add (CHF)</Label>
+                                 <Input 
+                                    type="number" 
+                                    placeholder="1000" 
+                                    value={fundsAmount}
+                                    onChange={(e) => setFundsAmount(e.target.value)}
+                                 />
+                             </div>
+                             <Button onClick={() => handleAddFunds(true)} className="w-full">
+                                 Deposit Funds
+                             </Button>
+                         </TabsContent>
+                         
+                         <TabsContent value="withdraw" className="space-y-4">
+                             <div className="space-y-2">
+                                 <Label>Amount to Withdraw (CHF)</Label>
+                                 <Input 
+                                    type="number" 
+                                    placeholder="500" 
+                                    value={fundsAmount}
+                                    onChange={(e) => setFundsAmount(e.target.value)}
+                                 />
+                             </div>
+                             <Button onClick={() => handleAddFunds(false)} variant="destructive" className="w-full">
+                                 Withdraw Funds
+                             </Button>
+                         </TabsContent>
+                     </Tabs>
+                 </DialogContent>
+             </Dialog>
+
+             <Button variant="destructive" size="icon" onClick={resetSimulator} title="Reset Account">
+                <RefreshCw className="w-4 h-4" />
              </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ORDER ENTRY */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Place Order</CardTitle>
-            <CardDescription>Execute trades at current market price</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Tabs defaultValue="buy" onValueChange={(v) => setOrderType(v as "buy" | "sell")}>
-              <TabsList className="w-full">
-                <TabsTrigger value="buy" className="flex-1">Buy</TabsTrigger>
-                <TabsTrigger value="sell" className="flex-1">Sell</TabsTrigger>
-              </TabsList>
-            </Tabs>
+      <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+              <TabsTrigger value="dashboard">Bot Dashboard</TabsTrigger>
+              <TabsTrigger value="manual">Manual Execution</TabsTrigger>
+          </TabsList>
 
-            <div className="space-y-2">
-              <Label>Select Asset</Label>
-              <Select value={selectedCoinId} onValueChange={setSelectedCoinId}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {AVAILABLE_COINS.map(coin => (
-                     <SelectItem key={coin.id} value={coin.id}>
-                        {coin.name} ({coin.symbol})
-                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="text-sm text-right text-muted-foreground">
-                 Current Price: {isLoadingPrice ? "Loading..." : `$${currentPrice.toLocaleString()}`}
+          {/* DASHBOARD TAB */}
+          <TabsContent value="dashboard" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left: Bot Config */}
+                  <div className="lg:col-span-1">
+                      <BotConfiguration />
+                  </div>
+                  
+                  {/* Right: Performance Graph & Stats */}
+                  <div className="lg:col-span-2">
+                       <BotDashboard />
+                  </div>
               </div>
-            </div>
+          </TabsContent>
 
-            <div className="space-y-2">
-              <Label>Amount</Label>
-              <div className="flex gap-2">
-                 <Input 
-                   type="number" 
-                   placeholder="0.00" 
-                   value={amount}
-                   onChange={(e) => setAmount(e.target.value)}
-                 />
-                 <Select value={inputType} onValueChange={(v) => setInputType(v as "fiat" | "quantity")}>
-                   <SelectTrigger className="w-[110px]">
-                     <SelectValue />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="fiat">USD (CHF)</SelectItem>
-                     <SelectItem value="quantity">{selectedCoin.symbol}</SelectItem>
-                   </SelectContent>
-                 </Select>
+          {/* MANUAL TRADE TAB */}
+          <TabsContent value="manual">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1">
+                    <Card className="h-full border-blue-500/20">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Zap className="w-5 h-5 text-blue-500" />
+                                Manual Execution
+                            </CardTitle>
+                            <CardDescription>Override bot commands with manual orders.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Tabs defaultValue="buy" onValueChange={(v) => setOrderType(v as "buy" | "sell")}>
+                            <TabsList className="w-full">
+                                <TabsTrigger value="buy" className="flex-1">Buy</TabsTrigger>
+                                <TabsTrigger value="sell" className="flex-1">Sell</TabsTrigger>
+                            </TabsList>
+                            </Tabs>
+
+                            <div className="space-y-2">
+                            <Label>Select Asset</Label>
+                            <Select value={selectedCoinId} onValueChange={setSelectedCoinId}>
+                                <SelectTrigger>
+                                <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                {AVAILABLE_COINS.map(coin => (
+                                    <SelectItem key={coin.id} value={coin.id}>
+                                        {coin.name} ({coin.symbol})
+                                    </SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <div className="text-sm text-right text-muted-foreground font-mono">
+                                Price: {isLoadingPrice ? "..." : `$${currentPrice.toLocaleString()}`}
+                            </div>
+                            </div>
+
+                            <div className="space-y-2">
+                            <Label>Amount</Label>
+                            <div className="flex gap-2">
+                                <Input 
+                                type="number" 
+                                placeholder="0.00" 
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                />
+                                <Select value={inputType} onValueChange={(v) => setInputType(v as "fiat" | "quantity")}>
+                                <SelectTrigger className="w-[110px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="fiat">USD</SelectItem>
+                                    <SelectItem value="quantity">{selectedCoin.symbol}</SelectItem>
+                                </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="text-xs text-muted-foreground text-right">
+                                Est: {calculateEstimate()}
+                            </div>
+                            </div>
+
+                            <Button 
+                            className="w-full" 
+                            onClick={handleTrade}
+                            variant={orderType === "buy" ? "default" : "destructive"}
+                            >
+                            {orderType === "buy" ? "Buy" : "Sell"} {selectedCoin.name}
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                <div className="lg:col-span-2">
+                    <BotDashboard /> 
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                Est: {calculateEstimate()}
-              </div>
-            </div>
+          </TabsContent>
+      </Tabs>
 
-            <Button 
-              className="w-full" 
-              onClick={handleTrade}
-              variant={orderType === "buy" ? "default" : "destructive"}
-            >
-               {orderType === "buy" ? "Buy" : "Sell"} {selectedCoin.name}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* PORTFOLIO & HOLDINGS */}
-        <div className="lg:col-span-2 space-y-6">
-           {/* Active Holdings */}
-           <Card>
-              <CardHeader>
-                 <CardTitle>Portfolio Holdings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                 <Table>
-                    <TableHeader>
-                       <TableRow>
-                          <TableHead>Asset</TableHead>
-                          <TableHead className="text-right">Quantity</TableHead>
-                          <TableHead className="text-right">Avg. Entry</TableHead>
-                          <TableHead className="text-right">Current Price</TableHead>
-                          <TableHead className="text-right">P&L</TableHead>
-                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                       {Object.values(portfolio.holdings).length === 0 && (
-                          <TableRow>
-                             <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                                No active positions
-                             </TableCell>
-                          </TableRow>
-                       )}
-                       {Object.values(portfolio.holdings).map((holding) => {
-                          const marketPrice = prices[AVAILABLE_COINS.find(c => c.symbol === holding.coin)?.id || ""] || holding.currentPrice
-                          const value = holding.quantity * marketPrice
-                          const pnl = value - (holding.quantity * holding.averageEntryPrice)
-                          const pnlPercent = (pnl / (holding.quantity * holding.averageEntryPrice)) * 100
-
-                          return (
-                             <TableRow key={holding.coin}>
-                                <TableCell className="font-medium">{holding.coin}</TableCell>
-                                <TableCell className="text-right">{holding.quantity.toFixed(6)}</TableCell>
-                                <TableCell className="text-right">${holding.averageEntryPrice.toFixed(2)}</TableCell>
-                                <TableCell className="text-right">${marketPrice.toFixed(2)}</TableCell>
-                                <TableCell className={`text-right ${pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
-                                   <div className="flex items-center justify-end gap-1">
-                                      {pnl >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                                      {pnlPercent.toFixed(2)}% (${pnl.toFixed(2)})
-                                   </div>
-                                </TableCell>
-                             </TableRow>
-                          )
-                       })}
-                    </TableBody>
-                 </Table>
-              </CardContent>
-           </Card>
-
-           {/* Recent Trades */}
-           <Card>
-              <CardHeader>
-                 <CardTitle className="flex items-center gap-2">
-                    <History className="w-5 h-5" />
-                    Recent Trades
-                 </CardTitle>
-              </CardHeader>
-              <CardContent>
-                 <Table>
-                    <TableHeader>
-                       <TableRow>
-                          <TableHead>Time</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Asset</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead className="text-right">Price</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                       {portfolio.trades.slice(0, 5).map((trade) => (
-                          <TableRow key={trade.id}>
-                             <TableCell className="text-muted-foreground text-xs">
-                                {new Date(trade.timestamp).toLocaleTimeString()}
-                             </TableCell>
-                             <TableCell>
-                                <Badge variant={trade.side === "buy" ? "default" : "destructive"}>
-                                   {trade.side.toUpperCase()}
-                                </Badge>
-                             </TableCell>
-                             <TableCell>{trade.coin}</TableCell>
-                             <TableCell className="text-right">{trade.quantity.toFixed(6)}</TableCell>
-                             <TableCell className="text-right">${trade.entryPrice.toFixed(2)}</TableCell>
-                             <TableCell className="text-right">${trade.totalValue.toFixed(2)}</TableCell>
-                          </TableRow>
-                       ))}
-                    </TableBody>
-                 </Table>
-              </CardContent>
-           </Card>
-        </div>
-      </div>
     </div>
   )
 }

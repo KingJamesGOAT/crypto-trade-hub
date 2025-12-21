@@ -165,10 +165,18 @@ export function runBacktest(candles: Candle[], config: StrategyConfig): Backtest
       if (dd > maxDrawdown) maxDrawdown = dd
   })
 
+  // Benchmark: Buy & Hold
+  const initialPrice = candles[0].close
+  const finalPrice = candles[candles.length - 1].close
+  const benchmarkReturnPercent = ((finalPrice - initialPrice) / initialPrice) * 100
+  const benchmarkReturn = (config.initialCapital * (benchmarkReturnPercent / 100))
+
   return {
     totalReturn,
     totalReturnPercent,
     maxDrawdown: maxDrawdown * 100, // as percent
+    benchmarkReturn,
+    benchmarkReturnPercent,
     winRate: 0, // TODO: Calc from trades
     trades,
     equityCurve

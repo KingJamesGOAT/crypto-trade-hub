@@ -19,14 +19,23 @@ export class BinanceService {
   // private baseUrl = "https://api.binance.com" // In real app, this would be our Vercel API proxy
 
   constructor() {
-    // Load from local storage if available (simulating persistent config)
-    const saved = localStorage.getItem("binance_credentials")
-    if (saved) {
-      try {
-        this.credentials = JSON.parse(saved)
-      } catch (e) {
-        console.error("Failed to parse credentials", e)
+    // Will be initialized via initializeFromBackend()
+  }
+
+  async initializeFromBackend(token: string) {
+    try {
+      const response = await fetch('/api/keys/get', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.binanceApiKey && data.binanceSecretKey) {
+          this.setCredentials(data.binanceApiKey, data.binanceSecretKey);
+        }
       }
+    } catch (error) {
+      console.error("Failed to fetch Binance credentials:", error);
     }
   }
 

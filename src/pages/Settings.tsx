@@ -19,8 +19,7 @@ export function Settings() {
   // Real Trading Mode State
   const [realTradingEnabled, setRealTradingEnabled] = useState(false)
 
-  // Gemini State
-  const [geminiKey, setGeminiKey] = useState("")
+
 
   useEffect(() => {
      // Load initial state
@@ -34,30 +33,11 @@ export function Settings() {
      const mode = localStorage.getItem("trading_mode")
      if (mode === "real") setRealTradingEnabled(true)
      
-     const gKey = localStorage.getItem("gemini_api_key")
-     if (gKey) setGeminiKey(gKey)
+
 
   }, [])
 
-  const handleSaveGemini = () => {
-      localStorage.setItem("gemini_api_key", geminiKey)
-      // We should ideally reload the service, but simple storage set works for now as service reads on demand or we reload page
-      // Let's force a window reload or notifies service if we could, but a toast is fine.
-      // Better: Update service instance
-      import("@/api/gemini-service").then(({ geminiService }) => {
-          geminiService.initializeModel(geminiKey)
-      })
-      toast({ title: "Gemini Key Saved", description: "AI Assistant is now active." })
-  }
 
-  const handleClearGemini = () => {
-      localStorage.removeItem("gemini_api_key")
-      setGeminiKey("")
-      import("@/api/gemini-service").then(({ geminiService }) => {
-          geminiService.clearKey()
-      })
-      toast({ title: "Gemini Key Removed", description: "AI Assistant reverted to Mock Mode." })
-  }
 
   const handleSave = async () => {
      if (!apiKey || !secretKey) {
@@ -201,32 +181,62 @@ export function Settings() {
               <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-blue-500" />
-                      Gemini AI Assistant
+                      Gemini AI Assistant (Optional)
                   </CardTitle>
                   <CardDescription>
-                      Configure your AI assistant for personalized trading insights.
+                      Get a free API key from Google AI Studio (no credit card required)
                   </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                   <div className="space-y-2">
                        <Label>Gemini API Key</Label>
-                       <div className="flex gap-2">
-                           <Input 
-                             type="password" 
-                             value={geminiKey} 
-                             onChange={e => setGeminiKey(e.target.value)}
-                             placeholder="Paste your Google Gemini API Key" 
-                           />
-                           <Button onClick={handleSaveGemini} disabled={!geminiKey}>
-                               Save Key
-                           </Button>
-                           <Button variant="outline" onClick={handleClearGemini}>
-                               Clear
-                           </Button>
-                       </div>
-                       <p className="text-xs text-muted-foreground">
-                           An API key is required for the AI to answer specific questions. Without it, the assistant will run in "Mock Mode".
-                       </p>
+                       <Input 
+                         type="password" 
+                         placeholder="Paste your Gemini API Key (optional)" 
+                         id="gemini-api-key"
+                        />
+                  </div>
+                  
+                  <div className="flex gap-2">
+                      <Button 
+                        onClick={() => {
+                          const input = document.getElementById('gemini-api-key') as HTMLInputElement;
+                          if (input?.value) {
+                            localStorage.setItem('gemini_api_key', input.value);
+                            toast({ title: "Success", description: "Gemini API key saved! Refresh the page to use the AI assistant." });
+                          }
+                        }}
+                        className="flex-1"
+                      >
+                          Save API Key
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          localStorage.removeItem('gemini_api_key');
+                          const input = document.getElementById('gemini-api-key') as HTMLInputElement;
+                          if (input) input.value = '';
+                          toast({ title: "Cleared", description: "API key removed." });
+                        }}
+                        className="w-12 px-0 text-red-500 hover:text-red-400"
+                      >
+                         <Trash2 className="h-4 w-4" />
+                      </Button>
+                  </div>
+
+                  <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 text-sm">
+                      <p className="text-blue-200 mb-2">
+                          <strong>How to get your free API key:</strong>
+                      </p>
+                      <ol className="list-decimal list-inside space-y-1 text-blue-200/80 text-xs">
+                          <li>Visit <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a></li>
+                          <li>Sign in with your Google account</li>
+                          <li>Click "Create API Key"</li>
+                          <li>Copy and paste it above</li>
+                      </ol>
+                      <p className="text-blue-200/60 text-xs mt-2">
+                          Free tier: 1,500 requests/day • No credit card required
+                      </p>
                   </div>
               </CardContent>
           </Card>

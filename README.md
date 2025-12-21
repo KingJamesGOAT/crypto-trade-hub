@@ -1,67 +1,52 @@
 # CryptoTradeHub
 
-A comprehensive Crypto Trading Simulator and Backtesting Platform built with React, TypeScript, and Vite.
+A modern crypto trading simulator and learning platform built with React, TypeScript, and Vite.
 
 ## Features
 
-### 1. 🎓 Learning Module
+- 📊 **Trading Simulator** - Practice trading strategies with real-time data
+- 📚 **Learning Center** - Educational content about crypto trading
+- 🤖 **AI Assistant** - Powered by Puter.js for trading insights
+- 📈 **Backtesting** - Test your strategies against historical data
+- 🔐 **Admin Dashboard** - Secure admin access with authentication
 
-- Interactive crypto education.
-- Progress tracking.
-- Topics: Blockchain Basics, Trading Strategies, Risk Management.
+## Live Demo
 
-### 2. 📈 Simulator Engine
+Visit the live site: [Your GitHub Pages URL will be here]
 
-- **Risk-Free Trading**: Practice with virtual CHF 10,000.
-- **Real-Time Data**: Live prices fetched from CoinGecko.
-- **Portfolio Management**: Track holdings, average entry price, and P&L.
-- **Order Types**: Buy/Sell using Fiat amount or Coin quantity.
+## Local Development
 
-### 3. 🔙 Backtesting Engine
+```bash
+# Install dependencies
+npm install
 
-- **Strategy Testing**: Test DCA, Grid, and Momentum strategies.
-- **Synthetic Data**: Simulates Bull, Bear, Range, and Volatile market conditions.
-- **Visualization**: Interactive Equity Curve and performance metrics (Return, Drawdown).
+# Run development server
+npm run dev
 
-### 4. 🚀 Real Trading Integration
+# Build for production
+npm run build
+```
 
-- **Dual Mode**: Switch between Simulator and Real Trading.
-- **Binance Integration**: Connect via API Key (stored locally) to execute real trades.
-- **Safety First**: Visual warnings and "Mock Mode" for safe testing.
+## Admin Access
 
-### 5. ✨ AI Assistant
+- Username: `blackswan`
+- Password: `Bl@ckSw4n_St3vE!92#Xq`
 
-- **Gemini Powered**: Context-aware AI chat.
-- **Portfolio Insights**: Ask questions about your specific holdings.
-- **Smart Assistance**: Get explanations of trading concepts on the fly.
+## Technologies
 
-## Getting Started
+- React 18
+- TypeScript
+- Vite
+- TailwindCSS
+- Shadcn/ui
+- Puter.js (AI)
+- React Router
+- Recharts
 
-1.  **Install Dependencies**
+## Deployment
 
-    ```bash
-    npm install
-    ```
+This project is automatically deployed to GitHub Pages via GitHub Actions.
 
-2.  **Start Development Server**
+## License
 
-    ```bash
-    npm run dev
-    ```
-
-3.  **Build for Production**
-    ```bash
-    npm run build
-    ```
-
-## Technology Stack
-
-- **Frontend**: React 18, TypeScript, Vite
-- **Styling**: Tailwind CSS, Shadcn/UI
-- **State Management**: React Context, LocalStorage
-- **Charts**: Recharts
-- **AI**: Google Generative AI SDK
-
-## Configuration
-
-- **API Keys**: Manage your Binance and Gemini API keys in the **Settings** page. Keys are stored securely in your browser's LocalStorage and are never sent to our servers.
+MIT
