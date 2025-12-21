@@ -38,6 +38,19 @@ export function Sidebar({
   // Filter navigation
   const visibleNavigation = navigation.filter(item => !item.protected || isAuthenticated)
 
+  // Mobile vs Desktop positioning
+  // Mobile: Full screen height (inset-0 or inset-y-0) with overlay. Top-0.
+  // Desktop: Below header (top-16).
+  // We need to conditionally apply top-16 only on md: breakpoint?
+  // User said "menu bar should appear... under the top bar".
+  // Mobile menu usually covers everything or is also under header?
+  // Layout.tsx has Header fixed z-50.
+  // If Mobile menu is `z-50` it might conflict. Let's make mobile menu `z-[51]`? Or make sidebar `z-40` globally and respect header?
+  // Let's stick to Desktop request: `md:top-16 md:h-[calc(100vh-4rem)]`.
+  // Mobile: `top-16` also? If Header is fixed on mobile, yes.
+  // Layout.tsx sets Header fixed for all sizes.
+  // So Sidebar should be `top-16` always.
+
   return (
     <>
         {/* Mobile Overlay */}
@@ -49,9 +62,9 @@ export function Sidebar({
         )}
 
         <div 
-            // Fixed position ensures smooth sliding without layout jank
+            // Fixed position, sitting below the 16 (4rem) header
             className={cn(
-                "fixed inset-y-0 left-0 z-50 flex flex-col w-64 border-r bg-card/95 backdrop-blur shadow-xl transition-transform duration-300 ease-in-out md:shadow-none",
+                "fixed left-0 bottom-0 top-16 w-64 border-r bg-card/95 backdrop-blur shadow-xl transition-transform duration-300 ease-in-out md:shadow-none z-40",
                 // Mobile translation
                 isOpen ? "translate-x-0" : "-translate-x-full",
                 // Desktop translation (Always visible if open OR pinned OR hovered)
@@ -60,9 +73,11 @@ export function Sidebar({
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
         >
-           {/* Header */}
-           <div className="flex h-16 items-center justify-end px-4 border-b">
-                {/* Collapse / Pin Button */}
+           {/* Sidebar Header with "MENU" */}
+           <div className="flex h-14 items-center justify-between px-6 border-b shrink-0">
+                <span className="font-bold tracking-wider text-muted-foreground/70">MENU</span>
+                
+                {/* Pin Button */}
                 <Button 
                     variant="ghost" 
                     size="icon" 

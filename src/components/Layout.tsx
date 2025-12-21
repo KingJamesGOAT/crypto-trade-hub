@@ -24,52 +24,50 @@ export function Layout({ children }: { children: React.ReactNode }) {
       localStorage.setItem("sidebar_pinned", String(isSidebarPinned))
   }, [isSidebarPinned])
 
+  const isDesktopSidebarVisible = isSidebarPinned || isSidebarHovered
+
   return (
-    <div className="min-h-screen bg-background font-sans antialiased flex">
+    <div className="min-h-screen bg-background font-sans antialiased flex flex-col">
       <GlossaryModal />
 
-      {/* The Spacer (Push Logic) */}
-      <div 
-          className={cn(
-              "flex-shrink-0 transition-[width] duration-300 ease-in-out hidden md:block",
-              isSidebarPinned ? "w-64" : "w-0"
-          )} 
-      />
-
-      {/* The Hitbox (Hover Logic) Removed per user request */}
-      {/* {!isSidebarPinned && (
-        <div 
-            className="fixed inset-y-0 left-0 w-6 z-40 bg-transparent"
-            onMouseEnter={() => setIsSidebarHovered(true)}
-        />
-      )} */}
-
-      {/* The Sidebar Component */}
-      <Sidebar 
-          isOpen={isMobileMenuOpen} // Mobile state
-          isPinned={isSidebarPinned} // Desktop locked state
-          isHovered={isSidebarHovered}
-          
-          onClose={() => setIsMobileMenuOpen(false)}
-          onTogglePin={() => {
-              setIsSidebarPinned(!isSidebarPinned)
-              setIsSidebarHovered(false) // Reset hover on click to prevent sticking
-          }}
-          onMouseEnter={() => setIsSidebarHovered(true)}
-          onMouseLeave={() => setIsSidebarHovered(false)}
-      />
-
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
-         <Header 
+      {/* FIXED TOP HEADER */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <Header 
             onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            // Clicking hamburger always PINS it open (Notion behavior)
-            onDesktopToggle={() => setIsSidebarPinned(true)} 
-            isSidebarOpen={isSidebarPinned}
-         />
-         <main className="flex-1 overflow-y-auto p-4 md:p-6">
-            {children}
-         </main>
-         <AIChat />
+            onDesktopToggle={() => setIsSidebarPinned(!isSidebarPinned)} // Toggle pin on click
+            onMenuHover={() => setIsSidebarHovered(true)} // Trigger overlay on hover
+            isSidebarOpen={isSidebarPinned} 
+        />
+      </div>
+
+      {/* MAIN CONTENT ROW (Padded top for header) */}
+      <div className="flex flex-1 pt-16 h-screen overflow-hidden">
+          
+          {/* THE SPACER (Push Logic) */}
+          <div 
+              className={cn(
+                  "flex-shrink-0 transition-[width] duration-300 ease-in-out hidden md:block",
+                  isSidebarPinned ? "w-64" : "w-0"
+              )} 
+          />
+
+          {/* THE SIDEBAR (Fixed, Under Header) */}
+          <Sidebar 
+              isOpen={isMobileMenuOpen} 
+              isPinned={isSidebarPinned}
+              isHovered={isSidebarHovered}
+              onClose={() => setIsMobileMenuOpen(false)}
+              onTogglePin={() => setIsSidebarPinned(!isSidebarPinned)}
+              onMouseEnter={() => setIsSidebarHovered(true)}
+              onMouseLeave={() => setIsSidebarHovered(false)}
+          />
+
+          {/* SCROLLABLE CONTENT AREA */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth bg-background">
+              {children}
+          </main>
+          
+          <AIChat />
       </div>
     </div>
   )
