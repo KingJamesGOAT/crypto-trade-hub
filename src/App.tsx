@@ -11,6 +11,18 @@ import { Simulator } from "@/pages/Simulator"
 import { Settings } from "@/pages/Settings"
 import { Backtest } from "@/pages/Backtest"
 
+import { useAuth } from "@/context/AuthContext"
+
+function RootRedirect() {
+  const { isAuthenticated, username } = useAuth()
+  return (
+    <Navigate 
+      to={isAuthenticated && username === 'blackswan' ? "/simulator" : "/learning"} 
+      replace 
+    />
+  )
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -28,8 +40,8 @@ function App() {
                 <Route path="/backtest" element={<ProtectedRoute><Backtest /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 
-                {/* Redirect root to learning */}
-                <Route path="/" element={<Navigate to="/learning" replace />} />
+                {/* Redirect root based on role */}
+                <Route path="/" element={<RootRedirect />} />
               </Routes>
             </Layout>
             <Toaster />

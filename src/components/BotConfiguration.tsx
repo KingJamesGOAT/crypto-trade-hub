@@ -2,42 +2,28 @@ import { useEffect, useState } from "react"
 import { useSimulator } from "@/context/SimulatorContext"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, Play, Square } from "lucide-react"
+import { Play, Square, Wifi, WifiOff } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 export function BotConfiguration() {
-  const { botConfig, updateBotConfig, portfolio } = useSimulator()
+  const { botConfig, updateBotConfig, portfolio, activeSymbols, botStatus, isConnected } = useSimulator()
   const [localConfig, setLocalConfig] = useState(botConfig)
+  const { toast } = useToast()
 
   // Sync local state when global state updates (if needed)
   useEffect(() => {
     setLocalConfig(botConfig)
   }, [botConfig])
 
-  // Handle Strategy Slider Changes
-  // We want to keep the total at 100%. 
-  // Naive approach: Just let them set arbitrary weights and we normalize in logic, 
-  // OR strictly enforce 100% in UI.
-  // For simplicity and UX: Let's use 3 independent sliders but show a warning if != 100%?
-  // Or better: Let user set "Risky" and "Extreme", and "Moderate" fills the rest?
-  // Let's try 3 independent sliders for now and normalized logic in the engine.
-  // Actually, user wants to "choose... how much is allocated".
-  
-  const handleStrategyChange = (key: 'moderate' | 'risky' | 'extreme', value: number[]) => {
-      setLocalConfig(prev => ({
-          ...prev,
-          strategies: {
-              ...prev.strategies,
-              [key]: value[0]
-          }
-      }))
-  }
-
   const handleSave = () => {
       updateBotConfig(localConfig)
+      toast({
+          title: "Configuration Saved",
+          description: `Bot allocation updated to CHF ${localConfig.totalAllocated}`,
+      })
   }
 
   const toggleActive = () => {
@@ -46,8 +32,6 @@ export function BotConfiguration() {
       updateBotConfig({ isActive: newState })
   }
   
-  const totalWeight = localConfig.strategies.moderate + localConfig.strategies.risky + localConfig.strategies.extreme
-
   return (
     <Card className="h-full border-primary/20 bg-card/50 backdrop-blur-sm">
       <CardHeader>
@@ -59,7 +43,7 @@ export function BotConfiguration() {
                         {localConfig.isActive ? "RUNNING" : "STOPPED"}
                     </Badge>
                 </CardTitle>
-                <CardDescription>Configure your autonomous trading agent</CardDescription>
+                <CardDescription>Autonomous Trading Agent V2</CardDescription>
             </div>
              <Button 
                 size="icon"
@@ -94,62 +78,56 @@ export function BotConfiguration() {
             </p>
         </div>
 
-        {/* Strategy Mix */}
-        <div className="space-y-6 pt-4 border-t">
-            <h4 className="font-semibold text-sm">Strategy Mix ({totalWeight}%)</h4>
-            
-            {/* Moderate */}
-            <div className="space-y-2">
+        {/* Info Section */}
+        <div className="space-y-4 pt-4 border-t">
+            <h4 className="font-semibold text-sm">Active Strategy Engine</h4>
+            <div className="grid gap-2 text-sm text-muted-foreground">
                 <div className="flex justify-between">
-                    <Label className="text-blue-500">Moderate (Blue Chips)</Label>
-                    <span className="text-sm">{localConfig.strategies.moderate}%</span>
+                    <span>Engine Status:</span>
+                    <span className="text-foreground">Online</span>
                 </div>
-                <Slider 
-                    value={[localConfig.strategies.moderate]} 
-                    max={100} 
-                    step={5} 
-                    onValueChange={(v: number[]) => handleStrategyChange('moderate', v)}
-                    className="py-1"
-                />
-            </div>
-
-            {/* Risky */}
-             <div className="space-y-2">
                 <div className="flex justify-between">
-                    <Label className="text-orange-500">Risky (Altcoins)</Label>
-                    <span className="text-sm">{localConfig.strategies.risky}%</span>
+                    <span>Active Strategies:</span>
+                    <span className="text-foreground">Momentum & Mean Reversal</span>
                 </div>
-                <Slider 
-                    value={[localConfig.strategies.risky]} 
-                    max={100} 
-                    step={5} 
-                     onValueChange={(v: number[]) => handleStrategyChange('risky', v)}
-                     className="py-1"
-                />
-            </div>
-
-            {/* Extreme */}
-             <div className="space-y-2">
                 <div className="flex justify-between">
-                    <Label className="text-red-500">Extreme (Memecoins)</Label>
-                    <span className="text-sm">{localConfig.strategies.extreme}%</span>
+                    <span>Watched Assets:</span>
+                    <span className="text-foreground">{activeSymbols.length} Pairs</span>
                 </div>
-                <Slider 
-                    value={[localConfig.strategies.extreme]} 
-                    max={100} 
-                    step={5} 
-                     onValueChange={(v: number[]) => handleStrategyChange('extreme', v)}
-                     className="py-1"
-                />
             </div>
-            
-            {totalWeight !== 100 && (
-                <div className="flex items-center gap-2 text-yellow-500 text-xs">
-                    <AlertCircle className="w-4 h-4" />
-                    weights do not sum to 100%, they will be normalized.
-                </div>
-            )}
         </div>
+
+        {/* Thinking Box */}
+        {localConfig.isActive && (
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                
+                {/* Header: Activity + Connection */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-primary font-semibold text-xs uppercase tracking-wider">
+                        <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                        </span>
+                        Agent Activity
+                    </div>
+                    
+                    <div className={`flex items-center gap-1.5 text-[10px] uppercase font-bold ${isConnected ? "text-green-500" : "text-red-500"}`}>
+                        {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                        {isConnected ? "Connected" : "Disconnected"}
+                    </div>
+                </div>
+
+                {/* Status Text */}
+                <div className="space-y-1">
+                    <p className="text-sm font-mono text-foreground break-words leading-snug">
+                        {botStatus}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                        Strategy: Momentum & Mean Reversal
+                    </p>
+                </div>
+            </div>
+        )}
 
         <Button className="w-full" variant="outline" onClick={handleSave}>
             Update Configuration

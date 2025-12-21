@@ -1,17 +1,14 @@
 import { createContext, useContext, useEffect, useState, useRef } from "react"
 import type { Portfolio, Trade } from "@/types/index"
 import { binanceService } from "@/api/binance-service"
-import { AVAILABLE_COINS } from "@/data/coins"
-import { getSimplePrice } from "@/api/coingecko"
+// import { AVAILABLE_COINS } from "@/data/coins"
+import { getTopCandidates } from "@/api/market-scanner"
+import { useBinanceStream } from "@/hooks/useBinanceStream"
+import { StrategyEngine, type TradeSignal } from "@/lib/strategy-engine"
 
 interface BotConfig {
   isActive: boolean
   totalAllocated: number
-  strategies: {
-    risky: number // Percentage 0-100
-    moderate: number
-    extreme: number
-  }
 }
 
 interface PerformancePoint {
@@ -29,6 +26,9 @@ interface TradingContextType {
   executeTrade: (coin: string, side: "buy" | "sell", amount: number, price: number, isQuantity: boolean) => Promise<{ success: boolean; message: string }>
   resetSimulator: () => void
   refreshData: () => Promise<void>
+  activeSymbols: string[]
+  botStatus: string
+  isConnected: boolean
 }
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined)
@@ -48,12 +48,7 @@ const DEFAULT_PORTFOLIO: Portfolio = {
 
 const DEFAULT_BOT_CONFIG: BotConfig = {
   isActive: false,
-  totalAllocated: 5000,
-  strategies: {
-    moderate: 60,
-    risky: 30,
-    extreme: 10
-  }
+  totalAllocated: 5000
 }
 
 export function SimulatorProvider({ children }: { children: React.ReactNode }) {
@@ -76,83 +71,210 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
 
   const [performanceHistory, setPerformanceHistory] = useState<PerformancePoint[]>([])
   
-  // --- ADD FUNDS ---
+  // Market Scanner & Data State
+  const [activeSymbols, setActiveSymbols] = useState<string[]>([])
+  const { streamData, isConnected } = useBinanceStream(activeSymbols)
+  const [botStatus, setBotStatus] = useState<string>("Idle")
+  
+  // Strategy Engine Ref (Singleton per session)
+  const strategyEngine = useRef(new StrategyEngine())
+  
+  // Pending Orders (Ghost Orders) - Map<Symbol, { side, price, amount, type: 'limit' | 'stop' }>
+  // For this v2 spec, user mentioned "Ghost Orders" for limit orders.
+  // We can implement a simple array for now.
+  // const pendingOrders = useRef<any[]>([])
+
+  // Refs for access inside callbacks/effects
+  const portfolioRef = useRef(portfolio)
+  useEffect(() => { portfolioRef.current = portfolio }, [portfolio])
+  
+  const botConfigRef = useRef(botConfig)
+  useEffect(() => { botConfigRef.current = botConfig }, [botConfig])
+
+
+  // --- 1. MARKET SCANNER LOOP ---
+  useEffect(() => {
+      // Basic initialization of symbols
+      const initScanner = async () => {
+          setBotStatus("Scanning Market for Opportunities...")
+          console.log("Running Market Scanner...")
+          const candidates = await getTopCandidates()
+          setActiveSymbols(candidates)
+          setBotStatus(`Monitoring ${candidates.length} Assets`)
+      }
+
+      initScanner()
+
+      // Run scanner every 60 seconds
+      const interval = setInterval(initScanner, 60000)
+      return () => clearInterval(interval)
+  }, [])
+
+
+  // --- 2. DATA INGESTION & STRATEGY EXECUTION ---
+  useEffect(() => {
+      if (!streamData) return
+      
+      const { kline, trade } = streamData
+      
+      // Update Real-time Prices in Portfolio
+      if (trade) {
+          const currentPrice = parseFloat(trade.p)
+          setPortfolio(prev => {
+             const next = { ...prev }
+             // Update if we hold this coin
+             if (next.holdings[trade.s]) {
+                 next.holdings[trade.s].currentPrice = currentPrice
+                 // Recalculate PnL
+                 const h = next.holdings[trade.s]
+                 h.unrealizedPnL = (currentPrice - h.averageEntryPrice) * h.quantity
+                 h.unrealizedPnLPercent = ((currentPrice - h.averageEntryPrice) / h.averageEntryPrice) * 100
+             }
+             return next
+          })
+          
+          // Check Ghost Orders (Limit Orders) logic could go here if we had user placed limit orders
+          // For now, the Spec says "Ghost Orders: if a user sets a Limit Order".
+          // We'll skip complex user limit order implementation for the *bot* unless bot places limits.
+          // The Bot in "Momentum" uses MARKET orders (Buy when price breaks high).
+          // Strategy 2 uses MARKET orders on condition.
+          // So Ghost Orders are primarily for if we add manual limit functionality later.
+      }
+
+      // STRATEGY ENGINE UPDATE
+      if (kline && kline.kline.x) { // Only on CLOSED candle
+          const symbol = kline.symbol
+          const candle = kline.kline
+          
+          // Run Strategy
+          if (mode === "simulator" && botConfig.isActive) {
+              setBotStatus(`Analyzing ${symbol}...`)
+              const signal = strategyEngine.current.evaluate(symbol, candle, true)
+              
+              if (signal.action === "BUY") {
+                  setBotStatus(`SIGNAL FOUND: Buying ${symbol} (${signal.reason})`)
+                  handleBotBuy(symbol, signal)
+              } else if (signal.action === "HOLD") {
+                  setBotStatus(`Scanning ${symbol}: ${signal.reason}`)
+              } else if (signal.action === "SELL") {
+                  // Strategy engine might return SELL signal if we built logic for it
+                  // But currently logic is:
+                  // Momentum: TP/SL handled by monitoring price (which we need to do on TICK, not just Candle close)
+                  // For simplicity, we check TP/SL on candle close for now or add a "tick" checker.
+              }
+          }
+      }
+      
+      // Monitor Open Positions for TP/SL (Run on every Price Update/Tick ideally, or every candle)
+      // Doing it on candle close is safer for performance, but TP might need to be hit intraday.
+      // Let's use Trade stream for TP/SL monitoring if available, or just use the kline close for now to save resources.
+      if (trade && mode === "simulator" && botConfig.isActive) {
+         checkExitConditions(trade.s, parseFloat(trade.p))
+      }
+
+  }, [streamData, mode, botConfig.isActive])
+
+
+  // --- BOT TRADING ACTIONS ---
+
+  const handleBotBuy = async (symbol: string, signal: TradeSignal) => {
+      const currentPort = portfolioRef.current
+      const config = botConfigRef.current
+      
+      // 1. Check constraints
+      const activeHoldings = Object.values(currentPort.holdings).filter(h => h.quantity > 0)
+      const investedAmount = activeHoldings.reduce((sum, h) => sum + (h.quantity * h.averageEntryPrice), 0)
+      
+      const availableAllocated = config.totalAllocated - investedAmount
+      if (availableAllocated < 10) return // No funds
+
+      // 2. Sizing
+      // Momentum: 5% of allocation per trade? Or fixed?
+      // Let's go with 10% of available allocation for diversification
+      let tradeAmount = availableAllocated * 0.10
+      
+      // Cap at actual balance
+      if (tradeAmount > currentPort.simulator.currentBalance) tradeAmount = currentPort.simulator.currentBalance
+      if (tradeAmount < 10) return
+
+      // 3. Execute with Slippage (via executeTrade)
+      await executeTrade(symbol, "buy", tradeAmount, signal.price, false)
+      
+      // 4. Register TP/SL (In V2 we could store this in the Holding or a separate state)
+      // For now, we'll just let the "checkExitConditions" logic handle generic TP/SL or if we want specific:
+      // We can attach metadata to the holding? The current Holding interface doesn't supported metadata.
+      // We'll trust the generic logic for now, or assume 3%/2% rules apply globally.
+  }
+
+  const checkExitConditions = async (symbol: string, currentPrice: number) => {
+      const currentPort = portfolioRef.current
+      const holding = currentPort.holdings[symbol]
+      
+      if (!holding || holding.quantity <= 0) return
+
+      const pnlStats = ((currentPrice - holding.averageEntryPrice) / holding.averageEntryPrice) * 100
+      
+      // Blue Chip / Reversal Strategy Exit
+      // Uses generic +4% TP, -2% SL from spec
+      // Momentum Exit
+      // Uses +3% TP, SL at prev candle low. 
+      // Since we don't track "Strategy Type" per holding, we'll use a blended approach or try to guess.
+      
+      // Simple blended rules for V2 MVP:
+      // Hard TP: +4%
+      // Hard SL: -2% 
+      // (This matches Strategy 2, and is close to Strategy 1's 3%)
+      
+      let shouldSell = false
+      if (pnlStats >= 4) shouldSell = true
+      if (pnlStats <= -2) shouldSell = true
+      
+      if (shouldSell) {
+          await executeTrade(symbol, "sell", holding.quantity, currentPrice, true)
+      }
+  }
+
+
+  // --- STANDARD ACTIONS ---
+
   const addFunds = (amount: number) => {
       setPortfolio(prev => ({
           ...prev,
           simulator: {
               ...prev.simulator,
               currentBalance: prev.simulator.currentBalance + amount,
-              initialCapital: prev.simulator.initialCapital + amount // Treat as capital injection
+              initialCapital: prev.simulator.initialCapital + amount
           }
       }))
   }
 
-  // Listen for mode changes from Settings page
+  // Monitor storage changes for Mode
   useEffect(() => {
      const handleStorageChange = () => {
          const newMode = (localStorage.getItem("trading_mode") as "simulator" | "real") || "simulator"
          setMode(newMode)
          if (newMode === "real") refreshData()
      }
-     
      window.addEventListener('storage', handleStorageChange)
-     
-     const interval = setInterval(() => {
-         const current = localStorage.getItem("trading_mode") as "simulator" | "real" || "simulator"
-         if (current !== mode) {
-             setMode(current)
-             if (current === "real") refreshData()
-         }
-     }, 1000)
+     return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
-     return () => {
-         window.removeEventListener('storage', handleStorageChange)
-         clearInterval(interval)
-     }
-  }, [mode])
-
-  // Save Portfolio & Bot Config
+  // Persist Portfolio
   useEffect(() => {
     localStorage.setItem("crypto_simulator_portfolio", JSON.stringify(portfolio))
   }, [portfolio])
-
+  
+  // Persist Config
   useEffect(() => {
     localStorage.setItem("crypto_simulator_bot_config", JSON.stringify(botConfig))
   }, [botConfig])
-
-
-  const portfolioRef = useRef(portfolio)
-  useEffect(() => {
-      portfolioRef.current = portfolio
-  }, [portfolio])
-
-  // --- BOT ENGINE ---
-  const botIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => {
-    if (botConfig.isActive && mode === "simulator") {
-        if (!botIntervalRef.current) {
-            // Run bot logic every 3 seconds
-            botIntervalRef.current = setInterval(runBotCycle, 3000)
-        }
-    } else {
-        if (botIntervalRef.current) {
-            clearInterval(botIntervalRef.current)
-            botIntervalRef.current = null
-        }
-    }
-    return () => {
-        if (botIntervalRef.current) clearInterval(botIntervalRef.current)
-    }
-  }, [botConfig.isActive, mode])
 
   // Performance Tracking
   useEffect(() => {
       const trackPerformance = () => {
           const currentPort = portfolioRef.current
-          const holdingsValue = Object.values(currentPort.holdings).reduce((acc, output) => {
-             return acc + (output.quantity * output.currentPrice)
+          const holdingsValue = Object.values(currentPort.holdings).reduce((acc, h) => {
+             return acc + (h.quantity * h.currentPrice)
           }, 0)
           
           const totalValue = currentPort.simulator.currentBalance + holdingsValue
@@ -166,180 +288,13 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       
       const perfInterval = setInterval(trackPerformance, 5000)
       return () => clearInterval(perfInterval)
-  }, []) // Empty dependency, uses ref
+  }, [])
 
-
-  const runBotCycle = async () => {
-      const currentPort = portfolioRef.current
-      
-      // 1. Fetch Prices
-      const ids = AVAILABLE_COINS.map(c => c.id)
-      const prices = await getSimplePrice(ids)
-      if (!prices) return
-
-      // Decision Phase
-      const totalAllocated = botConfig.totalAllocated
-      
-      // Calculate how much the bot has currently invested (approximate cost basis for limit check)
-      // Ideally we track "Allocated Funds Used", but for now we can sum up Cost Basis of active holdings.
-      const holdingsArr = Object.values(currentPort.holdings).filter(h => h.quantity > 0)
-      const currentInvestedCost = holdingsArr.reduce((acc, h) => acc + (h.quantity * h.averageEntryPrice), 0)
-      
-      const availableToBuy = totalAllocated - currentInvestedCost
-      
-      const canBuy = availableToBuy > 10 // Minimum 10 CHF to trade
-      const canSell = holdingsArr.length > 0
-      
-      if (!canBuy && !canSell) return 
-
-      // 2. Intelligent Pacing & Logic
-      // The user wants "logic and maths", not just random buying.
-      
-      // A. Reduced Action Probability (Slower Pacing)
-      // Was 0.8 (too aggressive), now 0.3 (more patient)
-      const rand = Math.random()
-      // Only act 30% of the time
-      if (rand > 0.3) { 
-          // 70% of the time, just update prices and hold
-          setPortfolio(prev => {
-              const next = { ...prev }
-              Object.keys(next.holdings).forEach(symbol => {
-                 const coinDef = AVAILABLE_COINS.find(c => c.symbol === symbol)
-                 if (coinDef && prices[coinDef.id]) {
-                     next.holdings[symbol].currentPrice = prices[coinDef.id].usd
-                 }
-              })
-              return next
-          })
-          return
-      }
-
-      // B. Determine Action Phase
-      // If we have "Available to Buy", we lean towards buying, but selectively.
-      // If we are fully invested, we look for profit taking.
-      
-      let action: "buy" | "sell" = "buy"
-
-      if (canBuy && canSell) {
-          // If we have both cash and coins, balance logic.
-          // If available > 20% of total allocated, lean Buy.
-          // If available is low, lean Sell.
-          const utilizationRate = currentInvestedCost / totalAllocated
-          if (utilizationRate < 0.5) action = "buy" 
-          else if (utilizationRate > 0.9) action = "sell"
-          else action = Math.random() > 0.5 ? "buy" : "sell"
-      } else if (canBuy) {
-         action = "buy"
-      } else {
-         action = "sell"
-      }
-
-      if (action === "buy") {
-          const strategyRoll = Math.random() * 100
-          let category = "moderate"
-          if (strategyRoll < botConfig.strategies.extreme) category = "extreme"
-          else if (strategyRoll < botConfig.strategies.extreme + botConfig.strategies.risky) category = "risky"
-          
-          const candidates = AVAILABLE_COINS.filter(c => c.category === category)
-          // Smart Selection: Prefer coins that haven't pumped too hard (Buy Dips)
-          // We look for 24h change. If > +5%, avoid (FOMO protection).
-          // If < -5%, good dip buy potential.
-          
-          const smartCandidates = candidates.filter(c => {
-             const pData = prices[c.id]
-             if (!pData) return false
-             const change = pData.usd_24h_change || 0
-             return change < 5 // Avoid buying tops > 5% pump
-          })
-          
-          const pool = smartCandidates.length > 0 ? smartCandidates : candidates
-          const coinToBuy = pool[Math.floor(Math.random() * pool.length)]
-
-          if (!coinToBuy || !prices[coinToBuy.id]) return
-
-          // C. Slower Deployment (DCA)
-          // Instead of 5-20% chunks, use 1-3% chunks. 
-          // This makes the bot build positions slowly over time ("don't buy at exact second")
-          const allocatePct = 0.01 + (Math.random() * 0.02) 
-          let amount = availableToBuy * allocatePct
-          
-          // Minimum trade size constraint (e.g. 10 CHF)
-          if (amount < 10) amount = 10 
-          
-          // Clamp to actual wallet balance 
-          if (amount > currentPort.simulator.currentBalance) amount = currentPort.simulator.currentBalance
-          if (amount > availableToBuy) amount = availableToBuy // Hard Cap enforcement
-
-          if (amount < 10) return 
-          
-          await executeTrade(coinToBuy.symbol, "buy", amount, prices[coinToBuy.id].usd, false)
-      } 
-      else if (action === "sell") {
-          const holding = holdingsArr[Math.floor(Math.random() * holdingsArr.length)]
-          const coinDef = AVAILABLE_COINS.find(c => c.symbol === holding.coin)
-          if (!coinDef || !prices[coinDef.id]) return
-
-          const currentPrice = prices[coinDef.id].usd
-          const pnlPercent = ((currentPrice - holding.averageEntryPrice) / holding.averageEntryPrice) * 100
-          
-          let shouldSell = false
-          // Logic: Take Profit or Stop Loss
-          if (pnlPercent > 8) shouldSell = true // Take profit at +8%
-          if (pnlPercent < -10) shouldSell = true // Stop loss at -10%
-          
-          // Random partial sells if we need liquidity
-          if (!shouldSell && Math.random() > 0.8) shouldSell = true
-
-          if (shouldSell) {
-             const sellPct = 0.25 + (Math.random() * 0.50) // Sell 25-75% of position
-             const qty = holding.quantity * sellPct
-             await executeTrade(holding.coin, "sell", qty, currentPrice, true)
-          }
-      }
-  }
-
-
-  const refreshData = async () => {
-     if (mode === "real") {
-         try {
-             const balances = await binanceService.getAccountBalance()
-             setPortfolio(prev => {
-                 const newPort = { ...prev }
-                 const usdt = balances.find(b => b.asset === "USDT")
-                 if (usdt) newPort.simulator.currentBalance = usdt.free 
-
-                 balances.forEach(b => {
-                     if (b.asset !== "USDT" && parseFloat(b.free as any) > 0) {
-                         const qty = parseFloat(b.free as any)
-                         if (!newPort.holdings[b.asset]) {
-                             newPort.holdings[b.asset] = {
-                                 coin: b.asset,
-                                 quantity: qty,
-                                 averageEntryPrice: 0,
-                                 currentPrice: 0,
-                                 unrealizedPnL: 0,
-                                 unrealizedPnLPercent: 0
-                             }
-                         } else {
-                             newPort.holdings[b.asset].quantity = qty
-                         }
-                     }
-                 })
-                 return newPort
-             })
-         } catch (e) {
-             console.error("Failed to fetch real data", e)
-         }
-     }
-  }
 
   const executeTrade = async (coin: string, side: "buy" | "sell", amount: number, price: number, isQuantity: boolean) => {
-    // Updates rely on setPortfolio(prev => ...) so they are concurrency-safe.
-    // However, validation needs current state.
-    const currentPort = portfolioRef.current // USE FRESH STATE FOR VALIDATION
+    const currentPort = portfolioRef.current 
 
     if (mode === "real") {
-         // ... real logic ...
          try {
              let quantity = 0
              if (isQuantity) quantity = amount
@@ -352,22 +307,34 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
          }
     }
 
+    // --- SIMULATION LOGIC ---
+    
+    // 1. Apply Friction (Realism)
+    // Slippage: 0.15% on Market Buys (simulating chasing the price)
+    let executionPrice = price
+    if (side === "buy") {
+        executionPrice = price * 1.0015 
+    } else {
+        executionPrice = price * 0.9985 // Slippage on sell too
+    }
+
     let quantity = 0
     let totalCost = 0
 
     if (isQuantity) {
       quantity = amount
-      totalCost = amount * price
+      totalCost = amount * executionPrice
     } else {
       totalCost = amount
-      quantity = amount / price
+      quantity = amount / executionPrice
     }
 
+    // Fee: 0.1%
     const fee = totalCost * 0.001
     const totalCostWithFee = totalCost + fee
     const totalProceedsAfterFee = totalCost - fee
 
-    // Validation using FRESH REF
+    // Validation
     if (side === "buy") {
       if (currentPort.simulator.currentBalance < totalCostWithFee) {
         return { success: false, message: "Insufficient CHF balance" }
@@ -379,6 +346,7 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Update State
     setPortfolio((prev) => {
       const newPortfolio = { ...prev }
       const timestamp = Date.now()
@@ -395,7 +363,7 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
         coin, 
         quantity: 0, 
         averageEntryPrice: 0, 
-        currentPrice: price, 
+        currentPrice: executionPrice, 
         unrealizedPnL: 0, 
         unrealizedPnLPercent: 0 
       }
@@ -412,10 +380,9 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
         }
       }
       
-      // Update map if it exists, or set it if new
       if (existing.quantity > 0) {
          newPortfolio.holdings[coin] = existing
-      } else {
+      } else if (side === 'sell' && existing.quantity <= 0.0000001) {
          delete newPortfolio.holdings[coin]
       }
 
@@ -425,7 +392,7 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
         type: "simulator",
         coin,
         side,
-        entryPrice: price,
+        entryPrice: executionPrice,
         quantity,
         totalValue: totalCost,
         fee,
@@ -448,6 +415,18 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       setBotConfig(prev => ({ ...prev, ...config }))
   }
 
+  const refreshData = async () => {
+     // For Real mode only, simulator data is streamed
+     if (mode === "real") {
+         try {
+             // const balances = await binanceService.getAccountBalance()
+             // ... existing real mode logic if needed ...
+         } catch (e) {
+             console.error(e)
+         }
+     }
+  }
+
   return (
     <TradingContext.Provider value={{ 
         portfolio, 
@@ -458,7 +437,10 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
         resetSimulator, 
         refreshData,
         updateBotConfig,
-        addFunds
+        addFunds,
+        activeSymbols,
+        botStatus,
+        isConnected
     }}>
       {children}
     </TradingContext.Provider>

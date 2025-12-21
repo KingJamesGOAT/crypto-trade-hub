@@ -11,8 +11,7 @@ export interface BinanceBalance {
   locked: number
 }
 
-// Mock delay to simulate network request
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
 
 export class BinanceService {
   private credentials: BinanceCredentials | null = null
@@ -23,6 +22,13 @@ export class BinanceService {
   }
 
   async initializeFromBackend(token: string) {
+    // 1. Try Env Vars First (Vite)
+    if (import.meta.env.VITE_BINANCE_API_KEY && import.meta.env.VITE_BINANCE_SECRET_KEY) {
+        console.log("Initializing Binance Service from Environment Variables")
+        this.setCredentials(import.meta.env.VITE_BINANCE_API_KEY, import.meta.env.VITE_BINANCE_SECRET_KEY)
+        return
+    }
+
     try {
       const response = await fetch('/api/keys/get', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -41,7 +47,6 @@ export class BinanceService {
 
   setCredentials(apiKey: string, secretKey: string) {
     this.credentials = { apiKey, secretKey }
-    localStorage.setItem("binance_credentials", JSON.stringify(this.credentials))
   }
 
   getCredentials(): BinanceCredentials | null {
@@ -50,47 +55,134 @@ export class BinanceService {
 
   clearCredentials() {
       this.credentials = null
-      localStorage.removeItem("binance_credentials")
   }
 
   async validateConnection(): Promise<boolean> {
-      await delay(1000)
       if (!this.credentials?.apiKey) return false
-      // In a real app, we would call /api/v3/account here
-      // For demo, we accept any key starting with "test" or "real"
-      return this.credentials.apiKey.length > 5
+      try {
+          // Simple ping to account (requires signature)
+          await this.getAccountBalance()
+          return true
+      } catch (e) {
+          console.error("Connection validation failed:", e)
+          return false
+      }
+  }
+
+  // --- CRYPTO SIGNING HELPER ---
+  private async signParams(queryString: string, secret: string): Promise<string> {
+      const enc = new TextEncoder()
+      const key = await window.crypto.subtle.importKey(
+          "raw",
+          enc.encode(secret),
+          { name: "HMAC", hash: "SHA-256" },
+          false,
+          ["sign"]
+      )
+      const signature = await window.crypto.subtle.sign(
+          "HMAC",
+          key,
+          enc.encode(queryString)
+      )
+      return Array.from(new Uint8Array(signature))
+          .map(b => b.toString(16).padStart(2, "0"))
+          .join("")
   }
 
   async getAccountBalance(): Promise<BinanceBalance[]> {
-    await delay(500)
-    if (!this.credentials) throw new Error("No credentials provided")
+    if (!this.credentials) {
+        // Fallback or error? For now, return empty if not configured to avoid breaking UI on startup
+        console.warn("BinanceService: No credentials set yet.")
+        return []
+    }
 
-    // MOCK RESPONSE
-    return [
-        { asset: "USDT", free: 5000.00, locked: 0 },
-        { asset: "BTC", free: 0.05, locked: 0 },
-        { asset: "ETH", free: 1.2, locked: 0.1 },
-    ]
+    const timestamp = Date.now()
+    const queryString = `timestamp=${timestamp}`
+    const signature = await this.signParams(queryString, this.credentials.secretKey)
+    const url = `https://api.binance.com/api/v3/account?${queryString}&signature=${signature}`
+
+    try {
+        const res = await fetch(url, {
+            headers: {
+                'X-MBX-APIKEY': this.credentials.apiKey
+            }
+        })
+
+        if (!res.ok) {
+            const errText = await res.text()
+            throw new Error(`Binance API Error: ${res.status} ${errText}`)
+        }
+
+        const data = await res.json()
+        // Map Binance response to our interface
+        // data.balances = [{asset: "BTC", free: "0.001", locked: "0.00"}, ...]
+        return data.balances.map((b: any) => ({
+            asset: b.asset,
+            free: parseFloat(b.free),
+            locked: parseFloat(b.locked)
+        })).filter((b: any) => b.free > 0 || b.locked > 0) // Filter empty wallets
+
+    } catch (e) {
+        console.error("getAccountBalance failed", e)
+        throw e
+    }
   }
 
-  async placeOrder(symbol: string, _side: "buy" | "sell", quantity: number, price?: number): Promise<{
+  async placeOrder(symbol: string, side: "buy" | "sell", quantity: number, price?: number): Promise<{
       orderId: string,
       status: "FILLED" | "PENDING",
       avgPrice: number,
       executedQty: number
   }> {
-       await delay(800)
        if (!this.credentials) throw new Error("No credentials provided")
        
-       // log request
-       console.log(`Placing order for ${symbol}`)
+       const timestamp = Date.now()
+       const sideUpper = side.toUpperCase()
+       // MARKET order if no price, LIMIT if price
+       const type = price ? "LIMIT" : "MARKET"
+       
+       let params = `symbol=${symbol}&side=${sideUpper}&type=${type}&quantity=${quantity}&timestamp=${timestamp}`
+       if (price) {
+           params += `&price=${price}&timeInForce=GTC`
+       }
 
-       // MOCK RESPONSE
-       return {
-           orderId: crypto.randomUUID(),
-           status: "FILLED",
-           avgPrice: price || 50000, // Fallback mock price
-           executedQty: quantity
+       const signature = await this.signParams(params, this.credentials.secretKey)
+       const url = `https://api.binance.com/api/v3/order?${params}&signature=${signature}`
+
+       console.log(`Placing REAL ${sideUpper} order for ${symbol}...`)
+
+       try {
+            const res = await fetch(url, {
+                method: "POST",
+                headers: {
+                    'X-MBX-APIKEY': this.credentials.apiKey
+                }
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                throw new Error(data.msg || "Unknown Binance Order Error")
+            }
+
+            // Map response
+            let avgPrice = 0
+            if (data.cummulativeQuoteQty && data.executedQty) {
+                avgPrice = parseFloat(data.cummulativeQuoteQty) / parseFloat(data.executedQty)
+            } else if (data.price) {
+                avgPrice = parseFloat(data.price)
+            }
+
+            return {
+                orderId: data.orderId.toString(),
+                status: data.status, // "FILLED", "NEW", etc.
+                avgPrice,
+                executedQty: parseFloat(data.executedQty)
+            }
+
+       } catch (e) {
+           console.error("placeOrder failed", e)
+           throw e
        }
   }
 }

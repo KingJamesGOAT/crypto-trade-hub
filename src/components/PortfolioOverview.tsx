@@ -46,6 +46,8 @@ export function PortfolioOverview() {
     useEffect(() => {
         const fetchReal = async () => {
             try {
+                // Ensure service is initialized (it checks Env vars automatically now)
+                await binanceService.initializeFromBackend("dummy-token") 
                 const balances = await binanceService.getAccountBalance()
                 const totalUSDT = balances.reduce((sum, b) => {
                     if (b.asset === "USDT") return sum + b.free + b.locked
