@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Play, Square, Wifi, WifiOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { NewsDashboard } from "@/components/NewsDashboard"
 
 export function BotConfiguration() {
   const { botConfig, updateBotConfig, portfolio, activeSymbols, botStatus, isConnected } = useSimulator()
@@ -133,10 +132,6 @@ export function BotConfiguration() {
         <Button className="w-full" variant="outline" onClick={handleSave}>
             Update Configuration
         </Button>
-
-        <div className="pt-6 mt-6 border-t border-primary/10">
-            <NewsDashboard embedded={true} />
-        </div>
 
       </CardContent>
     </Card>
