@@ -18,21 +18,20 @@ interface ApiKeys {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  // Initialize state synchronously from localStorage to prevent redirects on refresh
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('auth_token'));
+  const [username, setUsername] = useState<string | null>(() => localStorage.getItem('auth_username'));
+  // If we have a token, we are authenticated (for client-side purposes)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('auth_token'));
 
-  // Check for existing token on mount
+  // Sync state changes to localStorage (optional, but good for consistency)
   useEffect(() => {
-    const savedToken = localStorage.getItem('auth_token');
-    const savedUsername = localStorage.getItem('auth_username');
+    if (token) localStorage.setItem('auth_token', token);
+    else localStorage.removeItem('auth_token');
     
-    if (savedToken && savedUsername) {
-      setToken(savedToken);
-      setUsername(savedUsername);
-      setIsAuthenticated(true);
-    }
-  }, []);
+    if (username) localStorage.setItem('auth_username', username);
+    else localStorage.removeItem('auth_username');
+  }, [token, username]);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
