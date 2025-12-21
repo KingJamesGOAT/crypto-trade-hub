@@ -76,7 +76,8 @@ export function runBacktest(candles: Candle[], config: StrategyConfig): Backtest
   let entryPrice = 0
   let entryIndex = 0
   let emaShort = 0
-  let emaLong = 0 // Not effectively used yet but placeholder
+
+  // let emaLong = 0 // Not effectively used yet but placeholder
 
   // Iterate Candles
   // Start from suitable index to allow indicators to warm up
@@ -116,7 +117,7 @@ export function runBacktest(candles: Candle[], config: StrategyConfig): Backtest
             // Check Pullback (Prev 2 candles Red? Simplified: Close < Open)
             // Need historical access
             const prev1 = candles[i-1]
-            const prev2 = candles[i-2]
+            // const prev2 = candles[i-2]
             const isPullback = prev1.close < prev1.open // Simple 1-candle pullback check for MVP
             
             // Breakout Check: Current High > Prev High
@@ -153,18 +154,18 @@ export function runBacktest(candles: Candle[], config: StrategyConfig): Backtest
             
             // Check if hit
             let exitPrice = 0
-            let reason = ""
+            // let reason = ""
             
             if (candle.high >= takeProfitPrice) {
                 exitPrice = takeProfitPrice
-                reason = "TP"
+                // reason = "TP"
             } else if (candle.low <= stopLossPrice) {
                 exitPrice = stopLossPrice
-                reason = "SL"
+                // reason = "SL"
             } else if (candle.close < emaShort && i - entryIndex > 5) {
                 // Exit on Trend Reversal (Close below EMA) after some grace period
                 exitPrice = candle.close
-                reason = "TrendRev"
+                // reason = "TrendRev"
             }
             
             if (exitPrice > 0) {
@@ -224,7 +225,7 @@ export function runBacktest(candles: Candle[], config: StrategyConfig): Backtest
                 
                 const lastTrade = trades[trades.length - 1]
                 
-                const tradeRevenue = grossValue - fee 
+                // const tradeRevenue = grossValue - fee 
                 // Initial cost was (EntryPrice * Holdings) / (1-Fee) approx.. simplifying:
                 // Just use balance change
                 const initialBalanceBeforeTrade = (lastTrade.quantity * lastTrade.price) / (1 - FEE_RATE)
@@ -285,9 +286,9 @@ export function runBacktest(candles: Candle[], config: StrategyConfig): Backtest
       ? (winningTrades.length / completedStatsTrades.length) * 100 
       : 0
       
-  const grossProfit = completedStatsTrades.reduce((acc, t) => acc + (t.pnl && t.pnl > 0 ? t.pnl : 0), 0)
-  const grossLoss = completedStatsTrades.reduce((acc, t) => acc + (t.pnl && t.pnl < 0 ? Math.abs(t.pnl) : 0), 1) // Avoid div 0
-  const profitFactor = grossProfit / grossLoss
+  // const grossProfit = completedStatsTrades.reduce((acc, t) => acc + (t.pnl && t.pnl > 0 ? t.pnl : 0), 0)
+  // const grossLoss = completedStatsTrades.reduce((acc, t) => acc + (t.pnl && t.pnl < 0 ? Math.abs(t.pnl) : 0), 1) // Avoid div 0
+  // const profitFactor = grossProfit / grossLoss
 
   // Max Drawdown
   let peak = -Infinity
