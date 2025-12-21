@@ -27,10 +27,7 @@ npm run dev
 npm run build
 ```
 
-## Admin Access
 
-- Username: `blackswan`
-- Password: `Bl@ckSw4n_St3vE!92#Xq`
 
 ## Technologies
 
