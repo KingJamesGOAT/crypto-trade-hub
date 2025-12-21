@@ -76,7 +76,7 @@ export function runBacktest(candles: Candle[], config: StrategyConfig): Backtest
   let entryPrice = 0
   let entryIndex = 0
   let emaShort = 0
-  let emaLong - 0 // Not effectively used yet but placeholder
+  let emaLong = 0 // Not effectively used yet but placeholder
 
   // Iterate Candles
   // Start from suitable index to allow indicators to warm up
