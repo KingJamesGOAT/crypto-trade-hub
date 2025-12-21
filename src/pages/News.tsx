@@ -70,7 +70,16 @@ export function News() {
             ) : (
               <>
                 <TabsContent value="latest" className="space-y-4">
-                  {latestNews.map((news) => <NewsCard key={news.id} article={news} />)}
+                  {latestNews.length === 0 ? (
+                      <div className="text-center py-12">
+                          <p className="text-muted-foreground mb-4">No news articles found. The feed might be momentarily down.</p>
+                          <button onClick={() => window.location.reload()} className="text-primary hover:underline">
+                              Retry Connection
+                          </button>
+                      </div>
+                  ) : (
+                      latestNews.map((news) => <NewsCard key={news.id} article={news} />)
+                  )}
                 </TabsContent>
                 
                 <TabsContent value="important" className="space-y-4">
