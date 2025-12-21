@@ -13,7 +13,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   // Combined logic: Sidebar is visible if it's pinned open OR hovered
   // On mobile, we use the separate isMobileMenuOpen state
-  const isDesktopSidebarVisible = isSidebarOpen || isSidebarHovered
 
   return (
     <div className="min-h-screen bg-background font-sans antialiased">
