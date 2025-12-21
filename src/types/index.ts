@@ -18,6 +18,9 @@ export interface Holding {
   currentPrice: number
   unrealizedPnL: number
   unrealizedPnLPercent: number
+  stopLossPrice?: number
+  takeProfitPrice?: number
+  strategy?: string
 }
 
 export interface Portfolio {

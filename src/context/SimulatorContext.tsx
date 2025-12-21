@@ -25,7 +25,16 @@ interface TradingContextType {
   performanceHistory: PerformancePoint[]
   updateBotConfig: (config: Partial<BotConfig>) => void
   addFunds: (amount: number) => void
-  executeTrade: (coin: string, side: "buy" | "sell", amount: number, price: number, isQuantity: boolean) => Promise<{ success: boolean; message: string }>
+  executeTrade: (
+      coin: string, 
+      side: "buy" | "sell", 
+      amount: number, 
+      price: number, 
+      isQuantity: boolean,
+      stopLoss?: number,
+      takeProfit?: number,
+      strategy?: string
+  ) => Promise<{ success: boolean; message: string }>
   resetSimulator: () => void
   refreshData: () => Promise<void>
   activeSymbols: string[]
@@ -72,7 +81,15 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
     return saved ? JSON.parse(saved) : DEFAULT_BOT_CONFIG
   })
 
-  const [performanceHistory, setPerformanceHistory] = useState<PerformancePoint[]>([])
+  const [performanceHistory, setPerformanceHistory] = useState<PerformancePoint[]>(() => {
+    const saved = localStorage.getItem("crypto_simulator_perf_history")
+    return saved ? JSON.parse(saved) : []
+  })
+
+  // Persist Performance History
+  useEffect(() => {
+    localStorage.setItem("crypto_simulator_perf_history", JSON.stringify(performanceHistory))
+  }, [performanceHistory])
   
   // Market Scanner & Data State
   const [activeSymbols, setActiveSymbols] = useState<string[]>([])
@@ -223,12 +240,18 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       if (tradeAmount < 10) return
 
       // 3. Execute with Slippage (via executeTrade)
-      await executeTrade(symbol, "buy", tradeAmount, signal.price, false)
+      await executeTrade(
+        symbol, 
+        "buy", 
+        tradeAmount, 
+        signal.price, 
+        false,
+        signal.stopLoss,
+        signal.takeProfit,
+        signal.strategy
+      )
       
-      // 4. Register TP/SL (In V2 we could store this in the Holding or a separate state)
-      // For now, we'll just let the "checkExitConditions" logic handle generic TP/SL or if we want specific:
-      // We can attach metadata to the holding? The current Holding interface doesn't supported metadata.
-      // We'll trust the generic logic for now, or assume 3%/2% rules apply globally.
+      // 4. Register TP/SL (Now handled inside executeTrade logic)
   }
 
   const checkExitConditions = async (symbol: string, currentPrice: number) => {
@@ -237,25 +260,30 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       
       if (!holding || holding.quantity <= 0) return
 
-      const pnlStats = ((currentPrice - holding.averageEntryPrice) / holding.averageEntryPrice) * 100
-      
-      // Blue Chip / Reversal Strategy Exit
-      // Uses generic +4% TP, -2% SL from spec
-      // Momentum Exit
-      // Uses +3% TP, SL at prev candle low. 
-      // Since we don't track "Strategy Type" per holding, we'll use a blended approach or try to guess.
-      
-      // Simple blended rules for V2 MVP:
-      // Hard TP: +4%
-      // Hard SL: -2% 
-      // (This matches Strategy 2, and is close to Strategy 1's 3%)
-      
       let shouldSell = false
-      if (pnlStats >= 4) shouldSell = true
-      if (pnlStats <= -2) shouldSell = true
+      let reason = ""
+
+      // 1. SMART CHECK: Do we have specific strategy levels?
+      if (holding.stopLossPrice && currentPrice <= holding.stopLossPrice) {
+          shouldSell = true
+          reason = `Stop Loss Hit (@${holding.stopLossPrice})`
+      }
+      else if (holding.takeProfitPrice && currentPrice >= holding.takeProfitPrice) {
+          shouldSell = true
+          reason = `Take Profit Hit (@${holding.takeProfitPrice})`
+      }
+      
+      // 2. FALLBACK CHECK: If no specific levels, use the generic safety net
+      else {
+          const pnlPercent = ((currentPrice - holding.averageEntryPrice) / holding.averageEntryPrice) * 100
+          if (pnlPercent >= 4) { shouldSell = true; reason = "Hard TP (+4%)" }
+          if (pnlPercent <= -2) { shouldSell = true; reason = "Hard SL (-2%)" }
+      }
       
       if (shouldSell) {
           await executeTrade(symbol, "sell", holding.quantity, currentPrice, true)
+          // In a real app we might log the 'reason' to a trade history or toast
+          // console.log(`Sold ${symbol}: ${reason}`)
       }
   }
 
@@ -316,7 +344,16 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
 
-  const executeTrade = async (coin: string, side: "buy" | "sell", amount: number, price: number, isQuantity: boolean) => {
+  const executeTrade = async (
+    coin: string, 
+    side: "buy" | "sell", 
+    amount: number, 
+    price: number, 
+    isQuantity: boolean,
+    stopLoss?: number,
+    takeProfit?: number,
+    strategy?: string
+  ) => {
     const currentPort = portfolioRef.current 
 
     if (mode === "real") {
@@ -408,6 +445,12 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
         }
         
         existing.quantity = newQuantity
+
+        // SAVE SMART LEVELS
+        if (stopLoss) existing.stopLossPrice = stopLoss
+        if (takeProfit) existing.takeProfitPrice = takeProfit
+        if (strategy) existing.strategy = strategy
+
       } else {
         existing.quantity -= quantity
         if (existing.quantity <= 0.0000001) {
