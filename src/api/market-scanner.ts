@@ -7,7 +7,18 @@ export interface MarketCandidate {
 }
 
 // Fixed list of "Blue Chip" coins to always watch
-const BLUE_CHIPS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"];
+const BLUE_CHIPS = [
+  "BTCUSDT", 
+  "ETHUSDT", 
+  "SOLUSDT", 
+  "BNBUSDT",
+  "XRPUSDT",
+  "ADAUSDT",   // Cardano
+  "DOGEUSDT",  // Dogecoin
+  "AVAXUSDT",  // Avalanche
+  "SUIUSDT",   // Sui
+  "TRXUSDT"    // TRON
+];
 
 export async function getTopCandidates(): Promise<string[]> {
   try {

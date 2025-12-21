@@ -9,7 +9,10 @@ import { Loader2, TrendingUp, TrendingDown, Maximize2, Minimize2 } from "lucide-
 import { Button } from "@/components/ui/button"
 import { PortfolioOverview } from "@/components/PortfolioOverview"
 
+import { useSimulator } from "@/context/SimulatorContext"
+
 export function Home() {
+  const { activeSymbols, portfolio, latestPrices } = useSimulator()
   const [coins, setCoins] = useState<CoinMarketData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCoin, setSelectedCoin] = useState<CoinMarketData | null>(null)
@@ -25,21 +28,18 @@ export function Home() {
     loadData()
   }, [])
 
+  // ... (existing helper functions getTradingViewSymbol, formatNumber, PercentChange)
   const getTradingViewSymbol = (coin: CoinMarketData) => {
-      // Default to Binance USDT pairs for top coins
-      // Special cases check could go here
-      if (coin.symbol.toUpperCase() === "USDT") return "BINANCE:BTCUSDT"; // Just show BTC for USDT or handle text
+      if (coin.symbol.toUpperCase() === "USDT") return "BINANCE:BTCUSDT"; 
       if (coin.symbol.toUpperCase() === "USDC") return "BINANCE:BTCUSDT";
       if (coin.symbol.toUpperCase() === "STETH") return "BINANCE:ETHUSDT"; 
       return `BINANCE:${coin.symbol.toUpperCase()}USDT`;
   }
-
-  // Format Helper: Large numbers with commas
+  
   const formatNumber = (num: number, currency: string = "$") => {
       return `${currency}${num.toLocaleString("en-US")}`;
   }
 
-  // Helper for percent color
   const PercentChange = ({ value }: { value: number }) => {
       if (!value) return <span className="text-muted-foreground">-</span>;
       const isPositive = value >= 0;
@@ -51,9 +51,87 @@ export function Home() {
       )
   }
 
+  // Helper to get coin image from CoinGecko list if available
+  const getCoinImage = (symbol: string) => {
+      // symbol is "BTCUSDT" -> "btc"
+      const tick = symbol.replace("USDT", "").toLowerCase()
+      const found = coins.find(c => c.symbol === tick)
+      return found?.image
+  }
+
+  const getCoinPrice = (symbol: string) => {
+      // 1. Try Live WebSocket Price (Fastest)
+      if (latestPrices[symbol]) return latestPrices[symbol]
+
+      // 2. Try Portfolio Price (if held)
+      const held = portfolio.holdings[symbol]
+      if (held) return held.currentPrice
+      
+      // 3. Try CoinGecko Cache (Slowest/Fallback)
+      const tick = symbol.replace("USDT", "").toLowerCase()
+      const found = coins.find(c => c.symbol === tick)
+      return found?.current_price || 0
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PortfolioOverview />
+      
+      {/* BOT ACTIVE SCANS */}
+      <div>
+          <div className="flex items-center gap-2 mb-4">
+              <div className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight">Live Bot Scans</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {activeSymbols.map(symbol => {
+                  const isHeld = portfolio.holdings[symbol]?.quantity > 0
+                  const img = getCoinImage(symbol)
+                  const price = getCoinPrice(symbol)
+                  
+                  return (
+                      <Card 
+                          key={symbol} 
+                          className={`
+                              overflow-hidden transition-all duration-300
+                              ${isHeld ? "border-green-500 border-2 bg-green-500/5 shadow-[0_0_15px_rgba(34,197,94,0.2)]" : "border-border hover:border-primary/50"}
+                          `}
+                      >
+                          <CardContent className="p-4 flex items-center gap-3">
+                              {img ? (
+                                  <img src={img} alt={symbol} className="w-8 h-8 rounded-full" />
+                              ) : (
+                                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                                      {symbol.substring(0,2)}
+                                  </div>
+                              )}
+                              <div className="flex flex-col min-w-0">
+                                  <span className="font-bold text-sm truncate">{symbol.replace("USDT", "")}</span>
+                                  {price > 0 && (
+                                     <span className="text-xs font-mono text-muted-foreground">
+                                         ${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                     </span>
+                                  )}
+                                  {isHeld && (
+                                      <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest mt-1">
+                                          ACTIVE
+                                      </span>
+                                  )}
+                              </div>
+                          </CardContent>
+                      </Card>
+                  )
+              })}
+              {activeSymbols.length === 0 && (
+                  <div className="col-span-full py-8 text-center text-muted-foreground border border-dashed rounded-lg">
+                      Initializing Scanner...
+                  </div>
+              )}
+          </div>
+      </div>
 
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Market Dashboard</h2>

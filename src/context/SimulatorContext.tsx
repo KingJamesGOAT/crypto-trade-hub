@@ -29,6 +29,7 @@ interface TradingContextType {
   activeSymbols: string[]
   botStatus: string
   isConnected: boolean
+  latestPrices: Record<string, number>
 }
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined)
@@ -75,6 +76,7 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   const [activeSymbols, setActiveSymbols] = useState<string[]>([])
   const { streamData, isConnected } = useBinanceStream(activeSymbols)
   const [botStatus, setBotStatus] = useState<string>("Idle")
+  const [latestPrices, setLatestPrices] = useState<Record<string, number>>({})
   
   // Strategy Engine Ref (Singleton per session)
   const strategyEngine = useRef(new StrategyEngine())
@@ -99,8 +101,16 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
           setBotStatus("Scanning Market for Opportunities...")
           console.log("Running Market Scanner...")
           const candidates = await getTopCandidates()
-          setActiveSymbols(candidates)
-          setBotStatus(`Monitoring ${candidates.length} Assets`)
+          
+          // Ensure we always track coins we hold, even if they drop from top 10
+          const heldCoins = Object.keys(portfolioRef.current.holdings).filter(
+              k => portfolioRef.current.holdings[k].quantity > 0
+          )
+          
+          const combined = Array.from(new Set([...candidates, ...heldCoins]))
+          
+          setActiveSymbols(combined)
+          setBotStatus(`Monitoring ${combined.length} Assets`)
       }
 
       initScanner()
@@ -120,6 +130,9 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       // Update Real-time Prices in Portfolio
       if (trade) {
           const currentPrice = parseFloat(trade.p)
+          
+          setLatestPrices(prev => ({ ...prev, [trade.s]: currentPrice }))
+
           setPortfolio(prev => {
              const next = { ...prev }
              // Update if we hold this coin
@@ -440,7 +453,8 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
         addFunds,
         activeSymbols,
         botStatus,
-        isConnected
+        isConnected,
+        latestPrices
     }}>
       {children}
     </TradingContext.Provider>
