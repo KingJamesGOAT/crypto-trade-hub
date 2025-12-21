@@ -13,7 +13,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
      if (typeof window !== 'undefined') {
          const saved = localStorage.getItem("sidebar_pinned")
          // Default to true if not set
-         return saved !== null ? JSON.cast ? JSON.parse(saved) : saved === 'true' : true
+         return saved !== null ? saved === 'true' : true
      }
      return true
   })
