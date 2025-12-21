@@ -103,7 +103,7 @@ export function News() {
 
 function NewsCard({ article, highlight }: { article: NewsArticle, highlight?: boolean }) {
   return (
-    <Card className={`group hover:bg-slate-900/50 transition-all duration-200 border-slate-800 bg-slate-950/50 ${highlight ? 'border-l-4 border-l-yellow-500' : ''}`}>
+    <Card className={`group relative hover:bg-slate-900/50 transition-all duration-200 border-slate-800 bg-slate-950/50 ${highlight ? 'border-l-4 border-l-yellow-500' : ''}`}>
       <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
         {/* Image: Hidden on mobile for density, visible on desktop */}
         <div className="hidden sm:block shrink-0">
