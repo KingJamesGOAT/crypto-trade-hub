@@ -22,7 +22,7 @@ export function Sidebar() {
   )
 
   return (
-    <div className="flex w-64 flex-col border-r bg-card h-[calc(100vh-4rem)]">
+    <div className="flex w-64 flex-col border-r bg-card min-h-screen">
       <div className="flex-1 space-y-1 p-4">
         {visibleNavigation.map((item) => (
           <Button
