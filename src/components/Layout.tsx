@@ -36,13 +36,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )} 
       />
 
-      {/* The Hitbox (Hover Logic) */}
-      {!isSidebarPinned && (
+      {/* The Hitbox (Hover Logic) Removed per user request */}
+      {/* {!isSidebarPinned && (
         <div 
             className="fixed inset-y-0 left-0 w-6 z-40 bg-transparent"
             onMouseEnter={() => setIsSidebarHovered(true)}
         />
-      )}
+      )} */}
 
       {/* The Sidebar Component */}
       <Sidebar 

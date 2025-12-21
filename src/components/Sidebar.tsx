@@ -61,14 +61,7 @@ export function Sidebar({
             onMouseLeave={onMouseLeave}
         >
            {/* Header */}
-           <div className="flex h-16 items-center justify-between px-4 border-b">
-                <div className="flex items-center gap-2 font-bold text-lg px-2">
-                    <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
-                        <span className="text-primary text-xs">CTH</span>
-                    </div>
-                    <span>CryptoHub</span>
-                </div>
-                
+           <div className="flex h-16 items-center justify-end px-4 border-b">
                 {/* Collapse / Pin Button */}
                 <Button 
                     variant="ghost" 
