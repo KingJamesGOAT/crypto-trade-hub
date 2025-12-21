@@ -211,7 +211,6 @@ export function Simulator() {
                   {/* Left: Bot Config */}
                   <div className="lg:col-span-1 space-y-6">
                       <BotConfiguration />
-                      <NewsDashboard />
                   </div>
                   
                   {/* Right: Performance Graph & Stats */}

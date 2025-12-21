@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ExternalLink, TrendingUp, TrendingDown, Newspaper } from "lucide-react";
 import { analyzeMarketSentiment } from "@/lib/news-sentiment";
 
-export function NewsDashboard() {
+export function NewsDashboard({ embedded }: { embedded?: boolean }) {
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [sentiment, setSentiment] = useState<{ mode: string, score: number }>({ mode: "NEUTRAL", score: 0 });
 
@@ -19,8 +19,12 @@ export function NewsDashboard() {
     load();
   }, []);
 
+  const Container = embedded ? "div" : Card;
+  const containerProps = embedded ? { className: "w-full" } : { className: "w-full bg-slate-950 border-slate-800 text-white shadow-xl" };
+
   return (
-    <Card className="w-full bg-slate-950 border-slate-800 text-white shadow-xl">
+    // @ts-ignore
+    <Container {...containerProps}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
            <Newspaper className="h-5 w-5 text-blue-400" />
