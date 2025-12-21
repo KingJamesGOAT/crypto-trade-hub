@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import { useAuth } from "@/context/AuthContext";
 import { aiService, type ChatMessage } from "@/api/gemini-service";
 import { Button } from "@/components/ui/button";
@@ -144,9 +146,21 @@ export function AIChat() {
             <div className={`rounded-lg px-4 py-2 max-w-[80%] ${
               msg.role === "user" 
                 ? "bg-blue-600 text-white" 
-                : "bg-muted"
+                : "bg-muted text-foreground"
             }`}>
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              <ReactMarkdown
+                rehypePlugins={[rehypeSanitize]}
+                components={{
+                  p: ({node, ...props}) => <p className="text-sm mb-1 leading-relaxed" {...props} />,
+                  a: ({node, ...props}) => <a className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
+                  code: ({node, ...props}) => <code className="bg-black/20 rounded px-1 py-0.5 text-xs font-mono" {...props} />,
+                  ul: ({node, ...props}) => <ul className="list-disc list-inside text-sm mb-2" {...props} />,
+                  ol: ({node, ...props}) => <ol className="list-decimal list-inside text-sm mb-2" {...props} />,
+                  strong: ({node, ...props}) => <strong className="font-bold text-blue-300" {...props} />
+                }}
+              >
+                {msg.content}
+              </ReactMarkdown>
             </div>
             {msg.role === "user" && (
               <Avatar className="h-8 w-8 bg-cyan-600">
