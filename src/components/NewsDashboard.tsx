@@ -82,6 +82,6 @@ export function NewsDashboard({ embedded }: { embedded?: boolean }) {
           </div>
         </ScrollArea>
       </CardContent>
-    </Card>
+    </Container>
   );
 }
