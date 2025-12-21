@@ -95,6 +95,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   { term: "Dust", definition: "A trace amount of cryptocurrency that is smaller than the minimum transaction fee, making it unspendable." },
   { term: "DYOR", definition: "Do Your Own Research. A common disclaimer in the crypto community." },
 
+  { term: "EMA (Exponential Moving Average)", definition: "A type of moving average that places a greater weight and significance on the most recent data points." },
+
   // E
   { term: "Encryption", definition: "The method by which information is converted into secret code that hides the information's true meaning." },
   { term: "Enterprise Blockchain", definition: "Permissioned blockchains designed for enterprise use cases where privacy and control are paramount." },
@@ -162,6 +164,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   { "term": "Litecoin (LTC)", "definition": "A peer-to-peer cryptocurrency created by Charlie Lee, often referred to as the 'silver to Bitcoin's gold'." },
   { term: "Long", definition: "A trading position where the trader buys an asset expecting its price to rise." },
 
+  { term: "MACD (Moving Average Convergence Divergence)", definition: "A trend-following momentum indicator that shows the relationship between two moving averages of a security's price." },
+
   // M
   { term: "Mainnet", definition: "The fully operational and independent blockchain network where actual transactions take place." },
   { "term": "Maker (MKR)", "definition": "The governance token of the MakerDAO and Protocol, which issues the DAI stablecoin." },
@@ -226,6 +230,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   { "term": "Rug Pull", "definition": "A malicious maneuver in the crypto industry where crypto developers abandon a project and run away with investors' funds." },
   { "term": "RWA (Real World Assets)", "definition": "The tokenization of physical or traditional financial assets (like real estate, US Treasury bonds, or gold) to be traded on the blockchain." },
 
+  { term: "RSI (Relative Strength Index)", definition: "A momentum oscillator that measures the speed and change of price movements, used to evaluate overvalued or undervalued conditions." },
+
   // S
   { term: "Satoshi", definition: "The smallest unit of Bitcoin. 1 Satoshi = 0.00000001 BTC." },
   { term: "Satoshi Nakamoto", definition: "The pseudonym used by the unknown person or persons who developed Bitcoin." },
@@ -240,6 +246,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   { term: "Short", definition: "A trading strategy where an investor sells an asset with the intention of buying it back later at a lower price." },
   { term: "Sidechain", definition: "A separate blockchain that is attached to its parent blockchain using a two-way peg." },
   { term: "Slippage", definition: "The difference between the expected price of a trade and the price at which the trade is executed." },
+  { term: "SMA (Simple Moving Average)", definition: "An arithmetic moving average calculated by adding recent prices and then dividing that figure by the number of time periods in the calculation average." },
   { term: "Smart Contract", definition: "A self-executing contract with the terms of the agreement between buyer and seller being directly written into lines of code." },
   { term: "Soft Cap", definition: "The minimum amount of capital that a project ostensibly needs to proceed." },
   { term: "Soft Fork", definition: "A change to the software protocol where only previously valid transaction blocks are made invalid." },
