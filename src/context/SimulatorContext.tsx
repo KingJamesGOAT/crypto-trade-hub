@@ -202,9 +202,11 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       if (availableAllocated < 10) return // No funds
 
       // 2. Sizing
-      // Momentum: 5% of allocation per trade? Or fixed?
-      // Let's go with 10% of available allocation for diversification
-      let tradeAmount = availableAllocated * 0.10
+      // Use the Strategy Engine's calculated size (Kelly or Grid Layer)
+      // Default to 10% if not provided
+      const sizePercent = signal.sizePercent || 0.10 
+      
+      let tradeAmount = availableAllocated * sizePercent
       
       // Cap at actual balance
       if (tradeAmount > currentPort.simulator.currentBalance) tradeAmount = currentPort.simulator.currentBalance
