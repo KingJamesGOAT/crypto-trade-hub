@@ -382,9 +382,19 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (side === "buy") {
+        // Weighted Average Entry Price Formula:
+        // ((OldQty * OldAvg) + (NewQty * BuyPrice)) / (OldQty + NewQty)
         const totalOldCost = existing.quantity * existing.averageEntryPrice
+        const totalNewCost = quantity * executionPrice // Cost excluding fee for asset price avg
+        
         const newQuantity = existing.quantity + quantity
-        existing.averageEntryPrice = (totalOldCost + totalCost) / newQuantity
+        
+        if (newQuantity > 0) {
+            existing.averageEntryPrice = (totalOldCost + totalNewCost) / newQuantity
+        } else {
+            existing.averageEntryPrice = executionPrice
+        }
+        
         existing.quantity = newQuantity
       } else {
         existing.quantity -= quantity
@@ -395,7 +405,7 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       
       if (existing.quantity > 0) {
          newPortfolio.holdings[coin] = existing
-      } else if (side === 'sell' && existing.quantity <= 0.0000001) {
+      } else if (side === 'sell' && (!newPortfolio.holdings[coin] || newPortfolio.holdings[coin].quantity <= 0.0000001)) {
          delete newPortfolio.holdings[coin]
       }
 

@@ -1,4 +1,5 @@
 import type { BinanceKline } from "@/hooks/useBinanceStream"
+import { calculateADX, calculateATR, calculateKellySize, type OHLC } from "@/lib/utils"
 
 export interface TradeSignal {
   action: "BUY" | "SELL" | "HOLD"
@@ -6,163 +7,212 @@ export interface TradeSignal {
   stopLoss?: number
   takeProfit?: number
   price: number
-  strategy: "momentum" | "reversal"
+  strategy: "momentum" | "grid"
+  orderType?: "MARKET" | "LIMIT"
+  sizePercent?: number // For Kelly Criterion or Layering
 }
 
-export type StrategyType = "momentum" | "reversal"
-
-// Configuration for strategies
-// Configuration for strategies
-// const MOMENTUM_COINS_LIMIT = 5 // Not used currently
-// Blue chips are usually safe for reversal strategies on chop
-const MEAN_REVERSAL_COINS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT']
+interface ActiveOrder {
+    id: string
+    type: "BUY_LIMIT" | "STOP_LOSS"
+    price: number
+    size: number
+}
 
 export class StrategyEngine {
-  // Map of Symbol -> Array of closes (for simple history management)
-  // We need full klines for some indicators
   private history: Map<string, BinanceKline[]> = new Map()
+  private activeOrders: Map<string, ActiveOrder[]> = new Map() // Symbol -> Orders
 
-  
   /**
-   * Ingests a new candle and returns a trading signal if any
+   * Main Evaluation Loop (Tick/Candle Update)
    */
   public evaluate(symbol: string, kline: BinanceKline, _isNewCandle: boolean): TradeSignal {
     // 1. Maintain History
     this.updateHistory(symbol, kline)
-
     const candles = this.history.get(symbol) || []
-    if (candles.length < 50) {
-        return { action: "HOLD", reason: "Insufficient Data", price: parseFloat(kline.c), strategy: "momentum" }
-    }
+    if (candles.length < 50) return { action: "HOLD", reason: "Gathering Data", price: parseFloat(kline.c), strategy: "momentum" }
 
-    const currentPrice = parseFloat(kline.c)
+    const price = parseFloat(kline.c)
     
-    // Determine Strategy Type based on symbol classification
-    // If it's a Blue Chip, we prefer Mean Reversal (unless it's pumping hard)
-    // If it's a "Top Gainer", we prefer Momentum
-    
-    const isBlueChip = MEAN_REVERSAL_COINS.includes(symbol)
-    
-    if (!isBlueChip) {
-        return this.evaluateMomentum(symbol, candles, currentPrice)
+    // 2. CHECK GHOST ORDERS (Client-side Limit Orders)
+    const ghostSignal = this.checkGhostOrders(symbol, kline)
+    if (ghostSignal) return ghostSignal
+
+    // 3. REGIME DETECTION (The "Quant" Filter)
+    const ohlc = this.mapToOHLC(candles)
+    const adx = calculateADX(ohlc, 14) // Trend Strength
+    const isTrending = adx > 25
+
+    // 4. ROUTE STRATEGY
+    if (isTrending) {
+        return this.evaluateSmartMomentum(symbol, candles, price)
     } else {
-        return this.evaluateMeanReversal(symbol, candles, currentPrice)
+        return this.evaluateDynamicGrid(symbol, candles, price)
     }
   }
 
-  private updateHistory(symbol: string, kline: BinanceKline) {
-      if (!this.history.has(symbol)) {
-          this.history.set(symbol, [])
+  // --- SUB-STRATEGIES ---
+
+  /**
+   * Strategy A: Smart Momentum (Liquidation Sniper)
+   * Active when ADX > 25 (Trending)
+   */
+  private evaluateSmartMomentum(_symbol: string, candles: BinanceKline[], price: number): TradeSignal {
+      const closes = candles.map(k => parseFloat(k.c))
+      const highs = candles.map(k => parseFloat(k.h))
+      const volumes = candles.map(k => parseFloat(k.v))
+      
+      // 1. Volume Confirmation: Current Vol > 2.0 * avg vol
+      const avgVol = volumes.slice(-20).reduce((a,b) => a+b, 0) / 20
+      const currentVol = volumes[volumes.length - 1]
+      const isHighVolume = currentVol > (avgVol * 2.0)
+
+      // 2. Donchian Breakout: Price > Highest High of last 20
+      const highestHigh = Math.max(...highs.slice(-21, -1)) // Exclude current
+      const isBreakout = price > highestHigh
+
+      // 3. Volatility Expansion (ATR Rising)
+      const ohlc = this.mapToOHLC(candles)
+      const atr = calculateATR(ohlc, 14)
+      const prevAtr = calculateATR(ohlc.slice(0, -1), 14) // Rough check
+
+      if (isHighVolume && isBreakout && atr > prevAtr) {
+          // KELLY SIZING
+          const winRate = 0.55 // Default conservative estimate
+          const rr = 2.0 // Targeting big moves
+          const size = calculateKellySize(winRate, rr)
+
+          if (size <= 0) return { action: "HOLD", reason: `Kelly Low (${size})`, price, strategy: "momentum" }
+
+          // TRAILING STOP: 20 EMA
+          const ema20 = this.calculateEMA(closes, 20)
+
+          return {
+              action: "BUY",
+              reason: "Smart Momentum Breakout",
+              stopLoss: ema20, // Trailing stop
+              takeProfit: undefined, // Let winners run
+              price,
+              strategy: "momentum",
+              sizePercent: size
+          }
       }
+
+      return { action: "HOLD", reason: "Scanning Momentum...", price, strategy: "momentum" }
+  }
+
+  /**
+   * Strategy B: Dynamic Grid (Mean Reversion)
+   * Active when ADX < 25 (Ranging)
+   */
+  private evaluateDynamicGrid(symbol: string, candles: BinanceKline[], price: number): TradeSignal {
+      const closes = candles.map(k => parseFloat(k.c))
+      const rsi = this.calculateRSI(closes, 14)
+      const bb = this.calculateBollinger(closes, 20, 2)
+
+      // EXIT LOGIC: Close all layers if RSI > 50 or Price > Upper BB
+      if (rsi > 50 || price >= bb.upper) {
+          return { action: "SELL", reason: "Grid Take Profit (RSI > 50)", price, strategy: "grid" }
+      }
+
+      // ENTRY LOGIC: Oversold (RSI < 30) -> Place Layers
+      if (rsi < 30 && price < bb.lower) {
+           // We initiate the Grid. 
+           // In a real grid, we place 3 limit orders. 
+           // Since we can only send one actions 'BUY', we buy Layer 1 now, 
+           // and register Layer 2 & 3 as Ghost Orders.
+           
+           this.registerGhostOrder(symbol, price * 0.985, 0.30) // -1.5%
+           this.registerGhostOrder(symbol, price * 0.970, 0.40) // -3.0%
+           
+           return {
+               action: "BUY",
+               reason: "Grid Layer 1 (RSI < 30)",
+               price,
+               strategy: "grid",
+               sizePercent: 0.30 // 30% of capital assigned to this trade
+           }
+      }
+
+      return { action: "HOLD", reason: `Grid Scanning (RSI ${rsi.toFixed(0)})`, price, strategy: "grid" }
+  }
+
+  // --- GHOST ORDER SYSTEM ---
+
+  private registerGhostOrder(symbol: string, targetPrice: number, size: number) {
+      if (!this.activeOrders.has(symbol)) this.activeOrders.set(symbol, [])
+      
+      const orders = this.activeOrders.get(symbol)!
+      // Avoid duplicate levels close to each other
+      const exists = orders.some(o => Math.abs(o.price - targetPrice) / targetPrice < 0.005)
+      
+      if (!exists) {
+          orders.push({
+              id: Date.now().toString() + Math.random(),
+              type: "BUY_LIMIT",
+              price: targetPrice,
+              size
+          })
+          console.log(`[Ghost] Registered Layer at ${targetPrice}`)
+      }
+  }
+
+  private checkGhostOrders(symbol: string, kline: BinanceKline): TradeSignal | null {
+      const orders = this.activeOrders.get(symbol)
+      if (!orders || orders.length === 0) return null
+
+      const low = parseFloat(kline.l)
+      // const high = parseFloat(kline.h)
+
+      // CHECK BUY LIMITS
+      // If candle Low went below our Limit Price, we filled!
+      const filledIndex = orders.findIndex(o => o.type === "BUY_LIMIT" && low <= o.price)
+      
+      if (filledIndex !== -1) {
+          const order = orders[filledIndex]
+          // Remove it
+          orders.splice(filledIndex, 1)
+          
+          return {
+              action: "BUY",
+              reason: `Grid Layer Filled @ ${order.price}`,
+              price: order.price, // We assume filled at limit price
+              strategy: "grid",
+              sizePercent: order.size
+          }
+      }
+
+      return null
+  }
+
+
+  // --- HELPERS ---
+
+  private updateHistory(symbol: string, kline: BinanceKline) {
+      if (!this.history.has(symbol)) this.history.set(symbol, [])
       const arr = this.history.get(symbol)!
       
-      // If the last candle in array has same time as new one, overwrite it (it's an update)
-      // If it's new, push it.
       const last = arr[arr.length - 1]
       if (last && last.t === kline.t) {
           arr[arr.length - 1] = kline
       } else {
           arr.push(kline)
-          // Keep max 100 candles
-          if (arr.length > 100) arr.shift()
+          if (arr.length > 200) arr.shift() // Keep more history for ADX
       }
   }
 
-  // --- STRATEGY 1: MOMENTUM SCALP ---
-  private evaluateMomentum(_symbol: string, candles: BinanceKline[], price: number): TradeSignal {
-      // 1. Trend Filter: Price > 9 EMA
-      const closes = candles.map(k => parseFloat(k.c))
-      const ema9 = this.calculateEMA(closes, 9)
-      const vwap = this.calculateVWAP(candles)
-
-      // const lastCandle = candles[candles.length - 1]
-      const prevCandle = candles[candles.length - 2]
-      
-      if (!ema9 || !vwap || !prevCandle) return { action: "HOLD", reason: "Insufficient Data", price, strategy: "momentum" }
-
-      const isUptrend = price > ema9 && price > vwap
-      
-      if (!isUptrend) {
-          return { 
-              action: "HOLD", 
-              reason: `Downtrend (Price ${price.toFixed(2)} < EMA ${ema9.toFixed(2)})`, 
-              price, 
-              strategy: "momentum" 
-          }
-      }
-
-      // 2. The Setup: Pullback
-      // We look for a previous red candle (Close < Open) 
-      const prevOpen = parseFloat(prevCandle.o)
-      const prevClose = parseFloat(prevCandle.c)
-      const isRed = prevClose < prevOpen
-
-      // 3. The Trigger: Break of Previous High
-      // If we had a red candle, and now we break its high...
-      const prevHigh = parseFloat(prevCandle.h)
-      const prevLow = parseFloat(prevCandle.l) // Stop loss level
-
-      if (isRed && price > prevHigh) {
-          // SIGNAL!
-          return {
-              action: "BUY",
-              reason: "Momentum Breakout",
-              stopLoss: prevLow,
-              takeProfit: price * 1.03, // +3% target
-              price,
-              strategy: "momentum"
-          }
-      }
-
-      return { action: "HOLD", reason: `Scanning pullbacks (High: ${prevHigh})`, price, strategy: "momentum" }
+  private mapToOHLC(candles: BinanceKline[]): OHLC[] {
+      return candles.map(c => ({
+          high: parseFloat(c.h),
+          low: parseFloat(c.l),
+          close: parseFloat(c.c)
+      }))
   }
 
-
-  // --- STRATEGY 2: MEAN REVERSAL ---
-  private evaluateMeanReversal(_symbol: string, candles: BinanceKline[], price: number): TradeSignal {
-      const closes = candles.map(k => parseFloat(k.c))
-      
-      // 1. RSI < 30 (Oversold)
-      const rsi = this.calculateRSI(closes, 14)
-      if (rsi > 30) return { action: "HOLD", reason: `RSI Neutral (${rsi.toFixed(0)})`, price, strategy: "reversal" }
-
-      // 2. Bollinger Bands Lower Touch
-      const bb = this.calculateBollinger(closes, 20, 2)
-      if (price > bb.lower) return { action: "HOLD", reason: `Inside BB (Low: ${bb.lower.toFixed(2)})`, price, strategy: "reversal" }
-
-      // 3. MACD Flip (Simplified: Histogram turning up)
-      const macd = this.calculateMACD(closes)
-      
-      // If RSI is oversold, Price is low, and MACD is curving up... BUY
-      if (macd.histogram > 0 && macd.prevHistogram < 0) {
-           return {
-              action: "BUY",
-              reason: "Mean Reversal Flip",
-              stopLoss: price * 0.98, // -2%
-              takeProfit: price * 1.04, // +4%
-              price,
-              strategy: "reversal"
-           }
-      }
-      
-      // Fallback: If RSI is EXTREMELY oversold (<20), buy anyway
-      if (rsi < 20) {
-           return {
-              action: "BUY",
-              reason: "Deep Value (RSI < 20)",
-              stopLoss: price * 0.95,
-              takeProfit: price * 1.05,
-              price,
-              strategy: "reversal"
-           }
-      }
-
-      return { action: "HOLD", reason: "Waiting for MACD Flip", price, strategy: "reversal" }
-  }
-
-
-  // --- INDICATORS ---
-
+  // (Existing Indicators Copied/Maintained for internal use if needed, 
+  // though we could move them to utils too to keep it clean. 
+  // keeping simple ones here for now to avoid breaking too much refactor at once)
+  
   private calculateEMA(prices: number[], period: number): number {
       if (prices.length < period) return prices[prices.length - 1]
       const k = 2 / (period + 1)
@@ -177,85 +227,33 @@ export class StrategyEngine {
     if (prices.length < period + 1) return 50
     let gains = 0
     let losses = 0
-
     for (let i = 1; i <= period; i++) {
         const change = prices[i] - prices[i - 1]
         if (change > 0) gains += change
         else losses += Math.abs(change)
     }
-
     let avgGain = gains / period
     let avgLoss = losses / period
-
-    // Smoothed RSI
     for (let i = period + 1; i < prices.length; i++) {
         const change = prices[i] - prices[i - 1]
         const gain = change > 0 ? change : 0
         const loss = change < 0 ? Math.abs(change) : 0
-        
         avgGain = ((avgGain * (period - 1)) + gain) / period
         avgLoss = ((avgLoss * (period - 1)) + loss) / period
     }
-
-    if (avgLoss === 0) return 100
-    const rs = avgGain / avgLoss
-    return 100 - (100 / (1 + rs))
-  }
-
-  private calculateVWAP(candles: BinanceKline[]): number {
-      // VWAP = Sum(Typical Price * Volume) / Sum(Volume)
-      let cumPV = 0
-      let cumVol = 0
-      
-      // Calculate over last 20 periods for "Rolling VWAP" proxy
-      const start = Math.max(0, candles.length - 20)
-      
-      for(let i=start; i<candles.length; i++) {
-          const k = candles[i]
-          const h = parseFloat(k.h)
-          const l = parseFloat(k.l)
-          const c = parseFloat(k.c)
-          const v = parseFloat(k.v)
-          const typical = (h + l + c) / 3
-          
-          cumPV += typical * v
-          cumVol += v
-      }
-      
-      return cumVol === 0 ? 0 : cumPV / cumVol
+    return avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss))
   }
 
   private calculateBollinger(prices: number[], period: number, multiplier: number) {
       if (prices.length < period) return { lower: 0, upper: 0, mid: 0 }
-      
       const slice = prices.slice(prices.length - period)
-      const sum = slice.reduce((a, b) => a + b, 0)
-      const mean = sum / period
-      
-      const squaredDiffs = slice.map(p => Math.pow(p - mean, 2))
-      const variance = squaredDiffs.reduce((a, b) => a + b, 0) / period
+      const mean = slice.reduce((a, b) => a + b, 0) / period
+      const variance = slice.map(p => Math.pow(p - mean, 2)).reduce((a, b) => a + b, 0) / period
       const stdDev = Math.sqrt(variance)
-      
       return {
           upper: mean + (multiplier * stdDev),
           lower: mean - (multiplier * stdDev),
           mid: mean
       }
-  }
-
-  private calculateMACD(prices: number[]) {
-      // 12, 26, 9
-      const fast = this.calculateEMA(prices, 12)
-      const slow = this.calculateEMA(prices, 26)
-      const macdLine = fast - slow
-      // We don't have full history for signal line of MACD easily without more state
-      // Approximating signal as previous MACD for "Slope" detection
-      // ideally we track MACD line array.
-      
-      // Quick hack: Just return histogram as (Fast - Slow) - 0 for now 
-      // A true signal line requires EMA(MACD_Line, 9). 
-      // For this simplified version (client side), we just check if MACD line is ticking UP.
-      
-      return { histogram: macdLine, prevHistogram: macdLine } // Placeholder
   }
 }
