@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, ListFilter, RefreshCcw, ExternalLink, Calendar, Tag } from "lucide-react";
+import { Loader2, AlertTriangle, ListFilter, RefreshCcw, ExternalLink, Tag } from "lucide-react";
 import { useNews } from "@/context/NewsContext";
 
 // Helper to determine importance
@@ -110,12 +110,10 @@ export function News() {
                 {selectedArticle && (
                     <>
                         <DialogHeader>
-                            <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(selectedArticle.published_on * 1000).toLocaleString()}</span>
-                                <span>•</span>
-                                <span className="text-blue-400 font-medium">{selectedArticle.source}</span>
-                            </div>
-                            <DialogTitle className="text-2xl leading-normal">{selectedArticle.title}</DialogTitle>
+                            <DialogTitle className="text-2xl leading-normal mb-2">{selectedArticle.title}</DialogTitle>
+                            <DialogDescription>
+                                {new Date(selectedArticle.published_on * 1000).toLocaleString()} • {selectedArticle.source}
+                            </DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-4">
