@@ -1,4 +1,4 @@
-import { BarChart2, BookOpen, Home, Settings, Terminal, Newspaper, ChevronsLeft, Pin } from "lucide-react"
+import { BarChart2, BookOpen, Home, Settings, Terminal, Newspaper } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,6 @@ interface SidebarProps {
     isPinned: boolean
     isHovered?: boolean
     onClose: () => void // Used for mobile
-    onTogglePin: () => void
     onMouseEnter: () => void
     onMouseLeave: () => void
 }
@@ -28,7 +27,6 @@ export function Sidebar({
     isPinned, 
     isHovered = false,
     onClose,
-    onTogglePin,
     onMouseEnter,
     onMouseLeave 
 }: SidebarProps) {

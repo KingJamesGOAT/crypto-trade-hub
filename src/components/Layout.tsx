@@ -17,9 +17,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
      return true
   })
   
-  // 2. HOVER STATE: Is the mouse trying to peek at the menu?
   const [isSidebarHovered, setIsSidebarHovered] = useState(false)
-  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [hoverTimeout, setHoverTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
 
   // Graceful Hover Logic
   const handleHoverOpen = () => {
