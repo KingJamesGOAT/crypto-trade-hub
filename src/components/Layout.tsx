@@ -48,7 +48,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             onDesktopToggle={() => setIsSidebarPinned(!isSidebarPinned)} 
             onMenuHover={handleHoverOpen} 
             onMenuLeave={handleHoverClose}
-            isSidebarOpen={isSidebarPinned} 
         />
       </div>
 

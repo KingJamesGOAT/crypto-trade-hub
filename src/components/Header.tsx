@@ -19,10 +19,9 @@ interface HeaderProps {
     onDesktopToggle?: () => void
     onMenuHover?: () => void
     onMenuLeave?: () => void
-    isSidebarOpen?: boolean
 }
 
-export function Header({ onMenuToggle, onDesktopToggle, onMenuHover, onMenuLeave, isSidebarOpen = true }: HeaderProps) {
+export function Header({ onMenuToggle, onDesktopToggle, onMenuHover, onMenuLeave }: HeaderProps) {
   const { setTheme, theme } = useTheme()
   const { openGlossary } = useGlossary()
   const { isAuthenticated, username, logout } = useAuth()
