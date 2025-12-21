@@ -63,6 +63,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
               )} 
           />
 
+          {/* LEFT EDGE HOTSPOT (Restored per request) */}
+          {/* Allows opening sidebar by hovering left edge, under header */}
+          {!isSidebarPinned && (
+            <div 
+                className="fixed top-16 left-0 bottom-0 w-6 z-40 bg-transparent"
+                onMouseEnter={handleHoverOpen}
+                onMouseLeave={handleHoverClose}
+            />
+          )}
+
           {/* THE SIDEBAR (Fixed, Under Header) */}
           <Sidebar 
               isOpen={isMobileMenuOpen} 
