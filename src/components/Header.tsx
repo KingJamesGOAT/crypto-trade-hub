@@ -18,10 +18,11 @@ interface HeaderProps {
     onMenuToggle: () => void
     onDesktopToggle?: () => void
     onMenuHover?: () => void
+    onMenuLeave?: () => void
     isSidebarOpen?: boolean
 }
 
-export function Header({ onMenuToggle, onDesktopToggle, onMenuHover, isSidebarOpen = true }: HeaderProps) {
+export function Header({ onMenuToggle, onDesktopToggle, onMenuHover, onMenuLeave, isSidebarOpen = true }: HeaderProps) {
   const { setTheme, theme } = useTheme()
   const { openGlossary } = useGlossary()
   const { isAuthenticated, username, logout } = useAuth()
@@ -35,6 +36,7 @@ export function Header({ onMenuToggle, onDesktopToggle, onMenuHover, isSidebarOp
             size="icon" 
             className={`mr-2 ${isSidebarOpen ? "md:hidden" : ""}`}
             onMouseEnter={onMenuHover} // Trigger sidebar peek on hover
+            onMouseLeave={onMenuLeave} // Handle mouse leave
             onClick={() => {
                 if (window.innerWidth >= 768) {
                    onDesktopToggle?.()

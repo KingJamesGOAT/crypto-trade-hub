@@ -74,19 +74,8 @@ export function Sidebar({
             onMouseLeave={onMouseLeave}
         >
            {/* Sidebar Header with "MENU" */}
-           <div className="flex h-14 items-center justify-between px-6 border-b shrink-0">
+           <div className="flex h-14 items-center px-6 border-b shrink-0">
                 <span className="font-bold tracking-wider text-muted-foreground/70">MENU</span>
-                
-                {/* Pin Button */}
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="hidden md:flex h-8 w-8 text-muted-foreground hover:text-foreground"
-                    onClick={onTogglePin}
-                    title={isPinned ? "Close Sidebar" : "Lock Sidebar Open"}
-                >
-                    {isPinned ? <ChevronsLeft className="h-4 w-4" /> : <Pin className="h-4 w-4 rotate-45" />}
-                </Button>
            </div>
            
            <div className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">

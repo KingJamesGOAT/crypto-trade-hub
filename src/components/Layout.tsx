@@ -19,6 +19,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
   
   // 2. HOVER STATE: Is the mouse trying to peek at the menu?
   const [isSidebarHovered, setIsSidebarHovered] = useState(false)
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
+
+  // Graceful Hover Logic
+  const handleHoverOpen = () => {
+    if (hoverTimeout) clearTimeout(hoverTimeout)
+    setIsSidebarHovered(true)
+  }
+
+  const handleHoverClose = () => {
+    const timeout = setTimeout(() => {
+        setIsSidebarHovered(false)
+    }, 300) // 300ms grace period to move from icon to sidebar
+    setHoverTimeout(timeout)
+  }
 
   useEffect(() => {
       localStorage.setItem("sidebar_pinned", String(isSidebarPinned))
@@ -32,8 +46,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <div className="fixed top-0 left-0 right-0 z-50">
         <Header 
             onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            onDesktopToggle={() => setIsSidebarPinned(!isSidebarPinned)} // Toggle pin on click
-            onMenuHover={() => setIsSidebarHovered(true)} // Trigger overlay on hover
+            onDesktopToggle={() => setIsSidebarPinned(!isSidebarPinned)} 
+            onMenuHover={handleHoverOpen} 
+            onMenuLeave={handleHoverClose}
             isSidebarOpen={isSidebarPinned} 
         />
       </div>
@@ -56,8 +71,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               isHovered={isSidebarHovered}
               onClose={() => setIsMobileMenuOpen(false)}
               onTogglePin={() => setIsSidebarPinned(!isSidebarPinned)}
-              onMouseEnter={() => setIsSidebarHovered(true)}
-              onMouseLeave={() => setIsSidebarHovered(false)}
+              onMouseEnter={handleHoverOpen}
+              onMouseLeave={handleHoverClose}
           />
 
           {/* SCROLLABLE CONTENT AREA */}
