@@ -26,7 +26,7 @@ export class StrategyEngine {
   /**
    * Main Evaluation Loop (Tick/Candle Update)
    */
-  public evaluate(symbol: string, kline: BinanceKline, _isNewCandle: boolean): TradeSignal {
+  public evaluate(symbol: string, kline: BinanceKline, _isNewCandle: boolean, sentimentMode: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL"): TradeSignal {
     // 1. Maintain History
     this.updateHistory(symbol, kline)
     const candles = this.history.get(symbol) || []
@@ -45,9 +45,9 @@ export class StrategyEngine {
 
     // 4. ROUTE STRATEGY
     if (isTrending) {
-        return this.evaluateSmartMomentum(symbol, candles, price)
+        return this.evaluateSmartMomentum(symbol, candles, price, sentimentMode)
     } else {
-        return this.evaluateDynamicGrid(symbol, candles, price)
+        return this.evaluateDynamicGrid(symbol, candles, price, sentimentMode)
     }
   }
 
@@ -57,7 +57,12 @@ export class StrategyEngine {
    * Strategy A: Smart Momentum (Liquidation Sniper)
    * Active when ADX > 25 (Trending)
    */
-  private evaluateSmartMomentum(_symbol: string, candles: BinanceKline[], price: number): TradeSignal {
+  private evaluateSmartMomentum(_symbol: string, candles: BinanceKline[], price: number, sentiment: "BULLISH" | "BEARISH" | "NEUTRAL"): TradeSignal {
+      // 0. SENTIMENT CHECK (Fundamental Layer)
+      if (sentiment === "BEARISH") {
+          return { action: "HOLD", reason: "News Sentiment BEARISH (Defensive Mode)", price, strategy: "momentum" }
+      }
+
       const closes = candles.map(k => parseFloat(k.c))
       const highs = candles.map(k => parseFloat(k.h))
       const volumes = candles.map(k => parseFloat(k.v))
@@ -84,7 +89,9 @@ export class StrategyEngine {
 
           if (size <= 0) return { action: "HOLD", reason: `Kelly Low (${size})`, price, strategy: "momentum" }
 
-          // TRAILING STOP: 20 EMA
+          // TRAILING STOP: 20 EMA normally
+          // If Sentiment is Neutral/Mixed, maybe look for tighter stop?
+          // For now, Stick to 20 EMA.
           const ema20 = this.calculateEMA(closes, 20)
 
           return {
@@ -105,7 +112,7 @@ export class StrategyEngine {
    * Strategy B: Dynamic Grid (Mean Reversion)
    * Active when ADX < 25 (Ranging)
    */
-  private evaluateDynamicGrid(symbol: string, candles: BinanceKline[], price: number): TradeSignal {
+  private evaluateDynamicGrid(symbol: string, candles: BinanceKline[], price: number, sentiment: "BULLISH" | "BEARISH" | "NEUTRAL"): TradeSignal {
       const closes = candles.map(k => parseFloat(k.c))
       const rsi = this.calculateRSI(closes, 14)
       const bb = this.calculateBollinger(closes, 20, 2)
@@ -115,8 +122,17 @@ export class StrategyEngine {
           return { action: "SELL", reason: "Grid Take Profit (RSI > 50)", price, strategy: "grid" }
       }
 
-      // ENTRY LOGIC: Oversold (RSI < 30) -> Place Layers
-      if (rsi < 30 && price < bb.lower) {
+      // ENTRY LOGIC: Oversold
+      // SENTIMENT ADJUSTMENT:
+      // Bullish: RSI < 40 (Aggressive)
+      // Bearish: RSI < 20 (Defensive)
+      // Neutral: RSI < 30
+      
+      let rsiThreshold = 30
+      if (sentiment === "BULLISH") rsiThreshold = 40
+      if (sentiment === "BEARISH") rsiThreshold = 20
+
+      if (rsi < rsiThreshold && price < bb.lower) {
            // We initiate the Grid. 
            // In a real grid, we place 3 limit orders. 
            // Since we can only send one actions 'BUY', we buy Layer 1 now, 
@@ -127,7 +143,7 @@ export class StrategyEngine {
            
            return {
                action: "BUY",
-               reason: "Grid Layer 1 (RSI < 30)",
+               reason: `Grid Layer 1 (RSI < ${rsiThreshold} [${sentiment}])`,
                price,
                strategy: "grid",
                sizePercent: 0.30 // 30% of capital assigned to this trade

@@ -5,6 +5,8 @@ import { binanceService } from "@/api/binance-service"
 import { getTopCandidates } from "@/api/market-scanner"
 import { useBinanceStream } from "@/hooks/useBinanceStream"
 import { StrategyEngine, type TradeSignal } from "@/lib/strategy-engine"
+import { fetchCryptoNews } from "@/api/news-service"
+import { analyzeMarketSentiment, type SentimentMode } from "@/lib/news-sentiment"
 
 interface BotConfig {
   isActive: boolean
@@ -77,6 +79,11 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   const { streamData, isConnected } = useBinanceStream(activeSymbols)
   const [botStatus, setBotStatus] = useState<string>("Idle")
   const [latestPrices, setLatestPrices] = useState<Record<string, number>>({})
+
+  // Sentiment State
+  const [sentiment, setSentiment] = useState<{ mode: SentimentMode, score: number }>({ mode: "NEUTRAL", score: 0 })
+  const sentimentRef = useRef(sentiment)
+  useEffect(() => { sentimentRef.current = sentiment }, [sentiment])
   
   // Strategy Engine Ref (Singleton per session)
   const strategyEngine = useRef(new StrategyEngine())
@@ -94,12 +101,28 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { botConfigRef.current = botConfig }, [botConfig])
 
 
-  // --- 1. MARKET SCANNER LOOP ---
+// Imports updated at top of file separately
+
+  // --- 1. MARKET SCANNER & NEWS LOOP ---
   useEffect(() => {
       // Basic initialization of symbols
       const initScanner = async () => {
-          setBotStatus("Scanning Market for Opportunities...")
-          console.log("Running Market Scanner...")
+          setBotStatus("Scanning Market & News...")
+          console.log("Running Market Scanner & News...")
+          
+          // 1. Fetch News & Sentiment
+          try {
+              const articles = await fetchCryptoNews()
+              const sentimentResult = analyzeMarketSentiment(articles)
+              setSentiment(sentimentResult)
+              if (sentimentResult.mode !== "NEUTRAL") {
+                   console.log(`[News] Sentiment is ${sentimentResult.mode} (Score: ${sentimentResult.score})`)
+              }
+          } catch (e) {
+              console.error("Failed to fetch news in scanner", e)
+          }
+
+          // 2. Scan Market Candidates
           const candidates = await getTopCandidates()
           
           // Ensure we always track coins we hold, even if they drop from top 10
@@ -110,7 +133,7 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
           const combined = Array.from(new Set([...candidates, ...heldCoins]))
           
           setActiveSymbols(combined)
-          setBotStatus(`Monitoring ${combined.length} Assets`)
+          setBotStatus(`Monitoring ${combined.length} Assets | Sentiment: ${sentimentRef.current.mode}`)
       }
 
       initScanner()
@@ -145,13 +168,6 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
              }
              return next
           })
-          
-          // Check Ghost Orders (Limit Orders) logic could go here if we had user placed limit orders
-          // For now, the Spec says "Ghost Orders: if a user sets a Limit Order".
-          // We'll skip complex user limit order implementation for the *bot* unless bot places limits.
-          // The Bot in "Momentum" uses MARKET orders (Buy when price breaks high).
-          // Strategy 2 uses MARKET orders on condition.
-          // So Ghost Orders are primarily for if we add manual limit functionality later.
       }
 
       // STRATEGY ENGINE UPDATE
@@ -162,25 +178,19 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
           // Run Strategy
           if (mode === "simulator" && botConfig.isActive) {
               setBotStatus(`Analyzing ${symbol}...`)
-              const signal = strategyEngine.current.evaluate(symbol, candle, true)
+              // PASS SENTIMENT MODE HERE
+              const signal = strategyEngine.current.evaluate(symbol, candle, true, sentimentRef.current.mode)
               
               if (signal.action === "BUY") {
                   setBotStatus(`SIGNAL FOUND: Buying ${symbol} (${signal.reason})`)
                   handleBotBuy(symbol, signal)
               } else if (signal.action === "HOLD") {
                   setBotStatus(`Scanning ${symbol}: ${signal.reason}`)
-              } else if (signal.action === "SELL") {
-                  // Strategy engine might return SELL signal if we built logic for it
-                  // But currently logic is:
-                  // Momentum: TP/SL handled by monitoring price (which we need to do on TICK, not just Candle close)
-                  // For simplicity, we check TP/SL on candle close for now or add a "tick" checker.
               }
           }
       }
       
       // Monitor Open Positions for TP/SL (Run on every Price Update/Tick ideally, or every candle)
-      // Doing it on candle close is safer for performance, but TP might need to be hit intraday.
-      // Let's use Trade stream for TP/SL monitoring if available, or just use the kline close for now to save resources.
       if (trade && mode === "simulator" && botConfig.isActive) {
          checkExitConditions(trade.s, parseFloat(trade.p))
       }
