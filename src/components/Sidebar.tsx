@@ -18,9 +18,9 @@ interface SidebarProps {
     onClose: () => void
     
     // Desktop Props
-    isDesktopOpen?: boolean
+    isPinned?: boolean
     isHovered?: boolean
-    onToggleCollapse?: () => void
+    onTogglePin?: () => void
     onMouseEnter?: () => void
     onMouseLeave?: () => void
 }
@@ -28,9 +28,9 @@ interface SidebarProps {
 export function Sidebar({ 
     isOpen, 
     onClose, 
-    isDesktopOpen = true, 
+    isPinned = true, 
     isHovered = false, 
-    onToggleCollapse,
+    onTogglePin,
     onMouseEnter,
     onMouseLeave 
 }: SidebarProps) {
@@ -53,10 +53,14 @@ export function Sidebar({
       // Desktop: Override mobile translate
       "md:translate-x-0",
       
-      // Desktop: Collapsed vs Open vs Hovered
-      isDesktopOpen ? "md:static md:w-64" : (
-          isHovered ? "md:fixed md:w-64 md:shadow-2xl md:border-r-2" : "md:fixed md:w-0 md:border-0 md:overflow-hidden"
-      )
+      // Desktop: Pinned vs Overlay vs Hidden
+      isPinned 
+        ? "md:static md:w-64" // Static (pushes content)
+        : (
+          isHovered 
+            ? "md:fixed md:left-0 md:top-0 md:h-full md:w-64 md:shadow-2xl md:border-r md:z-50 md:bg-card/95 md:backdrop-blur-sm" // Overlay
+            : "md:fixed md:w-0 md:border-0 md:overflow-hidden" // Hidden
+        )
   )
 
   return (
@@ -69,23 +73,25 @@ export function Sidebar({
             />
         )}
 
+        {/* Desktop Hotspot for Overlay Mode is handled in Layout.tsx */}
+        
         <div 
             className={sidebarClasses}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
         >
-           {/* Header with Title + Collapse Button */}
+           {/* Header with Title + Pin/Unpin Button */}
            <div className="flex h-16 items-center justify-between px-6 border-b">
                 <span className="text-lg font-bold md:opacity-100 transition-opacity whitespace-nowrap">
-                   {(!isDesktopOpen && !isHovered) ? "" : "Menu"}
+                   {(!isPinned && !isHovered) ? "" : "Menu"}
                 </span>
                 
-                {/* Desktop Collapse Button */}
+                {/* Desktop Collapse/Pin Button */}
                 <Button 
                     variant="ghost" 
                     size="icon" 
                     className="hidden md:flex h-8 w-8 text-muted-foreground hover:text-foreground"
-                    onClick={onToggleCollapse}
+                    onClick={onTogglePin}
                 >
                     <ChevronsLeft className="h-4 w-4" />
                     <span className="sr-only">Collapse Sidebar</span>
@@ -112,7 +118,7 @@ export function Sidebar({
                     {/* Hide text if width is 0 (double check prevention of artifacting) */}
                     <span className={cn(
                         "transition-opacity duration-200",
-                        (!isDesktopOpen && !isHovered) ? "opacity-0" : "opacity-100"
+                        (!isPinned && !isHovered) ? "opacity-0" : "opacity-100"
                     )}>
                         {item.name}
                     </span>

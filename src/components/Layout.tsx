@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "./Header"
 import { Sidebar } from "./Sidebar"
 import { AIChat } from "./AIChat"
@@ -8,23 +8,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   // Desktop Sidebar State
-  const [isSidebarOpen, setSidebarOpen] = useState(true)
+  // 1. Pinned State (Persisted)
+  const [isSidebarPinned, setIsSidebarPinned] = useState(() => {
+     if (typeof window !== 'undefined') {
+         const saved = localStorage.getItem("sidebar_pinned")
+         // Default to true if not set
+         return saved !== null ? JSON.cast ? JSON.parse(saved) : saved === 'true' : true
+     }
+     return true
+  })
+  
+  // 2. Hover State (Ephemeral)
   const [isSidebarHovered, setIsSidebarHovered] = useState(false)
 
-  // Combined logic: Sidebar is visible if it's pinned open OR hovered
-  // On mobile, we use the separate isMobileMenuOpen state
+  // Persist Pinned State
+  useEffect(() => {
+      localStorage.setItem("sidebar_pinned", String(isSidebarPinned))
+  }, [isSidebarPinned])
 
   return (
     <div className="min-h-screen bg-background font-sans antialiased">
       <GlossaryModal />
       
-      {/* Notion-style Hover Trigger Removed per request - now only strictly on icon hover */}
-      {/* {!isSidebarOpen && (
+      {/* Notion-style Hotspot / Gutter */}
+      {/* Invisible 20px trigger zone on far left - ONLY active when sidebar is unpinned */}
+      {!isSidebarPinned && (
         <div 
-          className="fixed inset-y-0 left-0 w-6 z-40 hidden md:block" 
+          className="fixed inset-y-0 left-0 w-5 z-40 bg-transparent" // w-5 = 20px
           onMouseEnter={() => setIsSidebarHovered(true)}
         />
-      )} */}
+      )}
 
       <div className="flex h-screen overflow-hidden relative">
         <Sidebar 
@@ -33,9 +46,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
             onClose={() => setIsMobileMenuOpen(false)}
             
             // Desktop props
-            isDesktopOpen={isSidebarOpen}
+            isPinned={isSidebarPinned}
             isHovered={isSidebarHovered}
-            onToggleCollapse={() => setSidebarOpen(!isSidebarOpen)}
+            onTogglePin={() => {
+                const newState = !isSidebarPinned
+                setIsSidebarPinned(newState)
+                // If we unpin, we are still hovering it, so keep it visible as overlay until mouse leave
+                if (!newState) setIsSidebarHovered(true) 
+            }}
             onMouseEnter={() => setIsSidebarHovered(true)}
             onMouseLeave={() => setIsSidebarHovered(false)}
         />
@@ -43,11 +61,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out">
           <Header 
             onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            // Pass desktop toggle to Header if we want a button there (optional, logic handles it)
-            onDesktopToggle={() => setSidebarOpen(!isSidebarOpen)}
-            // Trigger overlay on icon hover
+            // Desktop toggle just toggles the pinned state
+            onDesktopToggle={() => setIsSidebarPinned(!isSidebarPinned)}
+            // Icon hover also triggers the overlay
             onMenuHover={() => setIsSidebarHovered(true)}
-            isSidebarOpen={isSidebarOpen}
+            isSidebarOpen={isSidebarPinned}
           />
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
             {children}
