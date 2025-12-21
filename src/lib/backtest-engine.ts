@@ -80,7 +80,16 @@ export function runBacktest(candles: Candle[], config: StrategyConfig): Backtest
 
   // Iterate Candles
   // Start from suitable index to allow indicators to warm up
-  const warmupParams = Math.max(config.shortPeriod || 20, config.rsiPeriod || 14) + 1
+  let sPeriod = 0
+  let rPeriod = 0
+  if (config.type === "Momentum") {
+      sPeriod = config.shortPeriod
+      rPeriod = config.rsiPeriod || 0
+  } else if (config.type === "Grid") {
+      rPeriod = config.rsiPeriod
+  }
+
+  const warmupParams = Math.max(sPeriod || 20, rPeriod || 14) + 1
   
   for (let i = 0; i < candles.length; i++) {
     const candle = candles[i]

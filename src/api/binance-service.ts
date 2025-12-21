@@ -196,18 +196,6 @@ export class BinanceService {
           if (!res.ok) throw new Error("Failed to fetch klines")
           const data = await res.json()
           
-          // [
-          //   [
-          //     1499040000000,      // Open time
-          //     "0.01634790",       // Open
-          //     "0.80000000",       // High
-          //     "0.01575800",       // Low
-          //     "0.01577100",       // Close
-          //     "148976.11427815",  // Volume
-          //     ...
-          //   ]
-          // ]
-
           return data.map((d: any) => ({
               time: d[0],
               open: parseFloat(d[1]),
@@ -220,6 +208,84 @@ export class BinanceService {
           console.error("fetchPublicCandles failed", e)
           return []
       }
+  }
+
+  // Fetch larger datasets by chaining requests backwards from now
+  async fetchExtendedCandles(symbol: string, interval: string, totalLimit: number): Promise<any[]> {
+      let allCandles: any[] = []
+      let endTime = Date.now()
+      let remaining = totalLimit
+      
+      // Batch size for Binance is max 1000
+      const BATCH_SIZE = 1000
+
+      while (remaining > 0) {
+          const limit = Math.min(remaining, BATCH_SIZE)
+          const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}&endTime=${endTime}`
+          
+          try {
+              const res = await fetch(url)
+              if (!res.ok) throw new Error("Failed to fetch extended klines")
+              const data = await res.json()
+              
+              if (!data || data.length === 0) break
+
+              const parsed = data.map((d: any) => ({
+                  time: d[0],
+                  open: parseFloat(d[1]),
+                  high: parseFloat(d[2]),
+                  low: parseFloat(d[3]),
+                  close: parseFloat(d[4]),
+                  volume: parseFloat(d[5])
+              }))
+
+              // Prepend new batch (since we are fetching backwards)
+              // API returns [oldest ... newest]
+              // So we just collect them. But wait, we are moving endTime backwards.
+              
+              // If endTime is Now, we get [Now-1000 ... Now]
+              // We want to add these to the END of our final array? 
+              // Actually, we want a continuous array from old to new.
+              
+              // Iteration 1: Get [T-1000, T] -> Add to result
+              // Iteration 2: Want [T-2000, T-1000] -> Get it, then... put it BEFORE?
+              
+              // Let's create a temp array and concat
+              
+              // Correct logic:
+              // 1. Fetch latest batch
+              // 2. Add to BEGINNING of allCandles? 
+              // Binance returns oldest first in the array.
+              // fetch(... endTime=Now) returns [Now-1000 ... Now]
+              // Next fetch should correspond to endTime = (Now-1000's time - 1)
+              
+              allCandles = [...parsed, ...allCandles] // Prepend (Wait, if parsed is oldest...newest)
+              // If I prepend [old...new], it becomes [old...new, older...old] -> WRONG.
+              // It should be [older...old, old...new]
+              // So yes, prepend parsed to allCandles is correct IF I fetch newest first.
+              
+              // Example:
+              // Call 1 (Now): Returns [100, 101, 102]
+              // allCandles = [100, 101, 102]
+              // endTime = 99
+              // Call 2 (99): Returns [97, 98, 99]
+              // allCandles = [97, 98, 99, 100, 101, 102] -> CORRECT.
+              
+              remaining -= parsed.length
+              endTime = parsed[0].time - 1 // Move window back
+
+              if (parsed.length < limit) break // No more data available
+              
+              // Rate limit safety
+              await new Promise(r => setTimeout(r, 100)) 
+
+          } catch (e) {
+              console.error("fetchExtendedCandles failed", e)
+              break
+          }
+      }
+      
+      return allCandles
   }
 }
 

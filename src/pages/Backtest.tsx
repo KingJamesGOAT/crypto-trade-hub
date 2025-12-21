@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+
 import type { Candle, BacktestResult, StrategyConfig } from "@/types/backtest"
 import { runBacktest } from "@/lib/backtest-engine"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, Legend } from "recharts"
-import { Loader2, TrendingUp, Info } from "lucide-react"
+import { Loader2, TrendingUp } from "lucide-react"
 import { getTopCoins, type CoinMarketData, getCoinCandles } from "@/api/coingecko"
 import { binanceService } from "@/api/binance-service"
 import { cn } from "@/lib/utils"
@@ -30,7 +30,9 @@ export function Backtest() {
   const [mode, setMode] = useState<"day" | "swing">("day")
 
   // Params
+  const [initialCapital, setInitialCapital] = useState("10000")
   const [duration, setDuration] = useState("365") // Swing mode days
+  const [dayDuration, setDayDuration] = useState("3") // Day mode days (3, 7, 30, 90)
   
   // Strategy Params
   // Momentum
@@ -64,12 +66,28 @@ export function Backtest() {
         
         // 1. Fetch Data based on Mode
         if (mode === "day") {
-            // Day Trader: Fetch 1m candles from Binance (Public)
-            // Limit 1000 = ~16 hours. 
-            // We want ~3-5 days. API limit is 1000 per call. 
-            // For MVP, lets just fetch last 1000 mins (~17 hours) which is enough to find a trade usually
-            // Or fetch 5m candles? 5m * 1000 = 5000 mins = ~3.5 days. Perfect.
-            const raw = await binanceService.fetchPublicCandles(selectedSymbol, "5m", 1000)
+            const days = parseInt(dayDuration)
+            let interval = "5m"
+            // let limit = 1000 // Default single batch
+            
+            // Adjust interval for longer periods to keep API calls reasonable and noisy data out
+            if (days > 7) interval = "15m"
+            if (days > 30) interval = "1h"
+
+            // Calculate connected limit needed
+            // 5m: 12 per hour * 24 * days = 288 * days
+            // 15m: 4 per hour * 24 * days = 96 * days
+            // 1h: 24 * days
+            
+            let needed = 0
+            if (interval === "5m") needed = 288 * days
+            else if (interval === "15m") needed = 96 * days
+            else needed = 24 * days
+            
+            // Add buffer
+            needed = Math.ceil(needed * 1.1)
+
+            const raw = await binanceService.fetchExtendedCandles(selectedSymbol, interval, needed)
             if (!raw || raw.length === 0) {
                  alert("Failed to fetch public data from Binance. Try another coin.")
                  setIsRunning(false)
@@ -97,12 +115,13 @@ export function Backtest() {
         
         // Prepare Config
         let config: StrategyConfig
+        const cap = parseFloat(initialCapital) || 10000
 
         if (activeTab === "momentum") {
             config = {
                 id: "test",
                 type: "Momentum",
-                initialCapital: 10000,
+                initialCapital: cap,
                 shortPeriod: parseInt(emaLength),
                 longPeriod: 21 // Fixed for now
             }
@@ -111,7 +130,7 @@ export function Backtest() {
              config = {
                 id: "test",
                 type: "Grid",
-                initialCapital: 10000,
+                initialCapital: cap,
                 rsiPeriod: parseInt(rsiPeriod),
                 rsiLimit: parseInt(rsiLimit),
                 bollingerSd: 2,
@@ -150,7 +169,7 @@ export function Backtest() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Strategy Backtester V2</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Strategy Backtester</h2>
         <p className="text-muted-foreground">
             Test professional trading strategies against <strong>Real Market Data</strong>. Simulates fees (0.1%) and slippage.
         </p>
@@ -188,6 +207,12 @@ export function Backtest() {
                    </SelectContent>
                 </Select>
              </div>
+             
+             {/* Initial Capital */}
+             <div className="space-y-2">
+                <Label>Initial Capital ($)</Label>
+                <Input type="number" value={initialCapital} onChange={e => setInitialCapital(e.target.value)} />
+             </div>
             
              {/* Mode Selector */}
              <div className="space-y-2">
@@ -198,14 +223,24 @@ export function Backtest() {
                        <TabsTrigger value="swing">Swing Trader</TabsTrigger>
                     </TabsList>
                  </Tabs>
-                 <p className="text-[10px] text-muted-foreground mt-1">
-                     {mode === 'day' ? "Uses 5-minute candles from Binance (Last 3.5 days). High precision." : "Uses Daily candles from CoinGecko (Last 365 days). Long term trends."}
-                 </p>
+                 <div className="text-[11px] text-muted-foreground mt-2 p-2 bg-muted rounded border border-border/50">
+                     {mode === 'day' ? (
+                         <p>
+                             <strong>Short-Term Action:</strong> Uses 5m/15m candles to find quick opportunities. 
+                             Best for active strategies that make multiple trades per day.
+                         </p>
+                     ) : (
+                         <p>
+                             <strong>Long-Term Trends:</strong> Uses Daily candles to capture big moves over weeks or months. 
+                             Best for patient strategies.
+                         </p>
+                     )}
+                 </div>
              </div>
 
-             {mode === 'swing' && (
+             {mode === 'swing' ? (
                  <div className="space-y-2">
-                    <Label>Duration (History)</Label>
+                    <Label>Backtest Duration</Label>
                     <Select value={duration} onValueChange={setDuration}>
                        <SelectTrigger>
                           <SelectValue />
@@ -218,37 +253,58 @@ export function Backtest() {
                        </SelectContent>
                     </Select>
                  </div>
+             ) : (
+                 <div className="space-y-2">
+                    <Label>Backtest Duration</Label>
+                    <Select value={dayDuration} onValueChange={setDayDuration}>
+                       <SelectTrigger>
+                          <SelectValue />
+                       </SelectTrigger>
+                       <SelectContent>
+                          <SelectItem value="3">Last 3 Days (5m)</SelectItem>
+                          <SelectItem value="7">Last 7 Days (5m)</SelectItem>
+                          <SelectItem value="30">Last 30 Days (15m)</SelectItem>
+                          <SelectItem value="90">Last 90 Days (1h)</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
              )}
 
              <div className="space-y-4 pt-4 border-t border-border">
-                 <Label className="text-base">Strategy: {activeTab === 'momentum' ? "Momentum Scalp" : "Mean Reversal"}</Label>
+                 <Label className="text-base">Strategy Settings: {activeTab === 'momentum' ? "Momentum Scalp" : "Mean Reversal"}</Label>
                  
                  {/* Strategy Description */}
                  <div className="bg-muted/50 p-3 rounded-md text-xs text-muted-foreground border border-border/50">
                     {activeTab === "momentum" && (
-                        <p><strong>Logic:</strong> Buy when Price &gt; EMA-{emaLength} AND Breakout &gt; Prev High. Exit on TP (+2%) or SL (-Low).</p>
+                        <p><strong>Logic:</strong> Buys when price breaks out above the EMA line and previous highs. Sells on small profits (2%) or stop loss.</p>
                     )}
                     {activeTab === "reversal" && (
-                        <p><strong>Logic:</strong> Buy when RSI &lt; {rsiLimit} AND Price &lt; Lower Bollinger Band. Exit when RSI &gt; 50.</p>
+                        <p><strong>Logic:</strong> Buys when RSI is low (Oversold) and price is near bottom. Sells when price recovers to normal levels.</p>
                     )}
                  </div>
 
                  {activeTab === "momentum" && (
                     <div className="space-y-2">
-                       <Label>EMA Length</Label>
-                       <Input type="number" value={emaLength} onChange={e => setEmaLength(e.target.value)} />
+                       <Label>EMA Trend Line</Label>
+                       <div className="flex gap-2 items-center">
+                           <Input type="number" value={emaLength} onChange={e => setEmaLength(e.target.value)} />
+                           <span className="text-xs text-muted-foreground whitespace-nowrap">Periods (Default: 9)</span>
+                       </div>
+                       <p className="text-[10px] text-muted-foreground">Controls how close price must be to trend to trigger.</p>
                     </div>
                  )}
 
                  {activeTab === "reversal" && (
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-2">
-                          <Label>RSI Period</Label>
+                          <Label>RSI Sensitivity</Label>
                           <Input type="number" value={rsiPeriod} onChange={e => setRsiPeriod(e.target.value)} />
+                          <p className="text-[10px] text-muted-foreground">Default: 14</p>
                        </div>
                        <div className="space-y-2">
-                          <Label>RSI Buy Limit</Label>
+                          <Label>Oversold Threshold</Label>
                           <Input type="number" value={rsiLimit} onChange={e => setRsiLimit(e.target.value)} />
+                          <p className="text-[10px] text-muted-foreground">Buy below this (Default: 30)</p>
                        </div>
                     </div>
                  )}
