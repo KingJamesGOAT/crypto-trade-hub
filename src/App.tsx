@@ -28,7 +28,7 @@ function App() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <AuthProvider>
         <SimulatorProvider>
-          <Router>
+          <Router basename={import.meta.env.BASE_URL}>
             <Layout>
               <Routes>
                 {/* Public route */}
