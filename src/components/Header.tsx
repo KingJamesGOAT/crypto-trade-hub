@@ -16,22 +16,35 @@ import {
 
 interface HeaderProps {
     onMenuToggle: () => void
+    onDesktopToggle?: () => void
+    isSidebarOpen?: boolean
 }
 
-export function Header({ onMenuToggle }: HeaderProps) {
+export function Header({ onMenuToggle, onDesktopToggle, isSidebarOpen = true }: HeaderProps) {
   const { setTheme, theme } = useTheme()
   const { openGlossary } = useGlossary()
   const { isAuthenticated, username, logout } = useAuth()
   const [showLoginModal, setShowLoginModal] = useState(false)
 
   return (
-    <header className="border-b bg-card">
+    <header className="border-b bg-card w-full">
       <div className="flex h-16 items-center px-4 md:px-6">
         <Button 
             variant="ghost" 
             size="icon" 
-            className="md:hidden mr-2" 
-            onClick={onMenuToggle}
+            // Mobile: Always visible (md:hidden removed if sidebar closed?). No, mobile uses separate toggle.
+            // Logic:
+            // Mobile: Always show (for mobile menu). 
+            // Desktop: Show ONLY if sidebar is closed.
+            className={`mr-2 ${isSidebarOpen ? "md:hidden" : ""}`}
+            onClick={() => {
+                // If on desktop (hidden md logic check), call desktop toggle
+                if (window.innerWidth >= 768) {
+                   onDesktopToggle?.()
+                } else {
+                   onMenuToggle()
+                }
+            }}
         >
             <Menu className="h-5 w-5" />
         </Button>
