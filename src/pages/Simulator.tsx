@@ -13,7 +13,7 @@ import { RefreshCw, Zap } from "lucide-react"
 
 import { BotConfiguration } from "@/components/BotConfiguration"
 import { BotDashboard } from "@/components/BotDashboard"
-import { NewsDashboard } from "@/components/NewsDashboard"
+// import { NewsDashboard } from "@/components/NewsDashboard"
 import { AVAILABLE_COINS } from "@/data/coins"
 
 export function Simulator() {
