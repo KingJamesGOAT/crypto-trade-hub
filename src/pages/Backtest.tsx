@@ -1,17 +1,3 @@
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import type { Candle, BacktestResult, StrategyConfig } from "@/types/backtest"
-import { runBacktest } from "@/lib/backtest-engine"
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, Legend } from "recharts"
-import { Loader2, TrendingUp, Info } from "lucide-react"
-import { getTopCoins, type CoinMarketData, getCoinCandles } from "@/api/coingecko"
-import { cn } from "@/lib/utils"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -217,16 +203,33 @@ export function Backtest() {
                  </p>
              </div>
 
+             {mode === 'swing' && (
+                 <div className="space-y-2">
+                    <Label>Duration (History)</Label>
+                    <Select value={duration} onValueChange={setDuration}>
+                       <SelectTrigger>
+                          <SelectValue />
+                       </SelectTrigger>
+                       <SelectContent>
+                          <SelectItem value="30">Last 30 Days</SelectItem>
+                          <SelectItem value="90">Last 90 Days</SelectItem>
+                          <SelectItem value="180">Last 180 Days</SelectItem>
+                          <SelectItem value="365">Last 365 Days</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
+             )}
+
              <div className="space-y-4 pt-4 border-t border-border">
                  <Label className="text-base">Strategy: {activeTab === 'momentum' ? "Momentum Scalp" : "Mean Reversal"}</Label>
                  
                  {/* Strategy Description */}
                  <div className="bg-muted/50 p-3 rounded-md text-xs text-muted-foreground border border-border/50">
                     {activeTab === "momentum" && (
-                        <p><strong>Logic:</strong> Buy when Price {'>'} EMA-{emaLength} AND Breakout > Prev High. Exit on TP (+2%) or SL (-Low).</p>
+                        <p><strong>Logic:</strong> Buy when Price &gt; EMA-{emaLength} AND Breakout &gt; Prev High. Exit on TP (+2%) or SL (-Low).</p>
                     )}
                     {activeTab === "reversal" && (
-                        <p><strong>Logic:</strong> Buy when RSI {'<'} {rsiLimit} AND Price {'<'} Lower Bollinger Band. Exit when RSI {'>'} 50.</p>
+                        <p><strong>Logic:</strong> Buy when RSI &lt; {rsiLimit} AND Price &lt; Lower Bollinger Band. Exit when RSI &gt; 50.</p>
                     )}
                  </div>
 

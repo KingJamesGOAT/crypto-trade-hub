@@ -20,12 +20,7 @@ export interface DCAConfig extends BaseStrategyConfig {
   frequencyDays: number
 }
 
-export interface GridConfig extends BaseStrategyConfig {
-  type: "Grid"
-  lowerBound: number
-  upperBound: number
-  grids: number
-}
+
 
 export interface MomentumConfig extends BaseStrategyConfig {
   type: "Momentum"
