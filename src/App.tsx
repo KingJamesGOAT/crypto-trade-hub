@@ -7,6 +7,7 @@ import { Layout } from "@/components/Layout"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { Home } from "@/pages/Home"
 import { Learning } from "@/pages/Learning"
+import { News } from "@/pages/News"
 import { Simulator } from "@/pages/Simulator"
 import { Settings } from "@/pages/Settings"
 import { Backtest } from "@/pages/Backtest"
@@ -32,12 +33,13 @@ function App() {
             <Layout>
               <Routes>
                 {/* Public route */}
-                <Route path="/learning" element={<Learning />} />
                 
                 {/* Protected routes */}
                 <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                 <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
                 <Route path="/backtest" element={<ProtectedRoute><Backtest /></ProtectedRoute>} />
+              <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
+              <Route path="/learning" element={<ProtectedRoute><Learning /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 
                 {/* Redirect root based on role */}

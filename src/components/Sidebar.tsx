@@ -1,4 +1,4 @@
-import { BarChart2, BookOpen, Home, Settings, Terminal } from "lucide-react"
+import { BarChart2, BookOpen, Home, Settings, Terminal, Newspaper } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ const navigation = [
   { name: "Learning", href: "/learning", icon: BookOpen, protected: false },
   { name: "Simulator", href: "/simulator", icon: Terminal, protected: true },
   { name: "Backtesting", href: "/backtest", icon: BarChart2, protected: true },
+  { name: "News", href: "/news", icon: Newspaper, protected: true },
   { name: "Settings", href: "/settings", icon: Settings, protected: true },
 ]
 
