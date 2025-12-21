@@ -4,55 +4,45 @@ import rehypeSanitize from 'rehype-sanitize';
 import { useAuth } from "@/context/AuthContext";
 import { aiService, type ChatMessage } from "@/api/gemini-service";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Sparkles, Loader2, Minimize2 } from "lucide-react";
-
-// REPLACE WITH YOUR PUTER USERNAME TO LOCK IT DOWN
-const ADMIN_USERNAME = ""; // e.g., "kingjamesgoat" (Leave empty to allow all logged-in users)
+import { Send, Bot, X, Zap, ChevronDown } from "lucide-react";
 
 export function AIChat() {
-  const { isAuthenticated, username } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. Initialize Chat on Load
   useEffect(() => {
     if (isAuthenticated && messages.length === 0) {
        setMessages([{ 
          role: "model", 
-         content: `Welcome back, ${username || 'Admin'}! The market scanner is active. What shall we analyze?` 
+         content: `**Online.** I'm connected to the CryptoHub Engine. Ask me about the current *Strategy Logic*, *Backtest results*, or market trends.` 
        }]);
     }
-  }, [isAuthenticated, username]);
+  }, [isAuthenticated]);
 
-  // 2. Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isOpen]);
 
-  const toggleChat = () => setIsOpen(!isOpen);
-
   const handleSend = async () => {
     if (!input.trim()) return;
-
     const userMsg: ChatMessage = { role: "user", content: input };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
     try {
-      // Direct call - Puter session is already active from App Login
       const response = await aiService.chat(userMsg.content);
       setMessages(prev => [...prev, { role: "model", content: response }]);
     } catch (error) {
-       setMessages(prev => [...prev, { role: "model", content: "I'm having trouble connecting. Please check your internet or Puter status." }]);
+       setMessages(prev => [...prev, { role: "model", content: "Connection interrupted." }]);
     } finally {
        setIsLoading(false);
     }
@@ -65,107 +55,114 @@ export function AIChat() {
       }
   };
 
-  // --- ADMIN GATEKEEPER LOGIC ---
-  
-  // 1. Must be logged in
   if (!isAuthenticated) return null;
 
-  // 2. (Optional) Must be the specific Admin Username
-  if (ADMIN_USERNAME && username !== ADMIN_USERNAME) return null;
-
-
-  // --- RENDER ---
-
+  // MODERN FLOATING TRIGGER
   if (!isOpen) {
     return (
-      <Button 
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl bg-blue-600 hover:bg-blue-700 z-50 transition-transform hover:scale-105"
-        onClick={toggleChat}
+      <button 
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 group flex items-center gap-2 px-4 py-3 rounded-full bg-slate-950/80 backdrop-blur-md border border-slate-800 shadow-2xl hover:bg-blue-600/90 hover:border-blue-500 transition-all duration-300 z-50"
       >
-        <Sparkles className="h-6 w-6 text-white" />
-      </Button>
+        <div className="relative">
+            <Bot className="h-6 w-6 text-blue-400 group-hover:text-white transition-colors" />
+            <span className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-slate-950"></span>
+        </div>
+        <span className="text-sm font-semibold text-slate-200 group-hover:text-white pr-1">AI Analyst</span>
+      </button>
     );
   }
 
+  // MODERN CHAT WINDOW (Glassmorphism)
   return (
-    <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col border-blue-500/20 bg-slate-950 text-white animate-in slide-in-from-bottom-5 duration-300">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-t-xl">
-        <CardTitle className="text-white flex items-center gap-2 text-md">
-          <Sparkles className="h-5 w-5" />
-          AI Analyst
-        </CardTitle>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={toggleChat}
-          className="text-white hover:bg-white/20 h-8 w-8"
-        >
-          <Minimize2 className="h-4 w-4" />
-        </Button>
-      </CardHeader>
-
-      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950" ref={scrollRef}>
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              {msg.role === "model" && (
-                <Avatar className="h-8 w-8 border border-blue-500/30">
-                  <AvatarFallback className="bg-blue-600/20 text-blue-400 text-xs">AI</AvatarFallback>
-                </Avatar>
-              )}
-              <div className={`rounded-lg px-4 py-2 max-w-[85%] text-sm ${
-                msg.role === "user" 
-                  ? "bg-blue-600 text-white" 
-                  : "bg-slate-800 text-slate-200 border border-slate-700"
-              }`}>
-                <ReactMarkdown
-                  rehypePlugins={[rehypeSanitize]}
-                  components={{
-                    p: ({node, ...props}) => <p className="mb-1 last:mb-0 leading-relaxed" {...props} />,
-                    a: ({node, ...props}) => <a className="text-blue-300 underline" target="_blank" rel="noopener noreferrer" {...props} />,
-                    code: ({node, ...props}) => <code className="bg-black/30 rounded px-1 py-0.5 text-xs font-mono" {...props} />,
-                    ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
-                    ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
-                    strong: ({node, ...props}) => <strong className="font-semibold text-blue-200" {...props} />
-                  }}
-                >
-                  {msg.content}
-                </ReactMarkdown>
-              </div>
+    <div className="fixed bottom-6 right-6 w-[400px] h-[600px] flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 bg-slate-950/80 backdrop-blur-xl z-50 animate-in slide-in-from-bottom-5 duration-300">
+      
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-slate-900/50 border-b border-slate-800">
+        <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                <Zap className="h-4 w-4 text-blue-400 fill-blue-400" />
             </div>
-          ))}
-          {isLoading && (
-            <div className="flex gap-3 justify-start animate-pulse">
-              <Avatar className="h-8 w-8 border border-blue-500/30">
-                <AvatarFallback className="bg-blue-600/20 text-blue-400 text-xs">AI</AvatarFallback>
-              </Avatar>
-              <div className="bg-slate-800 rounded-lg px-4 py-2 border border-slate-700 flex items-center">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-400 mr-2" />
-                <span className="text-xs text-slate-400">Analyzing...</span>
-              </div>
+            <div>
+                <h3 className="text-sm font-bold text-white">Hub Intelligence</h3>
+                <p className="text-[10px] text-green-400 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"/> 
+                    System Active
+                </p>
             </div>
-          )}
-      </CardContent>
-
-      <CardFooter className="p-4 border-t border-slate-800 bg-slate-900/50">
-        <div className="flex w-full gap-2">
-          <Input
-            placeholder="Ask about the market..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isLoading}
-            className="flex-1 bg-slate-950 border-slate-700 text-white focus-visible:ring-blue-500"
-          />
-          <Button 
-            onClick={handleSend} 
-            disabled={isLoading || !input.trim()}
-            size="icon"
-            className="bg-blue-600 hover:bg-blue-700 shrink-0"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
         </div>
-      </CardFooter>
-    </Card>
+        <div className="flex gap-1">
+            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/10 rounded-full">
+                <ChevronDown className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-full">
+                <X className="h-4 w-4" />
+            </Button>
+        </div>
+      </div>
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-800" ref={scrollRef}>
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            {msg.role === "model" && (
+                <div className="h-8 w-8 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30 shrink-0">
+                    <Bot className="h-4 w-4 text-blue-400" />
+                </div>
+            )}
+            <div className={`px-4 py-2.5 rounded-2xl max-w-[85%] text-sm leading-relaxed shadow-sm ${
+                msg.role === "user" 
+                  ? "bg-blue-600 text-white rounded-br-none" 
+                  : "bg-slate-800/50 border border-slate-700/50 text-slate-200 rounded-bl-none backdrop-blur-sm"
+            }`}>
+               <ReactMarkdown 
+                    rehypePlugins={[rehypeSanitize]}
+                    components={{
+                        strong: ({node, ...props}) => <span className="font-bold text-blue-300" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
+                        code: ({node, ...props}) => <code className="bg-black/40 px-1 py-0.5 rounded font-mono text-xs text-yellow-300" {...props} />
+                    }}
+               >
+                 {msg.content}
+               </ReactMarkdown>
+            </div>
+          </div>
+        ))}
+        {isLoading && (
+            <div className="flex gap-3">
+               <div className="h-8 w-8 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30 shrink-0">
+                    <Bot className="h-4 w-4 text-blue-400" />
+                </div>
+                <div className="px-4 py-3 bg-slate-800/50 rounded-2xl rounded-bl-none border border-slate-700/50">
+                    <div className="flex gap-1">
+                        <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                        <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                        <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce"></span>
+                    </div>
+                </div>
+            </div>
+        )}
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 bg-slate-900/80 border-t border-slate-800">
+        <div className="relative">
+            <Input 
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask about strategy or backtests..."
+                className="pr-10 bg-slate-950/50 border-slate-700 focus:border-blue-500/50 focus:ring-blue-500/20 rounded-xl h-11 text-sm shadow-inner"
+            />
+            <button 
+                onClick={handleSend}
+                disabled={isLoading || !input.trim()}
+                className="absolute right-2 top-2 p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:hover:bg-blue-600"
+            >
+                <Send className="h-3.5 w-3.5" />
+            </button>
+        </div>
+      </div>
+    </div>
   );
 }

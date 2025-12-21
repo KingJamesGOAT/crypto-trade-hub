@@ -1,4 +1,3 @@
-// Puter.js AI service with proper authentication
 declare const puter: any;
 
 export interface ChatMessage {
@@ -6,10 +5,37 @@ export interface ChatMessage {
   content: string;
 }
 
+// 1. THE BRAIN: Context about YOUR website
+const SYSTEM_PROMPT = `
+You are the expert AI Trading Mentor for 'CryptoTradeHub', a professional paper-trading simulator.
+Your knowledge base:
+- **Simulator Logic:** We use a 'Strategy Engine'. 
+  - 'Momentum Mode' (Scalping) activates when ADX > 25 (Trending). It buys breakouts of the 20-candle High.
+  - 'Grid Mode' (Reversal) activates when ADX < 25 (Ranging). It buys RSI < 30 dips using 3 layered limit orders.
+- **Risk Management:** We use the Kelly Criterion for position sizing and 0.1% simulated fees.
+- **Tools:** We have a Backtester (Time Machine), Learning Modules, and Live News Sentiment analysis.
+
+Rules:
+- Keep answers concise and trader-focused.
+- If asked about the bot, explain the logic above.
+- Do not hallucinate features we don't have.
+`;
+
 class PuterAIService {
   
+  // 2. THE FIX: Wait for the script to load on GitHub Pages
+  private async waitForPuter(retries = 10): Promise<boolean> {
+    if (typeof puter !== 'undefined') return true;
+    if (retries <= 0) return false;
+    
+    // Wait 500ms and try again
+    await new Promise(r => setTimeout(r, 500));
+    return this.waitForPuter(retries - 1);
+  }
+
   async isSignedIn(): Promise<boolean> {
-    if (typeof puter === 'undefined') return false;
+    const loaded = await this.waitForPuter();
+    if (!loaded) return false;
     return puter.auth.isSignedIn();
   }
 
@@ -28,34 +54,36 @@ class PuterAIService {
     return this.isSignedIn();
   }
 
-  async chat(message: string): Promise<string> {
+  async chat(userMessage: string): Promise<string> {
     try {
-      if (typeof puter === 'undefined') {
-        return "CRITICAL ERROR: 'puter.js' is missing. Please add <script src='https://js.puter.com/v2/'></script> to your index.html head.";
+      const loaded = await this.waitForPuter();
+      if (!loaded) {
+        return "System Error: AI Service failed to load. Please refresh the page.";
       }
 
-      // 1. Try GPT-4o-mini first
+      // 3. Combine System Prompt + User Message
+      const fullContext = `${SYSTEM_PROMPT}\n\nUser Question: ${userMessage}`;
+
+      // Try the fast model first
       try {
-          const response = await puter.ai.chat(message, { model: 'gpt-4o-mini' });
+          const response = await puter.ai.chat(fullContext, { model: 'gpt-4o-mini' });
           return this.formatResponse(response);
       } catch (err) {
-          console.warn("GPT-4o-mini failed, trying default model...", err);
-          
-          // 2. Fallback to Default (usually GPT-3.5) if 4o is rate-limited
-          const fallback = await puter.ai.chat(message);
+          console.warn("GPT-4o-mini busy, switching to backup...", err);
+          const fallback = await puter.ai.chat(fullContext);
           return this.formatResponse(fallback);
       }
 
     } catch (error: any) {
       console.error('[AI Error]', error);
-      return `AI Connection Failed: ${error.message || "Unknown error"}. (Check F12 Console)`;
+      return `Connection Error: ${error.message || "Please check your internet"}.`;
     }
   }
 
   private formatResponse(response: any): string {
-      if (typeof response === 'string') return response;
-      if (response?.message?.content) return response.message.content;
-      return JSON.stringify(response);
+      const text = typeof response === 'string' ? response : response?.message?.content;
+      if (!text || text.trim().length === 0) return "I'm thinking, but the network didn't send a response. Try again.";
+      return text;
   }
 }
 
