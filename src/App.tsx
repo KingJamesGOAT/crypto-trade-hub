@@ -24,12 +24,15 @@ function RootRedirect() {
   )
 }
 
+import { NewsProvider } from "@/context/NewsContext"
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <AuthProvider>
         <SimulatorProvider>
-          <Router basename={import.meta.env.BASE_URL}>
+          <NewsProvider>
+            <Router basename={import.meta.env.BASE_URL}>
             <Layout>
               <Routes>
                 {/* Public route */}
@@ -48,6 +51,7 @@ function App() {
             </Layout>
             <Toaster />
           </Router>
+          </NewsProvider>
         </SimulatorProvider>
       </AuthProvider>
     </ThemeProvider>
