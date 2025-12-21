@@ -65,7 +65,7 @@ export function Header() {
               <Button variant="ghost" size="icon" className="relative">
                 {isAuthenticated ? (
                   <img 
-                    src="/blackswan-avatar.jpg" 
+                    src="/blackswan-logo.jpg" 
                     alt="Black Swan" 
                     className="h-8 w-8 rounded-full object-cover ring-2 ring-blue-500/20"
                   />
