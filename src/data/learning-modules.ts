@@ -657,14 +657,55 @@ In low-liquidity markets (meme coins), a large market order can crash or pump th
     categoryId: "technical",
     title: "12. Japanese Candlesticks",
     description: "Reading price action: Hammers, Engulfing, and Dojis.",
-    readTime: "7 min",
+    readTime: "10 min",
     difficulty: "Beginner",
-    content: `A candlestick gives you 4 data points: Open, High, Low, Close (OHLC).\n\n**Bullish Patterns:**\n- **Hammer:** Small body, long bottom wick. Shows sellers exhausted, buyers stepped in.\n- **Bullish Engulfing:** A large green candle completely "eats" the previous red one.\n\n**Bearish Patterns:**\n- **Shooting Star:** Long top wick. Buyers rejected.\n- **Doji:** Tiny body (Open = Close). Represents warning/indecision.`,
+    content: `### The Language of Price
+In the 1700s, a Japanese rice trader named Munehisa Homma discovered that markets were not just influenced by supply and demand, but by the emotions of traders. He developed a visual method to track these emotions, which we now call Japanese Candlesticks.
+
+Unlike a simple "Line Chart" that only shows the closing price, a Candlestick tells a complete story about what happened during a specific time period (e.g., 1 hour or 1 day).
+
+### 1. Anatomy of a Candle
+Every candle consists of two main parts: the Body and the Wicks (or Shadows).
+
+**The Body (The Real Move):** The thick, colored part. It represents the range between the Open price and the Close price.
+* **Green Candle (Bullish):** The Close was higher than the Open. Buyers won the round.
+* **Red Candle (Bearish):** The Close was lower than the Open. Sellers won the round.
+
+**The Wicks (The Extremes):** The thin lines sticking out of the top and bottom.
+* **Top Wick:** The highest price reached during that time.
+* **Bottom Wick:** The lowest price reached during that time.
+
+**Why Wicks Matter:** A long wick tells you about a Rejection.
+* *Example:* A long bottom wick means sellers pushed the price down, but buyers stepped in aggressively and pushed it back up before the candle closed. This is a sign of hidden buying strength.
+
+### 2. Single Candle Patterns
+Recognizing single candles can give you an immediate signal of a reversal.
+
+**The Doji (Indecision)**
+* **Look:** A cross shape. The Open and Close are almost identical, with wicks on both sides.
+* **Meaning:** Buyers and Sellers fought to a draw. The market is confused. A trend reversal might be coming.
+
+**The Hammer (Bullish Reversal)**
+* **Look:** A small body at the top and a very long bottom wick (at least 2x the body size).
+* **Meaning:** Sellers tried to crash the price, but failed. Buyers took control. If this appears at the bottom of a downtrend, buy.
+
+**The Shooting Star (Bearish Reversal)**
+* **Look:** The opposite of a Hammer. A small body at the bottom and a long top wick.
+* **Meaning:** Buyers tried to pump the price, but failed. Sellers slammed it back down. If this appears at the top of an uptrend, sell.
+
+### 3. Multi-Candle Patterns
+* **Bullish Engulfing:** A small Red candle followed immediately by a massive Green candle that completely "swallows" the previous one. This screams that momentum has shifted violently to the upside.
+* **Bearish Engulfing:** A small Green candle followed by a massive Red candle. The buyers have been crushed.`,
     quiz: [
       {
         question: "What does a 'Hammer' candle (long bottom wick) usually signal?",
         options: ["Universal downtrend", "Potential Reversal to the Upside (Bullish)", "Indecision", "Nothing"],
         correctAnswer: 1
+      },
+      {
+        question: "What does a 'Doji' candle represent?",
+        options: ["Strong buying power", "Strong selling power", "Indecision (Market is confused)", "The market is closed"],
+        correctAnswer: 2
       }
     ],
     mission: {
@@ -678,13 +719,42 @@ In low-liquidity markets (meme coins), a large market order can crash or pump th
     categoryId: "technical",
     title: "13. Support, Resistance & Trendlines",
     description: "Identifying floors and ceilings in price.",
-    readTime: "6 min",
+    readTime: "8 min",
     difficulty: "Beginner",
-    content: `Prices have memory. \n\n**Support (Floor):** A price level where buyers historically step in. The price bounces off this level.\n**Resistance (Ceiling):** A price level where sellers historically step in. The price gets rejected here.\n\n**The Flip:** When Resistance is broken, it often becomes new Support.\n\n**Trendlines:** Connecting the lows in an uptrend (or highs in a downtrend). A break of the trendline signals the trend might be over.`,
+    content: `### The Battlefield Map
+If Candlesticks are the soldiers, Support and Resistance are the terrain. Markets do not move randomly. They have "memory." Prices tend to react at specific levels where they reversed in the past.
+
+### 1. Support (The Floor)
+Support is a price level where a downtrend tends to pause due to a concentration of demand (buying interest).
+* **Psychology:** "Bitcoin is too cheap at $50,000. I'll buy if it drops there."
+* **The Bounce:** When price hits support, it often bounces back up.
+* **The Break:** If price crashes below support, it indicates extreme weakness. The floor has collapsed.
+
+### 2. Resistance (The Ceiling)
+Resistance is a price level where an uptrend tends to pause due to a concentration of supply (selling interest).
+* **Psychology:** "I'll sell my Bitcoin when it hits $70,000 to break even."
+* **The Rejection:** When price hits resistance, it often drops.
+* **The Breakout:** If price blasts above resistance, it is extremely bullish. The ceiling has been shattered, and the sky is the limit.
+
+### 3. The Flip (Role Reversal)
+This is the most powerful concept in structure trading: Old Resistance becomes New Support.
+* **Scenario:** Bitcoin struggles to break $60,000 (Resistance). Finally, it smashes through to $65,000.
+* **The Retest:** Price usually dips back down to $60,000.
+* **The Flip:** Buyers who missed the breakout now wait at $60,000 to enter. The level that used to be a Ceiling acts as a new Floor. This "Retest and Bounce" is the safest entry signal in trading.
+
+### 4. Trendlines
+Horizontal lines are great, but markets often move in diagonals.
+* **Uptrend Line:** Connect the "Higher Lows." As long as price stays above this rising line, the trend is healthy. If it breaks below, the trend is dead.
+* **Downtrend Line:** Connect the "Lower Highs." This acts as a sliding ceiling pushing price down.`,
     quiz: [
       {
         question: "What usually happens when a Resistance level is successfully broken?",
         options: ["It disappears", "It becomes new Support", "The price crashes", "Trading stops"],
+        correctAnswer: 1
+      },
+      {
+        question: "What is the safest entry signal described?",
+        options: ["Buying the breakout immediately", "Buying the 'Retest and Bounce' of previous resistance", "Buying when RSI is 90", "Buying a downtrend"],
         correctAnswer: 1
       }
     ]
@@ -694,13 +764,38 @@ In low-liquidity markets (meme coins), a large market order can crash or pump th
     categoryId: "technical",
     title: "14. Key Indicators (RSI, MACD, MA)",
     description: "Using math to confirm your bias.",
-    readTime: "8 min",
+    readTime: "10 min",
     difficulty: "Intermediate",
-    content: `Indicators lag price, but help confirm trends.\n\n**1. RSI (Relative Strength Index):**\n- Over 70 = Overbought (expensive).\n- Under 30 = Oversold (cheap).\n\n**2. Moving Averages (MA):**\n- **200 SMA:** The definitive long-term trend. Price above 200 SMA = Bull Market.\n- **Golden Cross:** When short-term MA (50) crosses above long-term MA (200). Very Bullish.\n\n**3. MACD:** Measures momentum. A crossover of the signal lines indicates momentum shift.`,
+    content: `### Using the Dashboard
+Indicators are mathematical calculations applied to price and volume. They are not crystal balls; they are like the dashboard of a car. They tell you how fast you are going (Momentum) or if the engine is overheating (Overbought).
+
+### 1. Relative Strength Index (RSI)
+**Type:** Momentum Oscillator. **Range:** 0 to 100. **Purpose:** To identify if an asset is "Overbought" or "Oversold."
+* **Overbought (> 70):** The price has risen too fast, too quickly. The buyers are exhausted. A correction (dip) is likely. **Signal:** Sell/Short.
+* **Oversold (< 30):** The price has dumped too hard. Panic sellers are gone. A relief bounce is likely. **Signal:** Buy/Long.
+* **Pro Tip (Divergence):** If Price makes a New High, but RSI makes a Lower High, the trend is losing power. A crash is imminent.
+
+### 2. Moving Average Convergence Divergence (MACD)
+**Type:** Trend-Following Momentum. **Components:** The MACD Line (Fast) and the Signal Line (Slow). **Purpose:** To spot the start of a new trend.
+* **The Bullish Crossover:** When the MACD line crosses above the Signal line. Momentum has shifted to the upside. Green Histogram bars appear.
+* **The Bearish Crossover:** When the MACD line crosses below the Signal line. Momentum has shifted to the downside. Red Histogram bars appear.
+
+### 3. Moving Averages (MA)
+**Type:** Trend Smoothing. **Purpose:** To filter out noise and see the true direction of the market.
+* **SMA (Simple Moving Average):** The average price over X days.
+* **EMA (Exponential Moving Average):** Gives more weight to recent prices. Reacts faster.
+* **The Golden Cross vs. Death Cross:**
+  * **Golden Cross:** When the short-term average (e.g., 50-Day MA) crosses above the long-term average (e.g., 200-Day MA). This signals the start of a massive Bull Market.
+  * **Death Cross:** When the 50-Day crosses below the 200-Day. This signals a long-term Bear Market.`,
     quiz: [
       {
         question: "What is a 'Golden Cross'?",
         options: ["When price hits an all time high", "When the 50 MA crosses ABOVE the 200 MA", "When RSI hits 100", "When Bitcoin halves"],
+        correctAnswer: 1
+      },
+      {
+        question: "If RSI is above 70, the asset is considered...",
+        options: ["Oversold (Cheap)", "Overbought (Expensive)", "Dead", "Trending sideways"],
         correctAnswer: 1
       }
     ]
@@ -710,14 +805,47 @@ In low-liquidity markets (meme coins), a large market order can crash or pump th
     categoryId: "technical",
     title: "15. Risk Management (The Holy Grail)",
     description: "Position sizing and why 90% of traders fail.",
-    readTime: "6 min",
+    readTime: "10 min",
     difficulty: "Advanced",
-    content: `This is the most important lesson. You can have a 90% win rate and still go broke without this.\n\n**The 1% Rule:** Never risk more than 1% of your total account on a single trade. If you have $10,000, your Stop Loss should lose you max $100.\n\n**Stop Loss:** A predefined order to sell if you are wrong. It protects you from ruin.\n\n**Risk/Reward Ratio (R:R):** Always aim for at least 1:2. Risk $1 to make $2. This way, you can be wrong 50% of the time and still make money.`,
+    content: `### The Only Secret
+You can master every pattern and every indicator, but if you fail at Risk Management, you will go broke. Novice traders focus on how much they can win. Professional traders focus on how much they can lose.
+
+### 1. Position Sizing (The 1% Rule)
+Never risk more than 1% to 2% of your total portfolio on a single trade.
+* **Scenario:** You have $10,000. You should never lose more than $100 on one bad idea.
+* **Why?** If you risk 10% per trade and lose 5 times in a row (which happens!), you have lost 50% of your money. You now need a 100% gain just to break even.
+* **Survival:** If you risk 1%, you can be wrong 20 times in a row and still be in the game.
+
+### 2. Stop Loss (The Seatbelt)
+A Stop Loss is an automatic order to sell if the price drops to a specific level. It is your insurance policy.
+* **The Mistake:** "I'll just watch it and sell if it drops."
+* **The Reality:** When it drops, you will freeze. You will hope it comes back. It will drop more. You will become a "Bag Holder."
+* **The Rule:** Set your Stop Loss the moment you enter the trade. Never move it down.
+
+### 3. Risk-to-Reward Ratio (R:R)
+Never take a trade unless the potential Reward is at least 2x the potential Risk.
+* **Bad Trade:** Risking $100 to make $100 (1:1 Ratio). You need to be right 55% of the time to profit.
+* **Good Trade:** Risking $100 to make $300 (1:3 Ratio).
+* **If you take 10 trades:**
+    * You lose 7 trades (-$700).
+    * You win 3 trades (+$900).
+    * **Net Profit:** +$200.
+* **Magic:** With a good R:R ratio, you can be wrong 70% of the time and still make money.
+
+### 4. Leverage Kills
+Leverage is borrowing money from the exchange to bet bigger.
+* **10x Leverage:** If price moves up 10%, you double your money. BUT, if price drops 10%, you are **Liquidated** (you lose everything instantly).
+* **The Trap:** Crypto is volatile. A 10% drop happens weekly. High leverage guarantees you will eventually hit zero. Stick to Spot trading (1x) until you are consistently profitable.`,
     quiz: [
       {
         question: "If you have a $10,000 account and follow the 1% rule, what is the maximum amount you can lose on one trade?",
         options: ["$1", "$100", "$1,000", "$500"],
         correctAnswer: 1
+      },
+      {
+        question: "Why is a 1:3 Risk/Reward ratio better than 1:1?",
+        options: ["You can be wrong more often and still make profit", "It guarantees you win the trade", "It reduces fees", "It makes the trade faster"],
+        correctAnswer: 0
       }
     ],
     mission: {
