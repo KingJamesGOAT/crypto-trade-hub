@@ -6,9 +6,10 @@ import type { QuizQuestion } from "@/data/learning-modules";
 
 interface QuizInteractiveProps {
   questions: QuizQuestion[];
+  onComplete?: (passed: boolean) => void;
 }
 
-export function QuizInteractive({ questions }: QuizInteractiveProps) {
+export function QuizInteractive({ questions, onComplete }: QuizInteractiveProps) {
   // State to track selected option for each question: { [questionIndex]: selectedOptionIndex }
   const [answers, setAnswers] = useState<{ [key: number]: number }>({});
   
@@ -16,7 +17,25 @@ export function QuizInteractive({ questions }: QuizInteractiveProps) {
       // Prevent changing answer if already answered
       if (answers[qIndex] !== undefined) return;
       
-      setAnswers(prev => ({ ...prev, [qIndex]: optionIndex }));
+      const newAnswers = { ...answers, [qIndex]: optionIndex };
+      setAnswers(newAnswers);
+
+      // Check completion
+      if (Object.keys(newAnswers).length === questions.length) {
+          // Calculate score
+          const correctCount = questions.reduce((acc, q, idx) => {
+              return acc + (newAnswers[idx] === q.correctAnswer ? 1 : 0);
+          }, 0);
+          
+          // Pass if 100% correct? Or > 50%? Let's say all correct for "Mastery" or generic pass. 
+          // For simplicity, let's say > 50% is a pass, or strict 100%? 
+          // The prompt says "If Quiz passed". Let's assume 100% for these short quizzes.
+          const isPassed = correctCount === questions.length;
+          
+          if (onComplete) {
+              setTimeout(() => onComplete(isPassed), 1000);
+          }
+      }
   };
 
   if (!questions || questions.length === 0) return null;
@@ -36,7 +55,7 @@ export function QuizInteractive({ questions }: QuizInteractiveProps) {
         return (
           <Card key={qIndex} className="border-border/50 bg-secondary/20">
             <CardContent className="pt-6">
-              <h3 className="text-lg font-semibold mb-4">{qIndex + 1}. {q.question}</h3>
+              <h3 className="text-lg font-semibold mb-4 text-foreground">{qIndex + 1}. {q.question}</h3>
               
               <div className="grid grid-cols-1 gap-3">
                 {q.options.map((option, optIndex) => {
@@ -79,7 +98,6 @@ export function QuizInteractive({ questions }: QuizInteractiveProps) {
                       <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                       <div>
                           <p className="font-semibold mb-1">{isCorrect ? "Correct!" : "Incorrect"}</p>
-                          <p className="text-sm opacity-90">{q.explanation}</p>
                       </div>
                   </div>
               )}
