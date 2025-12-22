@@ -491,13 +491,48 @@ A token must have a reason to exist, or its value is pure speculation.
     categoryId: "analysis",
     title: "9. Fundamental Analysis",
     description: "Evaluating team, roadmap, and on-chain activity.",
-    readTime: "6 min",
+    readTime: "10 min",
     difficulty: "Intermediate",
-    content: `Fundamental Analysis (FA) is researching the *business* behind the token.\n\n**The Checklist:**\n1. **Team:** Are they anonymous? Have they built successful products before?\n2. **Product-Market Fit:** Does this solve a real problem (e.g., decentralized storage) or is it a solution looking for a problem?\n3. **On-Chain Data:** Don't trust PR. Look at TVL (Total Value Locked) and Daily Active Users. Is anyone actually using the protocol?\n4. **Revenue:** Does the protocol generate fees? Who gets those fees?`,
+    content: `### What is Fundamental Analysis (FA)?
+Technical Analysis (TA) involves looking at lines on a chart to predict where the price might go next.
+Fundamental Analysis (FA) involves looking at the business itself to determine if the asset is actually worth anything.
+
+In the stock market, FA means looking at Price-to-Earnings (P/E) ratios and balance sheets. In Crypto, where many projects have no revenue, FA requires a different toolkit.
+
+### 1. The Team & Track Record
+The first rule of crypto investing: Bet on the Jockey, not the Horse.
+* **Identity:** Is the team public (Doxxed) or anonymous? Anonymous teams aren't always bad (Satoshi was anon), but they carry higher rug-pull risks.
+* **History:** Have they built successful protocols before? Or is this their first project?
+* **The "Bus Factor":** If the lead developer got hit by a bus tomorrow, would the project survive? If the answer is "No," the project is too centralized.
+
+### 2. On-Chain Metrics (The "Truth")
+People lie. Blockchains don't. You can verify the health of a project by checking the data.
+* **TVL (Total Value Locked):** How much money have users deposited into the protocol? High TVL ($1B+) indicates trust. Low TVL indicates a ghost town.
+* **Active Addresses:** How many unique wallets are actually using the app daily? A project with a $1B market cap but only 50 daily users is massively overvalued.
+* **Transaction Volume:** Is money moving? High volume generates fees, which supports the token price.
+
+### 3. Developer Activity
+Crypto is software. If the software stops improving, it dies.
+* **GitHub Commits:** You can view a project's code repository publicly. Are developers pushing updates every day? Or has the code not been touched in 6 months? "Vaporware" projects often have flashy websites but empty GitHubs.
+
+### 4. The "Moat" (Competitive Advantage)
+Why does this project exist?
+* **The Fork Problem:** Since crypto is open-source, anyone can copy (fork) Uniswap's code and launch "SushiSwap."
+* **Liquidity Network Effects:** Why do people stay with Uniswap? Because that's where the liquidity is. Moving liquidity is hard. A strong moat is defined by **Sticky Liquidity** - users who stay even when a competitor offers slightly higher rewards.
+
+### 5. Tokenomics Audit (Recap)
+Even the best software is a bad investment if the tokenomics are predatory.
+* **Emissions:** Is the project printing 10% new tokens every month to pay "Yield"? That is hyperinflation. The price will likely trend to zero.
+* **Revenue Share:** Does holding the token entitle you to a percentage of the protocol's fees? If not, the token is just a "Governance Meme" with no intrinsic value.`,
     quiz: [
       {
         question: "What is the most reliable metric for a DeFi protocol's success?",
         options: ["Twitter followers", "TVL (Total Value Locked) and User Revenue", "The price of the token", "Celebrity endorsements"],
+        correctAnswer: 1
+      },
+      {
+        question: "What does 'Vaporware' refer to?",
+        options: ["A privacy coin", "A project with big promises but no code/product", "Gas fees", "Liquid staking"],
         correctAnswer: 1
       }
     ]
@@ -507,14 +542,49 @@ A token must have a reason to exist, or its value is pure speculation.
     categoryId: "analysis",
     title: "10. Market Cycles & Psychology",
     description: "The 4 phases of a market cycle.",
-    readTime: "5 min",
+    readTime: "8 min",
     difficulty: "Beginner",
-    content: `Assets move in cycles driven by human emotion. Each cycle has 4 phases:\n\n1. **Accumulation:** Price moves sideways at the bottom. Smart money buys quietly.\n2. **Mark-Up:** The breakout. Trend explodes upward. Public enters. FOMO peaks at the top.\n3. **Distribution:** Smart money sells to retail investors. Price stalls at the highs.\n4. **Mark-Down:** Price collapses. Panic selling. The cycle resets.\n\n*Lesson:* You usually want to be buying when you feel bored (Accumulation) or scared (Mark-Down), not excited.`,
+    content: `### The Emotional Rollercoaster
+Markets do not move in straight lines. They move in waves driven by human emotion. Because humans haven't changed in 10,000 years, these cycles repeat with frightening predictability.
+Every crypto cycle (typically 4 years, driven by the Bitcoin Halving) follows the same four phases.
+
+### Phase 1: Accumulation (The "Stealth" Phase)
+* **Sentiment:** Boredom, Disbelief, Anger.
+* **Price Action:** The market has crashed and is now moving sideways (ranging) for months. Volatility is low.
+* **The Players:** "Smart Money" (Institutions, Whales, Contrarians) are quietly buying. They are absorbing the coins sold by investors who gave up in the crash.
+* **Strategy:** This is the time to buy heavily, but it feels the hardest psychologically because "Crypto seems dead."
+
+### Phase 2: Mark-Up (The Bull Run)
+* **Sentiment:** Hope > Optimism > Euphoria.
+* **Price Action:** Highs are broken. The chart goes parabolic. Media starts reporting on "Crypto Millionaires."
+* **The Players:** The Retail Public enters. Your Uber driver asks you about Shiba Inu.
+* **The Trap:** As prices hit All-Time Highs (ATH), the "Smart Money" begins selling their bags to the new Retail buyers. This is the point of maximum financial risk, but it feels like the safest time to invest.
+
+### Phase 3: Distribution (The Top)
+* **Sentiment:** Complacency. "This time is different." "Supercycle."
+* **Price Action:** Prices stall. Volatility increases. We see "Lower Highs" on the chart.
+* **The Players:** Whales are exiting. Retail is holding, waiting for the "next leg up."
+* **Warning Sign:** When bad news is ignored and good news fails to pump the price, the buyers are exhausted.
+
+### Phase 4: Mark-Down (The Bear Market)
+* **Sentiment:** Anxiety > Panic > Depression.
+* **Price Action:** Violent crashes. -80% or -90% drawdowns. Projects go bankrupt.
+* **The Players:** Retail panic sells at a loss. Smart Money waits on the sidelines with cash.
+* **The Cycle Reset:** Only when the last "weak hand" has sold does the selling pressure stop, and Accumulation begins again.
+
+### The Cheat Sheet
+* **Be Fearful when others are Greedy:** When your grandma asks how to buy Dogecoin, it's time to sell.
+* **Be Greedy when others are Fearful:** When the news says "Crypto is dead," it's time to buy.`,
     quiz: [
       {
         question: "In which phase is it most profitable (but psychologically hardest) to buy?",
         options: ["Mark-Up", "Distribution", "Accumulation / Mark-Down", "All-Time High"],
         correctAnswer: 2
+      },
+      {
+        question: "Who is usually selling during the 'Mark-Up' (Bull Run) phase?",
+        options: ["Retail investors", "Smart Money (Whales)", "Miners", "No one"],
+        correctAnswer: 1
       }
     ]
   },
@@ -523,13 +593,59 @@ A token must have a reason to exist, or its value is pure speculation.
     categoryId: "analysis",
     title: "11. Order Books & Liquidity",
     description: "Bids, Asks, Spreads, and Slippage explained.",
-    readTime: "6 min",
+    readTime: "8 min",
     difficulty: "Advanced",
-    content: `When you click "Buy", you aren't buying from the exchange. You are buying from another user selling.\n\n**The Order Book:**\n- **Bids (Green):** Buyers waiting at lower prices.\n- **Asks (Red):** Sellers waiting at higher prices.\n\n**Liquidity:** The "depth" of the order book. If you try to buy $1M of Bitcoin but there are only $100k of sell orders nearby, you will push the price up. This price difference is called **Slippage**.\n\n*Tip:* Always use Limit Orders to avoid slippage.`,
+    content: `### What Happens When You Click "Buy"?
+When you trade on an exchange (like Binance or Coinbase), you aren't buying from the "Exchange." You are buying from another person. The Exchange is just the matchmaker.
+To understand trading, you must understand the Order Book.
+
+### 1. The Order Book
+Imagine a list divided into two sides:
+* **The Bids (Green/Left):** A list of people waiting to BUY. They want the lowest price possible.
+  * Example: "I will buy 1 BTC for $59,000."
+* **The Asks (Red/Right):** A list of people waiting to SELL. They want the highest price possible.
+  * Example: "I will sell 1 BTC for $59,005."
+
+The price you see on the screen (e.g., $59,002) is simply the mid-point or the last traded price.
+
+### 2. The Spread
+The difference between the highest Bid and the lowest Ask is called the Spread.
+* **High Liquidity (Bitcoin):** The spread is tiny ($0.01). Buyers and sellers agree closely on price.
+* **Low Liquidity (Shitcoins):** The spread is huge. Someone might be selling for $1.00, but the next buyer is only offering $0.80. If you buy, you instantly lose 20% value.
+
+### 3. Market Orders vs. Limit Orders
+This is the most critical mechanical skill for a trader.
+
+**A. Limit Order (The "Maker")**
+* **Action:** "I want to buy BTC, but only if it hits $58,000."
+* **Effect:** You add liquidity to the book. You sit in the queue.
+* **Pros:** You get the exact price you want. Lower fees (Maker Fees).
+* **Cons:** Your order might never get filled if the price doesn't drop.
+
+**B. Market Order (The "Taker")**
+* **Action:** "I don't care about the price! Get me in NOW!"
+* **Effect:** You remove liquidity. You eat the orders currently on the book.
+* **Pros:** Instant execution.
+* **Cons:** Higher fees (Taker Fees). Dangerous due to Slippage.
+
+### 4. Slippage & Liquidity
+Imagine there is only 1 BTC for sale at $60,000. The next person is selling 1 BTC at $61,000.
+If you try to buy 2 BTC with a Market Order:
+1. You buy the first one at $60,000.
+2. You are forced to buy the second one at $61,000.
+3. Your average price is $60,500.
+
+You just moved the price up by $1,000 and paid more than you expected. This is **Slippage**.
+In low-liquidity markets (meme coins), a large market order can crash or pump the price by 50% instantly. Always use Limit Orders on illiquid coins.`,
     quiz: [
       {
         question: "What happens if you place a massive Market Buy order on a coin with low liquidity?",
         options: ["You get a discount", "You cause high Slippage (pay a much higher price)", "The trade is rejected", "Nothing happens"],
+        correctAnswer: 1
+      },
+      {
+        question: "Which type of order guarantees the PRICE but not the execution?",
+        options: ["Market Order", "Limit Order", "Stop Loss", "Sniper Order"],
         correctAnswer: 1
       }
     ]
