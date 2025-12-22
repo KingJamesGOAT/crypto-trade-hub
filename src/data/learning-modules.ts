@@ -28,67 +28,186 @@ export const COURSE_CATEGORIES = [
 ];
 
 export const learningModules: LearningModule[] = [
-  // --- PHASE 1: THE FOUNDATION ---
+  // --- MODULE 1: MONEY & BITCOIN ---
   {
-    id: "money-bitcoin",
+    id: "history-money-bitcoin",
     categoryId: "foundation",
     title: "1. Money & The Birth of Bitcoin",
-    description: "Fiat currency, the 2008 Crisis, and why Bitcoin is 'Digital Gold'.",
-    readTime: "6 min",
+    description: "From the history of barter to the 2008 Financial Crisis. Why Bitcoin was inevitable.",
+    readTime: "12 min",
     difficulty: "Beginner",
-    content: `Money has evolved from barter (cows) to commodity money (gold) to fiat currency (government paper). \n\n**The Problem with Fiat:**\nFiat money, like the USD or EUR, is backed by nothing but trust in the government. Central banks can print infinite amounts, causing inflation. In 2008, the Global Financial Crisis exposed the fragility of this system, as banks gambled with people's money and were bailed out by taxpayers.\n\n**Enter Bitcoin (2009):**\nSatoshi Nakamoto created Bitcoin as an alternative. It is "Hard Money" because:\n1. **Fixed Supply:** There will never be more than 21 million BTC.\n2. **Decentralized:** No government controls it.\n3. **Digital Gold:** It stores value over time, protecting purchasing power from inflation.`,
+    content: `**The Evolution of Value**
+To understand Bitcoin, we must first ask: *What is money?*
+Money is not wealth; it is a technology for moving wealth across time and space. Throughout history, humanity has iterated on this technology:
+1. **Barter:** Direct trade (My chicken for your shoes). Limitation: 'Coincidence of wants'.
+2. **Collectibles:** Shells, beads, rare stones. Limitation: Hard to divide or transport.
+3. **Store of Value (Gold):** Durable, scarce, and fungible. Limitation: Heavy and dangerous to transport.
+4. **Fiat Currency:** Paper money backed by government decree (USD, EUR). Limitation: Can be printed infinitely.
+
+**The Problem with Fiat (The "Soft" Money)**
+Since 1971, when the US dollar was decoupled from gold, money became "Fiat" (Latin for "let it be done"). Its value relies entirely on trust in the government.
+Because central banks can print money at will to fund wars or bail out corporations, the supply of money constantly increases. This is **Inflation**. It effectively steals purchasing power from savers. If you saved $100 in 1970, it is worth less than $15 today.
+
+**The Catalyst: The 2008 Financial Crisis**
+In 2008, the global banking system collapsed due to reckless gambling with user deposits (Subprime Mortgages). Governments responded by printing trillions of dollars to bail out the very banks that caused the crisis. Trust in centralized institutions hit an all-time low.
+
+**Enter Satoshi Nakamoto**
+On October 31, 2008, a whitepaper titled *"Bitcoin: A Peer-to-Peer Electronic Cash System"* was published by an anonymous cryptographer named Satoshi Nakamoto.
+Satoshi didn't just invent a new currency; he solved the **"Double Spend Problem"** without a bank. For the first time in history, we had a digital asset that was:
+* **Scarce:** Only 21,000,000 BTC will ever exist.
+* **Decentralized:** No CEO, no server, no headquarters.
+* **Censorship Resistant:** No government can freeze a Bitcoin wallet.
+
+**The Genesis Block**
+On January 3, 2009, Satoshi mined the first block. Embedded in the code was a secret message: *"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks."*
+This proved the date of origin and forever immortalized Bitcoin's purpose: A peaceful protest against the corrupt traditional banking system.`,
     quiz: [
       {
-        question: "Why is Bitcoin considered 'Hard Money'?",
-        options: ["It is backed by gold bars", "It has a fixed supply cap (21M) that cannot be inflated", "It is printed by the government", "It is made of metal"],
+        question: "What is the primary flaw of Fiat currency described in this lesson?",
+        options: ["It is too heavy to carry", "It is backed by Gold", "It can be printed infinitely by central banks (Inflation)", "It is purely digital"],
+        correctAnswer: 2
+      },
+      {
+        question: "What was the specific event in 2008 that likely triggered the creation of Bitcoin?",
+        options: ["The invention of the iPhone", "The Global Financial Crisis and Bank Bailouts", "The election of Obama", "The dot-com bubble"],
         correctAnswer: 1
       }
     ]
   },
+
+  // --- MODULE 2: BLOCKCHAIN MECHANICS ---
   {
-    id: "blockchain-explained",
+    id: "blockchain-mechanics",
     categoryId: "foundation",
     title: "2. Blockchain Under the Hood",
-    description: "Distributed ledgers, hashing, and blocks explained simply.",
-    readTime: "7 min",
+    description: "Distributed Ledgers, Hashing, and Mining. How it actually works.",
+    readTime: "15 min",
     difficulty: "Intermediate",
-    content: `Forget the complex math for a second. A blockchain is simply a **Distributed Ledger**.\n\n**The Analogy:**\nImagine a Google Sheet that everyone in the world can view, but no one can edit or delete past rows—only add new ones at the bottom. And once a row is added, it is locked forever.\n\n**How it works:**\n1. **Transactions** are grouped together into a "Block" (like a page of a record book).\n2. **Miners** compete to seal this block using a cryptographic "Hash" (a digital fingerprint).\n3. **Chaining:** The new block contains the fingerprint of the previous block. If you try to change an old record, the fingerprint changes, breaking the chain. This makes the history **Immutable** (unchangeable).`,
+    content: `Many people think "Blockchain" is magic. It isn't. It is simply a specific type of database. To understand it, we need to break it down into three specific technologies:
+
+**1. The Distributed Ledger (The Spreadsheet)**
+Imagine a Google Sheet that everyone in the world can view, but no single person is the "Admin."
+* **Traditional Bank:** The bank has the master ledger. If they delete a row, your money is gone. You trust them.
+* **Blockchain:** *Everyone* downloads a copy of the ledger. If one person tries to cheat and write "I have 1,000 BTC" in their copy, the thousands of other computers (Nodes) compare it to their files, see the mismatch, and reject the liar. This is called **Consensus**.
+
+**2. Hashing (The Digital Fingerprint)**
+How do we secure the data? We use a mathematical function called **SHA-256**.
+A "Hash Function" takes any amount of data (a word, a book, a transaction) and turns it into a unique string of characters.
+* Input: "Hello" -> Hash: \`185f8db3...\`
+* Input: "Hello." (added a dot) -> Hash: \`f96b697d...\` (Completely different!)
+This means if a hacker tries to change a transaction from 5 years ago (even by 1 cent), the Hash of that block changes completely. The network instantly notices the tamper.
+
+**3. The "Chain" of Blocks**
+Transactions aren't saved one by one; they are bundled into "Blocks" (like pages in a book).
+* Block 1 has a Hash (Fingerprint).
+* Block 2 contains its own transactions **PLUS the Hash of Block 1**.
+* Block 3 contains the Hash of Block 2.
+This links them together mathematically. If you hack Block 1, the Hash changes. Since Block 2 includes Block 1's Hash, Block 2 is now invalid. Then Block 3 breaks. To hack Bitcoin, you would have to re-do the math for the entire history of the chain, which is thermodynamically impossible.
+
+**4. Mining (Proof of Work)**
+Who gets to add the next page?
+Computers (Miners) compete to solve a difficult math puzzle (guessing a random number that results in a specific Hash). This requires massive amounts of electricity.
+* **Why waste energy?** It's not waste; it's security. The cost of electricity makes it too expensive to attack the network. To overpower Bitcoin, you would need more energy than a medium-sized country.
+The winner gets to write the next block and is rewarded with new Bitcoin.`,
     quiz: [
       {
-        question: "What makes the blockchain history 'Immutable'?",
-        options: ["The government watches it", "Blocks are linked by Hashes; changing one breaks the chain", "It is stored in a vault", "Miners are paid to guard it"],
+        question: "Why is the 'Chain' structure important?",
+        options: ["It makes the database look cool", "It links blocks so that changing past data breaks all future blocks", "It allows faster internet speeds", "It saves electricity"],
         correctAnswer: 1
+      },
+      {
+        question: "What is the role of 'Nodes' in the network?",
+        options: ["To hack the system", "To issue new passwords", "To keep a copy of the ledger and reject invalid transactions", "To increase transaction fees"],
+        correctAnswer: 2
       }
     ]
   },
+
+  // --- MODULE 3: ETHEREUM ---
   {
     id: "ethereum-revolution",
     categoryId: "foundation",
     title: "3. The Ethereum Revolution",
-    description: "From Calculators to Computers: Smart Contracts and dApps.",
-    readTime: "6 min",
+    description: "From 'Digital Calculators' to 'World Computers'. The birth of Smart Contracts.",
+    readTime: "12 min",
     difficulty: "Intermediate",
-    content: `If Bitcoin is a pocket calculator (does one thing perfectly), Ethereum is a smartphone (runs applications).\n\n**Smart Contracts:**\nVitalik Buterin realized blockchain could do more than just send money. He created **Smart Contracts**: self-executing code that lives on the blockchain.\n\n*Example:* "If User A sends 1 ETH, automatically send them Token B."\n\nThis eliminated the need for middlemen in finance, art, and gaming, giving birth to **dApps** (Decentralized Applications).`,
+    content: `**Bitcoin vs. Ethereum: The Analogy**
+* **Bitcoin** is a pocket calculator. It does one thing perfectly: it handles numbers (money). It is simple, secure, and robust.
+* **Ethereum** is a Smartphone. It isn't just a calculator; it has an App Store. You can build games, banks, and social networks on top of it.
+
+**The Origin Story**
+In 2013, a 19-year-old programmer named Vitalik Buterin (a writer for Bitcoin Magazine) proposed that blockchain could do more than just track payments. He wanted to make blockchain **Programmable**.
+He launched Ethereum in 2015 with the concept of the **EVM (Ethereum Virtual Machine)**—a global supercomputer that anyone can rent.
+
+**The Breakthrough: Smart Contracts**
+A Smart Contract is a computer program stored on the blockchain that runs automatically when conditions are met. It replaces the "Middleman."
+* **Traditional Insurance:** You pay a premium. A hurricane hits your farm. You file a claim. An agent visits. The company decides if they want to pay you. (Slow, Trust-based).
+* **Smart Contract Insurance:** You send funds to a contract linked to a Weather API. If wind speed > 100mph, the contract *instantly* releases funds to your wallet. (Fast, Code-based, No middleman).
+
+**What Ethereum Enabled (The Ecosystem)**
+Because of this programmability, entire industries were rebuilt on-chain:
+1.  **DeFi (Decentralized Finance):** Uniswap and Aave allow you to trade and lend money without a bank.
+2.  **NFTs (Non-Fungible Tokens):** Tokenized ownership of art, music, or real estate.
+3.  **DAOs:** Companies owned by code and voted on by token holders, not managed by a CEO.
+
+**Gas Fees**
+To prevent people from spamming this "World Computer" with infinite loops, Ethereum charges a fee for every computation. This is called **Gas**, paid in ETH. The more complex the transaction, the more Gas it costs.`,
     quiz: [
       {
-        question: "What is the primary innovation of Ethereum compared to Bitcoin?",
-        options: ["It is faster", "It allowed for Smart Contracts (Programmable Money)", "It has a lower supply", "It is more anonymous"],
+        question: "What is the best analogy for the difference between Bitcoin and Ethereum?",
+        options: ["Gold vs Silver", "Calculator vs Smartphone", "Bank vs Stock Market", "Email vs Letter"],
+        correctAnswer: 1
+      },
+      {
+        question: "What is a Smart Contract?",
+        options: ["A legally binding paper document", "Self-executing code that runs when conditions are met", "A contract signed by smart people", "An AI lawyer"],
         correctAnswer: 1
       }
     ]
   },
+
+  // --- MODULE 4: WALLETS & SECURITY ---
   {
-    id: "wallets-security",
+    id: "wallets-custody",
     categoryId: "foundation",
     title: "4. Wallets, Custody & Security",
-    description: "Hot vs. Cold wallets and the 'Not Your Keys' rule.",
-    readTime: "8 min",
+    description: "Public Keys, Private Keys, and the 'Not Your Keys, Not Your Coins' rule.",
+    readTime: "10 min",
     difficulty: "Beginner",
-    content: `In crypto, there is no "Forgot Password" button. You are your own bank.\n\n**The Golden Rule:** Not Your Keys, Not Your Coins. If you leave money on an exchange (like Binance), you don't own it—they do (IOU).\n\n**Types of Wallets:**\n1. **Hot (Software) Wallet:** Connected to the internet (e.g., MetaMask). Good for trading, higher risk.\n2. **Cold (Hardware) Wallet:** Offline device (e.g., Ledger). Impossible to hack remotely. Best for long-term storage.\n\n**Seed Phrase:** Your 12-24 words are your master key. Never share them. Never type them into a website.`,
+    content: `**The Misconception**
+A crypto wallet does *not* store crypto. Your Bitcoin lives on the blockchain, not on your phone.
+A wallet stores your **Keys**. It is a keychain, not a vault.
+
+**Public vs. Private Keys**
+Cryptography uses a pair of keys:
+1.  **Public Key (The Mailbox):** This is your Address (e.g., \`0x71C...\`). You can give this to anyone safely. People use it to send you money.
+2.  **Private Key (The Key to the Mailbox):** This is a long string of secret code that signs transactions. *Anyone who has this key owns your money.* You must never share it.
+
+**The Seed Phrase**
+Because Private Keys look like gibberish (\`5Kb8kLf9zg...\`), wallets convert them into a **12 or 24-word Seed Phrase** (e.g., "army van defense carry...").
+This phrase is the master key to your entire financial life. If you lose your phone, you can restore your wallet on a new device using these words. If you lose these words, your money is gone forever. There is no "Forgot Password" support.
+
+**Types of Custody**
+* **Custodial (The Bank Model):** Exchanges like Binance or Coinbase hold the keys for you.
+    * *Risk:* If the exchange goes bankrupt (like FTX or Mt. Gox), you lose everything.
+* **Non-Custodial (Self-Custody):** You hold the keys (MetaMask, Phantom).
+    * *Risk:* You are responsible for your own security.
+
+**Hot vs. Cold Wallets**
+* **Hot Wallet:** Connected to the internet (Browser extension, Mobile App). Convenient for trading, but vulnerable to hacks.
+* **Cold Wallet (Hardware Wallet):** A physical device (Ledger, Trezor) that keeps keys offline. It connects via USB/Bluetooth only to sign a transaction. Even if your computer has a virus, your keys are safe inside the device.
+
+**The Golden Rule:**
+"Not Your Keys, Not Your Coins." For any significant amount of money, move it off the exchange and into a hardware wallet.`,
     quiz: [
       {
-        question: "What is the safest way to store large amounts of crypto?",
-        options: ["On an exchange (Binance/Coinbase)", "In a Hot Wallet (MetaMask)", "In a Cold/Hardware Wallet (Ledger)", "In a text file on your desktop"],
+        question: "If you lose your Seed Phrase (Recovery Phrase), who can recover your money?",
+        options: ["The wallet support team", "Satoshi Nakamoto", "No one. It is lost forever.", " The FBI"],
+        correctAnswer: 2
+      },
+      {
+        question: "Which type of wallet provides the highest security for long-term storage?",
+        options: ["Hot Wallet (Mobile App)", "Custodial Wallet (Exchange)", "Cold Storage (Hardware Wallet)", "Writing it in a Google Doc"],
         correctAnswer: 2
       }
     ]
