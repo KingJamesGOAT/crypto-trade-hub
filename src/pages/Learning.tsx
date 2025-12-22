@@ -1,286 +1,186 @@
-
-import { useState, useEffect, useMemo } from "react"
-import { learningModules, COURSE_CATEGORIES, type LearningModule } from "@/data/learning-modules"
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
-import { BookOpen, Clock, Lock, CheckCircle2, Trophy, ChevronRight, PlayCircle } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useToast } from "@/hooks/use-toast"
-import { QuizInteractive } from "@/components/QuizInteractive"
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react";
+import { learningModules, COURSE_CATEGORIES } from "@/data/learning-modules";
+import { QuizInteractive } from "@/components/QuizInteractive";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { BookOpen, CheckCircle2, Circle, ChevronRight, GraduationCap, PlayCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function Learning() {
-  const { toast } = useToast()
-  
-  // -- PERSISTENCE --
+  // Persistence: Load progress
   const [completedModules, setCompletedModules] = useState<string[]>(() => {
-    const saved = localStorage.getItem("learning_completed")
-    return saved ? JSON.parse(saved) : []
-  })
-  
-  const [userXP, setUserXP] = useState<number>(() => {
-    const saved = localStorage.getItem("learning_xp")
-    return saved ? parseInt(saved) : 0
-  })
+    const saved = localStorage.getItem("cth_learning_progress");
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  // -- STATE --
-  const [selectedModuleId, setSelectedModuleId] = useState(learningModules[0].id)
-  const [quizPassedInSession, setQuizPassedInSession] = useState(false)
-
-  // -- CALCULATIONS --
-  const selectedModule: LearningModule = useMemo(() => 
-    learningModules.find(m => m.id === selectedModuleId) || learningModules[0], 
-  [selectedModuleId]);
-
-  const userLevel = Math.floor(userXP / 500) + 1;
-  const nextLevelXP = userLevel * 500;
-  const progressToNextLevel = ((userXP - ((userLevel - 1) * 500)) / 500) * 100;
-
-  // -- EFFECTS --
-  useEffect(() => {
-    localStorage.setItem("learning_completed", JSON.stringify(completedModules))
-  }, [completedModules])
+  const [activeModuleId, setActiveModuleId] = useState<string>(learningModules[0].id);
 
   useEffect(() => {
-    localStorage.setItem("learning_xp", userXP.toString())
-  }, [userXP])
+    localStorage.setItem("cth_learning_progress", JSON.stringify(completedModules));
+  }, [completedModules]);
 
-  // Reset session state when module changes
-  useEffect(() => {
-    setQuizPassedInSession(false);
-  }, [selectedModuleId]);
+  const activeModule = learningModules.find(m => m.id === activeModuleId) || learningModules[0];
 
-  // -- HANDLERS --
-  const handleQuizComplete = (passed: boolean) => {
-      if (passed && !completedModules.includes(selectedModuleId)) {
-        // First time completion
-        setCompletedModules(prev => [...prev, selectedModuleId]);
-        setUserXP(prev => prev + selectedModule.xpReward);
-        setQuizPassedInSession(true);
-        
-        toast({
-            title: "🎉 Module Complete!",
-            description: `You earned +${selectedModule.xpReward} XP. Keep it up!`,
-            className: "bg-green-500 text-white border-green-600"
-        });
-      } else if (passed) {
-          // Replay
-          setQuizPassedInSession(true);
-          toast({
-              title: "Quiz Passed",
-              description: "Good refresh! No XP awarded for replays."
-          });
-      }
+  const handleModuleComplete = (id: string) => {
+    if (!completedModules.includes(id)) {
+      setCompletedModules(prev => [...prev, id]);
+    }
   };
-  
-  const isModuleLocked = (modIndex: number) => {
-      if (modIndex === 0) return false;
-      const prevModuleId = learningModules[modIndex - 1].id;
-      return !completedModules.includes(prevModuleId);
-  };
-
-  const currentModuleIndex = learningModules.findIndex(m => m.id === selectedModuleId);
-  const nextModule = learningModules[currentModuleIndex + 1];
 
   return (
-    <div className="h-[calc(100vh-6rem)] flex flex-col md:flex-row gap-6 p-1">
+    <div className="flex h-[calc(100vh-4rem)] bg-slate-950">
+      
+      {/* LEFT SIDEBAR: Course Curriculum */}
+      <div className="w-80 border-r border-slate-800 bg-slate-950 hidden md:flex flex-col">
+        <div className="p-6 border-b border-slate-800">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <GraduationCap className="h-6 w-6 text-blue-500" />
+                Curriculum
+            </h2>
+            <p className="text-xs text-slate-500 mt-2">
+                {completedModules.length} of {learningModules.length} lessons completed
+            </p>
+        </div>
         
-       {/* LEFT SIDEBAR: COURSE MAP */}
-       <Card className="w-full md:w-80 flex-shrink-0 flex flex-col border-r h-full bg-card/50 backdrop-blur-sm">
-           <CardHeader className="pb-4 border-b">
-               <div className="flex items-center justify-between mb-2">
-                   <h2 className="text-xl font-bold tracking-tight">C.T.H. Academy</h2>
-                   <Badge variant="outline" className="font-mono text-yellow-500 border-yellow-500/30 bg-yellow-500/10">
-                       Lvl {userLevel}
-                   </Badge>
-               </div>
-               
-               {/* XP Bar */}
-               <div className="space-y-1">
-                   <div className="flex justify-between text-xs text-muted-foreground">
-                       <span>{userXP} XP</span>
-                       <span>{nextLevelXP} XP</span>
-                   </div>
-                   <Progress value={progressToNextLevel} className="h-2" />
-               </div>
-           </CardHeader>
-           
-           <CardContent className="flex-1 p-0 overflow-hidden">
-               <ScrollArea className="h-full">
-                   <div className="p-4 space-y-6">
-                       {COURSE_CATEGORIES.map((category) => {
-                           const categoryModules = learningModules.filter(m => m.categoryId === category.id);
-                           if (categoryModules.length === 0) return null;
+        <ScrollArea className="flex-1">
+            <div className="p-4 space-y-6">
+                {COURSE_CATEGORIES.map((category) => (
+                    <div key={category.id}>
+                        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-2">
+                            {category.name}
+                        </h3>
+                        <div className="space-y-1">
+                            {learningModules
+                                .filter(m => m.categoryId === category.id)
+                                .map(module => {
+                                    const isCompleted = completedModules.includes(module.id);
+                                    const isActive = activeModuleId === module.id;
+                                    
+                                    return (
+                                        <button
+                                            key={module.id}
+                                            onClick={() => setActiveModuleId(module.id)}
+                                            className={`
+                                                w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm transition-all text-left
+                                                ${isActive ? "bg-blue-900/20 text-blue-200 border border-blue-900/50" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"}
+                                            `}
+                                        >
+                                            {isCompleted ? (
+                                                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                                            ) : (
+                                                <Circle className={`h-4 w-4 mt-0.5 shrink-0 ${isActive ? "text-blue-400" : "text-slate-600"}`} />
+                                            )}
+                                            <span className="line-clamp-2">{module.title}</span>
+                                        </button>
+                                    )
+                                })}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </ScrollArea>
+      </div>
 
-                           return (
-                               <div key={category.id} className="space-y-2">
-                                   <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">
-                                       {category.name}
-                                   </div>
-                                   <div className="space-y-1">
-                                       {categoryModules.map((module) => {
-                                           const globalIndex = learningModules.findIndex(m => m.id === module.id);
-                                           const locked = isModuleLocked(globalIndex);
-                                           const completed = completedModules.includes(module.id);
-                                           const active = selectedModuleId === module.id;
+      {/* MAIN CONTENT: Reader */}
+      <div className="flex-1 overflow-y-auto bg-slate-950">
+        <div className="max-w-3xl mx-auto p-8 md:p-12">
+            
+            {/* Mobile Nav Trigger could go here */}
+            
+            <div className="mb-8">
+                <div className="flex items-center gap-2 mb-4">
+                    <Badge variant="outline" className="text-blue-400 border-blue-900 bg-blue-950/30">
+                        {COURSE_CATEGORIES.find(c => c.id === activeModule.categoryId)?.name}
+                    </Badge>
+                    <span className="text-xs text-slate-500 flex items-center">
+                        <BookOpen className="h-3 w-3 mr-1" /> {activeModule.readTime} read
+                    </span>
+                </div>
+                
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                    {activeModule.title}
+                </h1>
+                <p className="text-xl text-slate-400 leading-relaxed">
+                    {activeModule.description}
+                </p>
+            </div>
 
-                                           return (
-                                               <Button
-                                                  key={module.id}
-                                                  variant={active ? "secondary" : "ghost"}
-                                                  disabled={locked}
-                                                  onClick={() => setSelectedModuleId(module.id)}
-                                                  className={cn(
-                                                      "w-full justify-between h-auto py-2.5 px-3 text-sm font-normal",
-                                                      active && "bg-secondary font-medium",
-                                                      locked && "opacity-50 cursor-not-allowed"
-                                                  )}
-                                               >
-                                                   <span className="truncate flex-1 text-left mr-2">
-                                                       {module.title}
-                                                   </span>
-                                                   
-                                                   {completed ? (
-                                                       <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
-                                                   ) : locked ? (
-                                                       <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
-                                                   ) : (
-                                                       <div className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
-                                                   )}
-                                               </Button>
-                                           )
-                                       })}
-                                   </div>
-                               </div>
-                           )
-                       })}
-                   </div>
-               </ScrollArea>
-           </CardContent>
-       </Card>
+            <Separator className="bg-slate-800 my-8" />
 
-       {/* MAIN CONTENT AREA */}
-       <Card className="flex-1 flex flex-col h-full overflow-hidden border-none shadow-none bg-transparent">
-           <ScrollArea className="h-full pr-4">
-              <div className="space-y-8 pb-20">
-                  
-                  {/* HERO HEADER */}
-                  <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="uppercase tracking-widest text-[10px]">
-                              {COURSE_CATEGORIES.find(c => c.id === selectedModule.categoryId)?.name}
-                          </Badge>
-                          
-                          {completedModules.includes(selectedModuleId) && (
-                              <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20">
-                                  Completed
-                              </Badge>
-                          )}
-                      </div>
-                      
-                      <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-                          {selectedModule.title}
-                      </h1>
-                      
-                      <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                              <Clock className="w-4 h-4" />
-                              {selectedModule.readTimeMinutes} min read
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                              <Trophy className="w-4 h-4 text-yellow-500" />
-                              {selectedModule.xpReward} XP Reward
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                              <BookOpen className="w-4 h-4" />
-                              {selectedModule.difficulty}
-                          </div>
-                      </div>
-                  </div>
+            {/* Content Body */}
+            <div className="prose prose-invert prose-lg max-w-none prose-headings:text-white prose-p:text-slate-300 prose-strong:text-blue-200">
+                {activeModule.content.split('\n\n').map((paragraph, idx) => (
+                    <p key={idx} dangerouslySetInnerHTML={{ 
+                        // Simple bold rendering hack, ideally use a Markdown renderer like 'react-markdown'
+                        __html: paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                    }} />
+                ))}
+            </div>
 
-                  <Separator />
+            {/* Practical Application (Simulator Link) */}
+            {activeModule.mission && (
+                <Card className="my-8 border-blue-900/50 bg-blue-950/10">
+                    <CardHeader>
+                        <CardTitle className="text-lg text-blue-300 flex items-center gap-2">
+                            <PlayCircle className="h-5 w-5" />
+                            Practical Application
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-between gap-4">
+                        <p className="text-sm text-slate-400">{activeModule.mission.description}</p>
+                        <Button size="sm" variant="secondary" asChild>
+                            <Link to={activeModule.mission.actionLink}>
+                                Open Simulator <ChevronRight className="ml-1 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
 
-                  {/* CONTENT BODY */}
-                  <div className="prose prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-code:text-primary prose-code:bg-secondary/50 prose-code:px-1 prose-code:rounded">
-                       <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                              blockquote: ({node, ...props}: any) => (
-                                  <div className="border-l-4 border-primary pl-6 py-2 my-6 bg-primary/5 rounded-r-lg italic" {...props} />
-                              ),
-                              table: ({node, ...props}: any) => (
-                                <div className="my-6 w-full overflow-y-auto border rounded-lg">
-                                    <table className="w-full text-sm" {...props} />
-                                </div>
-                              ),
-                              th: ({node, ...props}: any) => <th className="border-b px-4 py-3 text-left bg-muted/50 font-semibold" {...props} />,
-                              td: ({node, ...props}: any) => <td className="border-b px-4 py-3" {...props} />,
-                          }}
-                       >
-                           {selectedModule.content}
-                       </ReactMarkdown>
-                  </div>
+            <Separator className="bg-slate-800 my-8" />
 
-                  {/* INTERACTIVE ACTIONS */}
-                  <div className="mt-12 space-y-8">
-                      {/* 1. MISSION CARD (If exists) */}
-                      {selectedModule.mission && (
-                          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-6 relative overflow-hidden">
-                              <div className="absolute top-0 right-0 p-4 opacity-10">
-                                  <PlayCircle className="w-32 h-32" />
-                              </div>
-                              <h3 className="text-lg font-bold text-blue-400 mb-2 flex items-center gap-2">
-                                  <Trophy className="w-5 h-5" />
-                                  Live Mission
-                              </h3>
-                              <p className="text-muted-foreground mb-4 max-w-xl">
-                                  {selectedModule.mission.task}
-                              </p>
-                              <Button asChild className="relative z-10">
-                                  <Link to={selectedModule.mission.actionLink}>Launch Simulator</Link>
-                              </Button>
-                          </div>
-                      )}
+            {/* Knowledge Check */}
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    Knowledge Check
+                </h3>
+                
+                {completedModules.includes(activeModule.id) ? (
+                    <div className="text-green-400 flex items-center gap-2 bg-green-950/20 p-4 rounded-lg border border-green-900/50">
+                        <CheckCircle2 className="h-5 w-5" />
+                        You have completed this lesson.
+                    </div>
+                ) : (
+                    <QuizInteractive 
+                        questions={activeModule.quiz} 
+                        onComplete={() => handleModuleComplete(activeModule.id)} 
+                    />
+                )}
+            </div>
 
-                      {/* 2. QUIZ */}
-                      {selectedModule.quiz && (
-                          <div className="bg-secondary/20 border rounded-xl p-6 md:p-8">
-                              <QuizInteractive 
-                                  questions={selectedModule.quiz} 
-                                  onComplete={handleQuizComplete} 
-                              />
-                          </div>
-                      )}
+            {/* Navigation Footer */}
+            <div className="mt-12 flex justify-between">
+                <Button variant="ghost" disabled={learningModules.indexOf(activeModule) === 0} onClick={() => {
+                    const idx = learningModules.indexOf(activeModule);
+                    if(idx > 0) setActiveModuleId(learningModules[idx - 1].id);
+                }}>
+                    Previous Lesson
+                </Button>
 
-                      {/* 3. NEXT LESSON PROMPT */}
-                      {(completedModules.includes(selectedModuleId) || quizPassedInSession) && nextModule && (
-                          <div className="flex flex-col items-center justify-center py-8 animate-in fade-in slide-in-from-bottom-4">
-                              <p className="text-muted-foreground mb-4">You've mastered this topic.</p>
-                              <Button 
-                                  size="lg" 
-                                  className="gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0"
-                                  onClick={() => {
-                                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                                      setSelectedModuleId(nextModule.id);
-                                  }}
-                              >
-                                  Start Next Lesson: {nextModule.title} 
-                                  <ChevronRight className="w-4 h-4" />
-                              </Button>
-                          </div>
-                      )}
-                  </div>
+                <Button disabled={!completedModules.includes(activeModule.id) || learningModules.indexOf(activeModule) === learningModules.length - 1} onClick={() => {
+                    const idx = learningModules.indexOf(activeModule);
+                    if(idx < learningModules.length - 1) setActiveModuleId(learningModules[idx + 1].id);
+                }}>
+                    Next Lesson <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+            </div>
 
-              </div>
-           </ScrollArea>
-       </Card>
-       
+        </div>
+      </div>
     </div>
-  )
+  );
 }
