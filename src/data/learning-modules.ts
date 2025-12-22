@@ -271,86 +271,215 @@ If you lose your phone/computer, you can buy a new one, type in these 12 words, 
     categoryId: "ecosystem",
     title: "5. Stablecoins & The Bridge",
     description: "USDT, USDC, DAI: How crypto connects to the dollar.",
-    readTime: "5 min",
+    readTime: "8 min",
     difficulty: "Beginner",
-    content: `**The Volatility Problem**
-Cryptocurrency is famous for its volatility. Bitcoin can drop 10% in a single hour. While this is great for speculation, it makes it terrible for day-to-day commerce. You wouldn't want to pay for coffee with a currency that might be worth half as much tomorrow.
-To solve this, the industry created **Stablecoins**.
+    content: `### The Problem: Volatility
+Cryptocurrency is famous for its explosive price action. Bitcoin can rise 100% in a year or drop 50% in a month. While this volatility is excellent for speculation and growing wealth, it makes crypto terrible for two specific things:
 
-**What is a Stablecoin?**
-A Stablecoin is a cryptocurrency that is "pegged" to a stable asset, usually the US Dollar. \`1 USDT = $1.00 USD\`. Always.
-This gives traders the best of both worlds:
-1.  The speed and programmability of crypto (send it anywhere in seconds).
-2.  The stability of the US Dollar.
+1. **Daily Commerce:** You wouldn't buy a coffee with Bitcoin if that same Bitcoin might be worth a steak dinner tomorrow.
+2. **Preserving Wealth:** If the market crashes, traders need a "Safe Haven" to park their money without cashing out to a slow, traditional bank.
 
-**Types of Stablecoins**
-1.  **Fiat-Collateralized (USDT, USDC)**
-    *   **How it works:** For every 1 digital token they issue, a company (like Tether or Circle) keeps $1 of real cash or treasury bonds in a bank vault.
-    *   **Pros:** Highly efficient and liquid.
-    *   **Cons:** Centralized. You have to trust that the company actually has the money.
+### The Solution: Stablecoins
+A Stablecoin is a specific type of cryptocurrency designed to maintain a stable value, usually pegged 1:1 to a fiat currency like the US Dollar.
+**1 USDT = $1.00 USD. Always.**
 
-2.  **Crypto-Collateralized (DAI)**
-    *   **How it works:** You don't trust a bank; you trust a Smart Contract. To mint $100 of DAI, you might have to lock up $150 worth of Ethereum in a vault. If the price of ETH crashes, the contract automatically sells your ETH to pay back the debt.
-    *   **Pros:** Decentralized and transparent.
-    *   **Cons:** "Capital Inefficient" (you need money to make money).
+This innovation creates a "Bridge" between the traditional financial world (Fiat) and the digital world (Crypto). It gives you the stability of the dollar with the speed and programmability of the blockchain.
 
-**Why Do We Need Them?**
-Stablecoins are the "Dry Powder" of the crypto ecosystem.
-*   **Trading:** If you think Bitcoin is about to crash, you sell it for USDT to protect your value.
-*   **DeFi:** You can lend your USDT to others and earn interest, just like a bank, but typically with higher rates.
-*   **Payments:** Sending $1,000,000 internationally via a bank takes days and costs high fees. Sending $1,000,000 in USDC takes seconds and costs pennies.`,
+### The Three Types of Stablecoins
+
+**1. Fiat-Collateralized (The Bank Model)**
+* **Examples:** USDT (Tether), USDC (USD Coin).
+* **How it works:** This is the simplest model. For every 1 digital token minted on the blockchain, a central company holds $1 of real cash (or equivalent assets like US Treasury Bonds) in a bank vault.
+* **Pros:** Highly liquid and efficient. This is the standard for trading pairs on exchanges.
+* **Cons:** Centralized. You have to trust that the company *actually* has the money. If the government seizes their bank accounts, the token could lose value.
+
+**2. Crypto-Collateralized (The DeFi Model)**
+* **Example:** DAI (MakerDAO).
+* **How it works:** You don't trust a company; you trust a Smart Contract. To mint $100 of DAI, you must deposit *more* than $100 worth of Ethereum (e.g., $150) into a vault as collateral. This is called **Over-Collateralization**.
+* **The Safety Mechanism:** If the price of your Ethereum drops too low, the smart contract automatically sells your ETH to pay back the debt. This ensures the system is always solvent without a human manager.
+* **Pros:** Decentralized, transparent, and censorship-resistant.
+
+**3. Algorithmic (The Experimental Model)**
+* **How it works:** These coins use complex code to balance supply and demand to keep the price at $1.00, often without full backing.
+* **Warning:** This is highly risky. The most famous failure was **Terra (UST)**, which collapsed in 2022, wiping out $40 billion in days. Most experts recommend sticking to Fiat or Crypto-backed stablecoins.
+
+### Use Cases: Why Hold a Dollar on the Blockchain?
+* **Trading Pairs:** Almost all crypto trading happens against stablecoins (e.g., BTC/USDT). It is the measuring stick of the market.
+* **DeFi Lending:** You can lend your USDC to traders and earn interest (often 3% - 10% APY), which is significantly higher than a traditional savings account.
+* **Cross-Border Payments:** Sending $1,000,000 via a bank wire takes 3-5 days and costs $50+. Sending $1,000,000 in USDC takes 15 seconds and costs pennies.`,
     quiz: [
       {
         question: "What is the primary purpose of a Stablecoin?",
         options: ["To double in value", "To maintain a stable value (usually $1)", "To pay for gas fees", "To remain anonymous"],
         correctAnswer: 1
+      },
+      {
+        question: "How does a Crypto-Collateralized stablecoin like DAI maintain its value?",
+        options: ["A bank holds real dollars", "It uses an algorithm", "It is over-collateralized by other crypto assets locked in a contract", "The government backs it"],
+        correctAnswer: 2
       }
     ]
   },
+
+  // --- MODULE 6: DEFI ---
   {
     id: "defi-explained",
     categoryId: "ecosystem",
     title: "6. DeFi (Decentralized Finance)",
     description: "Uniswap, Aave, and banking without bankers.",
-    readTime: "7 min",
+    readTime: "10 min",
     difficulty: "Intermediate",
-    content: `DeFi re-creates traditional financial services (trading, lending, borrowing) using Smart Contracts instead of banks.\n\n**DEX (Decentralized Exchange):** \nUniswap allows you to trade without depositing money to a company. It uses **Liquidity Pools**—users pool their money together to enable trading for others, earning a fee in return.\n\n**Lending Protocols:**\nAave allows you to lend your crypto to earn interest, or deposit collateral to borrow cash, all instantly and permissionlessly.`,
+    content: `### Introduction: Banking Without Bankers
+Traditional Finance ("TradFi") relies entirely on intermediaries.
+* To buy a stock, you need a broker (Robinhood).
+* To save money, you need a bank (Chase).
+* To get a loan, you need a credit officer to approve your score.
+
+**DeFi (Decentralized Finance)** rebuilds these services using **Smart Contracts** on the blockchain. It removes the human middleman and replaces him with code. The result is a financial system that is open 24/7, accessible to anyone with an internet connection, and completely transparent.
+
+### Pillar 1: The Decentralized Exchange (DEX)
+* **Example:** Uniswap.
+* **The Innovation:** Automated Market Makers (AMMs).
+* **How it works:** In a traditional stock market, there is an "Order Book" where buyers are matched with sellers. On a DEX, there is no order book. Instead, users trade against a **Liquidity Pool**—a giant pile of coins locked in a smart contract.
+* **The Price:** The price is determined mathematically by the ratio of coins in the pool. If you buy ETH from the pool, you reduce the supply of ETH and increase the supply of USDC, which automatically raises the price of ETH.
+
+### Pillar 2: Lending & Borrowing
+* **Example:** Aave, Compound.
+* **How it works:** You can deposit your Bitcoin or Ethereum into a "Pool" to earn interest. Other users can borrow from that pool.
+* **No Credit Checks:** DeFi doesn't care about your credit score or your job. It works on **Collateral**. To borrow $1,000, you might need to lock up $1,500 worth of Bitcoin. If you don't pay it back, the protocol keeps your Bitcoin.
+* **Flash Loans:** A uniquely crypto concept where you can borrow millions of dollars for *free*, instantly, as long as you pay it back in the exact same transaction block. This is used by bots for arbitrage.
+
+### Pillar 3: Yield Farming
+* **Concept:** Putting your crypto to work.
+* **How it works:** By depositing your coins into a Liquidity Pool (e.g., putting $1000 of ETH and $1000 of USDC into Uniswap), you effectively become the "Bank."
+* **The Reward:** Every time a trader swaps tokens, they pay a 0.3% fee. That fee goes directly to you (the Liquidity Provider). This allows regular people to earn passive income from market volume.
+
+### The Risks of DeFi
+DeFi is the "Wild West" of finance.
+1. **Smart Contract Risk:** If there is a bug in the open-source code, a hacker can drain the entire pool. There is no FDIC insurance to bail you out.
+2. **Impermanent Loss:** When you provide liquidity, if the price of one asset changes drastically compared to the other, you might end up with less money than if you had just held the coins in your wallet.
+3. **Rug Pulls:** Scammers can create a fake DeFi project, attract deposits, and then steal the funds. Always audit the project before depositing.`,
     quiz: [
       {
         question: "What replaces the 'Market Maker' or 'Bank' in a Decentralized Exchange (DEX)?",
         options: ["The government", "Liquidity Pools (User funds)", "A CEO", "Miners"],
         correctAnswer: 1
+      },
+      {
+         question: "What happens if the value of your collateral drops too low in a DeFi loan?",
+         options: ["The bank calls you", "Nothing", "The smart contract automatically sells your collateral (Liquidation)", "You get a fine"],
+         correctAnswer: 2
       }
     ]
   },
+
+  // --- MODULE 7: LAYER 2 SCALING ---
   {
     id: "layer2-scaling",
     categoryId: "ecosystem",
     title: "7. Layer 2s & Scaling",
     description: "Why ETH is slow and how Arbitrum/Optimism fix it.",
-    readTime: "6 min",
+    readTime: "8 min",
     difficulty: "Advanced",
-    content: `Ethereum became too popular. Fees skyrocketed ($50+ per transaction). \n\n**The Solution: Layer 2 (L2):**\nImagine Ethereum (L1) as a congested highway. L2s (Arbitrum, Optimism, Base) are high-speed express lanes built on top of it.\n\n**Rollups:**\nL2s bundle thousands of transactions off-chain, compress them into a single piece of data, and post proof to Ethereum. This inherits Ethereum's security but with 100x lower fees and instant speed.`,
+    content: `### The Scalability Problem
+Imagine Ethereum is a single highway. When it launched, there were only a few cars, so traffic moved fast and tolls (Gas Fees) were cheap.
+As DeFi and NFTs exploded in popularity, the highway became gridlocked. At peak times, sending a simple transaction could cost $100 and take 30 minutes.
+
+This is known as the **Blockchain Trilemma**: It is hard to be Decentralized, Secure, and Scalable all at the same time. Ethereum chose Security and Decentralization, which sacrificed Speed.
+
+### The Solution: Layer 2s (L2)
+Instead of widening the highway (which is technically difficult), engineers decided to build **Elevated Expressways** on top of it. These are called Layer 2 Scaling Solutions.
+
+**How Layer 2 Works (The "Rollup"):**
+1. **Execution:** You leave the Ethereum mainnet (Layer 1) and move your funds to a Layer 2 network (like Arbitrum or Base). You do all your trading, swapping, and gaming there. It is lightning fast and costs pennies.
+2. **Batching:** The Layer 2 doesn't send every single transaction to Ethereum. Instead, it "rolls up" thousands of transactions into a single bundle.
+3. **Settlement:** It saves a compressed summary of that bundle onto the Ethereum Layer 1.
+* **The Result:** You get the security of Ethereum (because the final data lives there) but the speed of a separate network.
+
+### Types of Layer 2s
+
+**1. Optimistic Rollups**
+* **Examples:** Arbitrum, Optimism.
+* **Mechanism:** They operate on an "Innocent until proven guilty" model. They assume all transactions are valid to speed things up. However, they allow a 7-day "Challenge Window" where anyone can prove a transaction was fraudulent.
+* **User Experience:** Fast and cheap, but withdrawing money back to Layer 1 can take a week (due to the challenge window).
+
+**2. ZK-Rollups (Zero Knowledge)**
+* **Examples:** ZK-Sync, Starknet.
+* **Mechanism:** They use advanced cryptography (Zero Knowledge Proofs) to mathematically *prove* the transactions are valid instantly.
+* **The Holy Grail:** Vitalik Buterin has stated that ZK-Rollups are the likely long-term winner because they are mathematically secure without the 7-day wait time.
+
+### Why This Matters for Investors
+The future of crypto is likely **"Modular."**
+* **Layer 1 (Ethereum):** Will become the "Settlement Layer"—the bedrock security foundation that normal people rarely interact with directly.
+* **Layer 2 (Arbitrum/Base):** Will become the "Execution Layer"—where all the apps, games, and trading actually happen.
+* **Investing Tip:** Many Layer 2s have their own tokens. Evaluating them depends on how many apps and users are migrating to their specific "Expressway."`,
     quiz: [
       {
         question: "How do Layer 2 rollups reduce fees?",
         options: ["They use a fundamentally different blockchain", "They bundle thousands of transactions into one batch", "They make miners work for free", "They remove security"],
         correctAnswer: 1
+      },
+      {
+        question: "What is the primary difference between Optimistic and ZK Rollups?",
+        options: ["Optimistic Rollups use AI", "ZK Rollups use mathematical proofs to validate transactions instantly", "Optimistic Rollups are slower", "ZK Rollups are owned by Facebook"],
+        correctAnswer: 1
       }
     ]
   },
+
+  // --- MODULE 8: TOKENOMICS ---
   {
     id: "tokenomics-101",
     categoryId: "ecosystem",
     title: "8. Tokenomics 101",
     description: "Supply caps, inflation, and spotting bad projects.",
-    readTime: "8 min",
+    readTime: "12 min",
     difficulty: "Intermediate",
-    content: `Before buying a coin, you must study its **Token Economics**.\n\n**Key Metrics:**\n1. **Market Cap vs. FDV:** \n   - Market Cap = Price × Circulating Supply.\n   - FDV (Fully Diluted Value) = Price × Total Supply (including locked coins).\n   *Trap:* If FDV is 10x higher than Market Cap, massive inflation is coming.\n\n2. **Allocations:** Did the team and VCs get 50% of the supply? Beware of them dumping on you.\n\n3. **Utility:** Does the token actually *do* anything, or is it just for voting?`,
+    content: `### Why "Price" Does Not Equal "Value"
+New investors often look at a coin priced at **$0.000001** and think: *"If this goes to just $1, I will be a billionaire!"*
+**This is the single most dangerous fallacy in crypto.**
+
+To analyze a crypto investment properly, you must ignore the price per coin and look at the **Tokenomics** (Token Economics).
+
+### 1. Market Cap vs. Supply
+* **Circulating Supply:** The number of coins currently in public hands.
+* **Max Supply:** The maximum number of coins that will ever exist.
+* **Market Cap:** (Price) x (Circulating Supply).
+
+**The Reality Check:**
+* **Bitcoin:** Price $60,000. Supply 19 Million. Market Cap = $1.1 Trillion.
+* **Shiba Inu:** Price $0.00002. Supply 589 Trillion. Market Cap = $12 Billion.
+For Shiba Inu to reach $1.00, its Market Cap would have to be **$589 Trillion**, which is more than all the money in the entire world combined. **Always check the Market Cap, not the price.**
+
+### 2. Fully Diluted Valuation (FDV)
+Sometimes a project looks cheap because only 10% of the tokens are unlocked.
+* **Example:** A new project has a Market Cap of $10M. But 90% of the tokens are locked and held by the developers.
+* **The Trap:** When those tokens unlock, the supply will increase 10x. If demand doesn't also increase 10x, the price **must** crash.
+* **FDV:** This metric calculates the value if *all* tokens were in circulation today. Always compare Market Cap to FDV. If FDV is massive, you are at risk of being "dumped on."
+
+### 3. Allocation & Vesting Schedules
+Who owns the coins?
+* **Fair Launch (e.g., Bitcoin):** Everyone had to mine or buy from day one. No free coins for founders.
+* **Pre-Mine / VC Allocation:** The team and Venture Capitalists (VCs) bought tokens cheaply before the public.
+* **Vesting:** This is the lock-up period. You need to verify the **"Cliff"**—the date when the VCs are allowed to sell. If a massive unlock is happening next week, buying now is essentially purchasing their exit liquidity.
+
+### 4. Utility: What is the Token For?
+A token must have a reason to exist, or its value is pure speculation.
+* **Gas Token:** (e.g., ETH, SOL). You *must* buy it to use the network. This creates constant natural demand.
+* **Governance:** (e.g., UNI). Allows you to vote on protocol changes.
+* **Yield/Staking:** Allows you to earn more tokens. (Warning: If the yield comes from printing new tokens, this is inflationary and devalues your holding).
+* **Burn Mechanism:** (e.g., BNB, ETH). The protocol destroys a portion of tokens regularly. This reduces supply, which can increase price if demand stays steady.
+
+**Summary:** Good Tokenomics = High Utility + Low/Controlled Inflation + Fair Distribution.`,
     quiz: [
       {
         question: "If a project has a low Market Cap but a massive FDV, what is the risk?",
         options: ["The project is undervalued", "Massive future inflation (unlocks) will lower the price", "The project is a scam", "There is no liquidity"],
+        correctAnswer: 1
+      },
+      {
+        question: "Why is 'Price per coin' a bad metric for valuation?",
+        options: ["It doesn't tell you the trend", "It ignores the total number of coins (Supply)", "It changes too fast", "It is manipulated"],
         correctAnswer: 1
       }
     ]
