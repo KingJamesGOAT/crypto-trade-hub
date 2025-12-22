@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { BookOpen, CheckCircle2, Circle, ChevronRight, GraduationCap, PlayCircle } from "lucide-react";
+import { BookOpen, CheckCircle2, Circle, ChevronRight, GraduationCap, PlayCircle, Quote, Terminal } from "lucide-react";
 import { Link } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export function Learning() {
   // Persistence: Load progress
@@ -112,12 +114,54 @@ export function Learning() {
 
             {/* Content Body */}
             <div className="prose prose-invert prose-lg max-w-none prose-headings:text-white prose-p:text-slate-300 prose-strong:text-blue-200">
-                {activeModule.content.split('\n\n').map((paragraph, idx) => (
-                    <p key={idx} dangerouslySetInnerHTML={{ 
-                        // Simple bold rendering hack, ideally use a Markdown renderer like 'react-markdown'
-                        __html: paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-                    }} />
-                ))}
+                <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                        // Headings
+                        h1: ({node, ...props}) => <h1 className="text-3xl font-bold text-white mt-8 mb-4 border-b border-slate-800 pb-2" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-2xl font-semibold text-white mt-8 mb-4" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-xl font-semibold text-blue-200 mt-6 mb-3" {...props} />,
+                        // Paragraphs
+                        p: ({node, ...props}) => <p className="text-slate-300 leading-7 mb-4" {...props} />,
+                        // Lists (with bullets)
+                        ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 space-y-2 mb-4 text-slate-300" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 space-y-2 mb-4 text-slate-300" {...props} />,
+                        li: ({node, ...props}) => <li className="pl-1 marker:text-blue-500" {...props} />,
+                        // Blockquote -> Callout
+                        blockquote: ({node, ...props}) => (
+                            <div className="my-6 border-l-4 border-blue-500 bg-slate-900/50 p-4 rounded-r-lg flex gap-3">
+                                <Quote className="h-6 w-6 text-blue-500 shrink-0 mt-1" />
+                                <div className="text-slate-300 italic">
+                                    {props.children}
+                                </div>
+                            </div>
+                        ),
+                        // Code blocks
+                        code: ({inline, className, children, ...props}: any) => {
+                            return !inline ? (
+                                <div className="my-6 rounded-lg overflow-hidden border border-slate-800 bg-slate-950">
+                                    <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-2">
+                                        <Terminal className="h-4 w-4 text-slate-500" />
+                                        <span className="text-xs text-slate-500 font-mono">Code Snippet</span>
+                                    </div>
+                                    <pre className="p-4 overflow-x-auto text-sm font-mono text-slate-300">
+                                        <code className={className} {...props}>
+                                            {children}
+                                        </code>
+                                    </pre>
+                                </div>
+                            ) : (
+                                <code className="bg-slate-800 text-blue-200 px-1.5 py-0.5 rounded text-sm font-mono border border-slate-700" {...props}>
+                                    {children}
+                                </code>
+                            )
+                        },
+                        // Separator
+                        hr: ({node, ...props}) => <Separator className="my-8 bg-slate-800" {...props} />,
+                    }}
+                >
+                    {activeModule.content}
+                </ReactMarkdown>
             </div>
 
             {/* Practical Application (Simulator Link) */}
