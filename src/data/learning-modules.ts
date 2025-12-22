@@ -176,7 +176,7 @@ If Bitcoin is "Digital Gold," what is Ethereum? The best analogy is to compare a
 
 **The Vision**
 In 2013, a 19-year-old programmer named Vitalik Buterin realized that blockchain technology could do more than just track financial balances.
-He proposed a blockchain that was **Programmable**. He launched Ethereum in 2015 with the concept of the **EVM (Ethereum Virtual Machine)**—a "World Computer" that anyone can rent.
+He proposed a blockchain that was **Programmable**. He launched Ethereum in 2015 with the concept of the **EVM (Ethereum Virtual Machine)** - a "World Computer" that anyone can rent.
 
 **Smart Contracts**
 The core innovation of Ethereum is the **Smart Contract**. A Smart Contract is a computer program stored on the blockchain that runs automatically when specific conditions are met. It replaces the **Middleman**.
@@ -340,7 +340,7 @@ Traditional Finance ("TradFi") relies entirely on intermediaries.
 ### Pillar 1: The Decentralized Exchange (DEX)
 * **Example:** Uniswap.
 * **The Innovation:** Automated Market Makers (AMMs).
-* **How it works:** In a traditional stock market, there is an "Order Book" where buyers are matched with sellers. On a DEX, there is no order book. Instead, users trade against a **Liquidity Pool**—a giant pile of coins locked in a smart contract.
+* **How it works:** In a traditional stock market, there is an "Order Book" where buyers are matched with sellers. On a DEX, there is no order book. Instead, users trade against a **Liquidity Pool** - a giant pile of coins locked in a smart contract.
 * **The Price:** The price is determined mathematically by the ratio of coins in the pool. If you buy ETH from the pool, you reduce the supply of ETH and increase the supply of USDC, which automatically raises the price of ETH.
 
 ### Pillar 2: Lending & Borrowing
@@ -410,8 +410,8 @@ Instead of widening the highway (which is technically difficult), engineers deci
 
 ### Why This Matters for Investors
 The future of crypto is likely **"Modular."**
-* **Layer 1 (Ethereum):** Will become the "Settlement Layer"—the bedrock security foundation that normal people rarely interact with directly.
-* **Layer 2 (Arbitrum/Base):** Will become the "Execution Layer"—where all the apps, games, and trading actually happen.
+* **Layer 1 (Ethereum):** Will become the "Settlement Layer" - the bedrock security foundation that normal people rarely interact with directly.
+* **Layer 2 (Arbitrum/Base):** Will become the "Execution Layer" - where all the apps, games, and trading actually happen.
 * **Investing Tip:** Many Layer 2s have their own tokens. Evaluating them depends on how many apps and users are migrating to their specific "Expressway."`,
     quiz: [
       {
@@ -461,7 +461,7 @@ Sometimes a project looks cheap because only 10% of the tokens are unlocked.
 Who owns the coins?
 * **Fair Launch (e.g., Bitcoin):** Everyone had to mine or buy from day one. No free coins for founders.
 * **Pre-Mine / VC Allocation:** The team and Venture Capitalists (VCs) bought tokens cheaply before the public.
-* **Vesting:** This is the lock-up period. You need to verify the **"Cliff"**—the date when the VCs are allowed to sell. If a massive unlock is happening next week, buying now is essentially purchasing their exit liquidity.
+* **Vesting:** This is the lock-up period. You need to verify the **"Cliff"** - the date when the VCs are allowed to sell. If a massive unlock is happening next week, buying now is essentially purchasing their exit liquidity.
 
 ### 4. Utility: What is the Token For?
 A token must have a reason to exist, or its value is pure speculation.
