@@ -1,31 +1,22 @@
-name: Crypto Bot Engine
+name: Ghost Bot Engine
 
 on:
   schedule:
-    - cron: "*/15 * * * *" # Every 15 minutes
-  workflow_dispatch: # Allow manual run
+    - cron: "*/10 * * * *" # Every 10 minutes
+  workflow_dispatch: # Manual button
 
 jobs:
-  run-bot:
+  trade:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
-
-      - name: Install Dependencies
-        run: npm ci
-        # 'npm ci' requires package-lock.json. If it fails, use 'npm install'
-        # But 'npm ci' is recommended for CI. Assuming user commits package-lock.json
-
-      - name: Run Bot Script
+          cache: "npm"
+      - run: npm ci
+      - run: npx tsx scripts/bot-engine.ts
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
-        run: npx tsx scripts/bot-engine.ts

@@ -1,35 +1,20 @@
-import { useEffect, useState } from "react"
 import { useSimulator } from "@/context/SimulatorContext"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Play, Square, Wifi, WifiOff } from "lucide-react"
+import { Play, Square, Wifi } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export function BotConfiguration() {
-  const { botConfig, updateBotConfig, portfolio, activeSymbols, botStatus, isConnected } = useSimulator()
-  const [localConfig, setLocalConfig] = useState(botConfig)
+  const { isBotActive, toggleBot, balance, isLoading } = useSimulator()
   const { toast } = useToast()
 
-  // Sync local state when global state updates (if needed)
-  useEffect(() => {
-    setLocalConfig(botConfig)
-  }, [botConfig])
-
-  const handleSave = () => {
-      updateBotConfig(localConfig)
+  const handleToggle = () => {
+      toggleBot()
       toast({
-          title: "Configuration Saved",
-          description: `Bot allocation updated to CHF ${localConfig.totalAllocated}`,
+          title: !isBotActive ? "Bot Resumed" : "Bot Paused",
+          description: !isBotActive ? "Ghost Bot is now running on GitHub Actions." : "Bot execution paused.",
       })
-  }
-
-  const toggleActive = () => {
-      const newState = !localConfig.isActive
-      setLocalConfig(prev => ({ ...prev, isActive: newState }))
-      updateBotConfig({ isActive: newState })
   }
   
   return (
@@ -39,45 +24,24 @@ export function BotConfiguration() {
             <div>
                 <CardTitle className="flex items-center gap-2">
                     Bot Configuration
-                    <Badge variant={localConfig.isActive ? "default" : "secondary"}>
-                        {localConfig.isActive ? "RUNNING" : "STOPPED"}
+                    <Badge variant={isBotActive ? "default" : "secondary"}>
+                        {isBotActive ? "RUNNING" : "STOPPED"}
                     </Badge>
                 </CardTitle>
-                <CardDescription>Autonomous Trading Agent V2</CardDescription>
+                <CardDescription>Ghost Bot Engine (GitHub Actions)</CardDescription>
             </div>
              <Button 
                 size="icon"
-                variant={localConfig.isActive ? "destructive" : "default"}
-                onClick={toggleActive}
+                variant={isBotActive ? "destructive" : "default"}
+                onClick={handleToggle}
+                disabled={isLoading}
             >
-                {localConfig.isActive ? <Square className="fill-current" /> : <Play className="fill-current" />}
+                {isBotActive ? <Square className="fill-current" /> : <Play className="fill-current" />}
             </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
         
-        {/* Allocation */}
-        <div className="space-y-2">
-            <div className="flex justify-between">
-                <Label>Allocation (CHF)</Label>
-                <span className="text-sm font-medium text-muted-foreground">
-                    Available Cash: CHF {portfolio.simulator.currentBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                </span>
-            </div>
-            <div className="flex gap-2">
-                <Input 
-                    type="number" 
-                    value={localConfig.totalAllocated}
-                    onChange={(e) => setLocalConfig(prev => ({ ...prev, totalAllocated: parseFloat(e.target.value) }))}
-                    onBlur={() => updateBotConfig({ totalAllocated: localConfig.totalAllocated })}
-                    className="flex-1"
-                />
-            </div>
-            <p className="text-xs text-muted-foreground">
-                Amount of capital the bot is allowed to use from your balance.
-            </p>
-        </div>
-
         {/* Info Section */}
         <div className="space-y-4 pt-4 border-t">
             <h4 className="font-semibold text-sm">Active Strategy Engine</h4>
@@ -87,18 +51,18 @@ export function BotConfiguration() {
                     <span className="text-foreground">Online</span>
                 </div>
                 <div className="flex justify-between">
-                    <span>Active Strategies:</span>
-                    <span className="text-foreground">Momentum & Mean Reversal</span>
+                    <span>Strategy:</span>
+                    <span className="text-foreground">Bollinger Sniper</span>
                 </div>
-                <div className="flex justify-between">
-                    <span>Watched Assets:</span>
-                    <span className="text-foreground">{activeSymbols.length} Pairs</span>
+                 <div className="flex justify-between">
+                    <span>Balance:</span>
+                    <span className="text-foreground font-mono">${balance.toFixed(2)}</span>
                 </div>
             </div>
         </div>
 
         {/* Thinking Box */}
-        {localConfig.isActive && (
+        {isBotActive && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-3 animate-in fade-in slide-in-from-bottom-2">
                 
                 {/* Header: Activity + Connection */}
@@ -108,32 +72,26 @@ export function BotConfiguration() {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                         </span>
-                        Agent Activity
+                        Live Connection
                     </div>
                     
-                    <div className={`flex items-center gap-1.5 text-[10px] uppercase font-bold ${isConnected ? "text-green-500" : "text-red-500"}`}>
-                        {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                        {isConnected ? "Connected" : "Disconnected"}
+                    <div className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-green-500">
+                        <Wifi className="w-3 h-3" />
+                        Supabase Realtime
                     </div>
                 </div>
 
                 {/* Status Text */}
                 <div className="space-y-1">
                     <p className="text-sm font-mono text-foreground break-words leading-snug">
-                        {botStatus}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                        Strategy: Momentum & Mean Reversal
+                        Subscribed to remote bot events...
                     </p>
                 </div>
             </div>
         )}
 
-        <Button className="w-full" variant="outline" onClick={handleSave}>
-            Update Configuration
-        </Button>
-
       </CardContent>
     </Card>
   )
 }
+

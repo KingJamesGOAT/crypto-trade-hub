@@ -12,7 +12,7 @@ import { PortfolioOverview } from "@/components/PortfolioOverview"
 import { useSimulator } from "@/context/SimulatorContext"
 
 export function Home() {
-  const { activeSymbols, portfolio, latestPrices } = useSimulator()
+  const { portfolio } = useSimulator()
   const [coins, setCoins] = useState<CoinMarketData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCoin, setSelectedCoin] = useState<CoinMarketData | null>(null)
@@ -60,12 +60,12 @@ export function Home() {
   }
 
   const getCoinPrice = (symbol: string) => {
-      // 1. Try Live WebSocket Price (Fastest)
-      if (latestPrices[symbol]) return latestPrices[symbol]
+      // 1. Try Live WebSocket Price (Fastest) - Temporarily disabled as missing in context
+      // if (latestPrices[symbol]) return latestPrices[symbol]
 
       // 2. Try Portfolio Price (if held)
-      const held = portfolio.holdings[symbol]
-      if (held) return held.currentPrice
+      const held = portfolio.find(p => p.symbol === symbol)
+      if (held) return held.avg_buy_price // Approximation for display if live price missing
       
       // 3. Try CoinGecko Cache (Slowest/Fallback)
       const tick = symbol.replace("USDT", "").toLowerCase()
@@ -84,11 +84,11 @@ export function Home() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
               </div>
-              <h2 className="text-2xl font-bold tracking-tight">Live Bot Scans</h2>
+              <h2 className="text-2xl font-bold tracking-tight">Ghost Bot Watchlist</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {activeSymbols.map(symbol => {
-                  const isHeld = portfolio.holdings[symbol]?.quantity > 0
+              {["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"].map(symbol => {
+                  const isHeld = portfolio.find(p => p.symbol === symbol && p.amount > 0)
                   const img = getCoinImage(symbol)
                   const price = getCoinPrice(symbol)
                   
@@ -117,7 +117,7 @@ export function Home() {
                                   )}
                                   {isHeld && (
                                       <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest mt-1">
-                                          ACTIVE
+                                          HELD
                                       </span>
                                   )}
                               </div>
@@ -125,11 +125,6 @@ export function Home() {
                       </Card>
                   )
               })}
-              {activeSymbols.length === 0 && (
-                  <div className="col-span-full py-8 text-center text-muted-foreground border border-dashed rounded-lg">
-                      Initializing Scanner...
-                  </div>
-              )}
           </div>
       </div>
 
