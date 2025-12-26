@@ -87,7 +87,7 @@ export function Home() {
               <h2 className="text-2xl font-bold tracking-tight">Ghost Bot Watchlist</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"].map(symbol => {
+              {["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "SUIUSDT", "TRXUSDT", "LINKUSDT"].map(symbol => {
                   const isHeld = portfolio.find(p => p.symbol === symbol && p.amount > 0)
                   const img = getCoinImage(symbol)
                   const price = getCoinPrice(symbol)
@@ -226,24 +226,36 @@ export function Home() {
 
       <Dialog open={!!selectedCoin} onOpenChange={(open) => !open && setSelectedCoin(null)}>
           <DialogContent className={isMaximize ? "w-[100vw] h-[100vh] max-w-none rounded-none border-0" : "max-w-4xl h-[80vh] flex flex-col"}>
-              <DialogHeader className="flex flex-row items-center justify-between space-y-0 pr-8">
-                  <div className="flex flex-col gap-1">
-                    <DialogTitle className="flex items-center gap-2 text-xl">
-                        {selectedCoin && (
-                            <>
-                                <img src={selectedCoin.image} alt={selectedCoin.name} className="h-8 w-8" />
-                                {selectedCoin.name} <span className="text-muted-foreground">({selectedCoin.symbol.toUpperCase()})</span>
-                            </>
-                        )}
-                    </DialogTitle>
-                    <DialogDescription>
-                        Real-time Market Data
-                    </DialogDescription>
-                  </div>
-                  <Button variant="outline" size="icon" onClick={() => setIsMaximize(!isMaximize)} title="Toggle Fullscreen">
-                      {isMaximize ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              {!isMaximize && (
+                  <DialogHeader className="flex flex-row items-center justify-between space-y-0 pr-8">
+                      <div className="flex flex-col gap-1">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            {selectedCoin && (
+                                <>
+                                    <img src={selectedCoin.image} alt={selectedCoin.name} className="h-8 w-8" />
+                                    {selectedCoin.name} <span className="text-muted-foreground">({selectedCoin.symbol.toUpperCase()})</span>
+                                </>
+                            )}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Real-time Market Data
+                        </DialogDescription>
+                      </div>
+                      <Button variant="outline" size="icon" onClick={() => setIsMaximize(!isMaximize)} title="Toggle Fullscreen">
+                          <Maximize2 className="h-4 w-4" />
+                      </Button>
+                  </DialogHeader>
+              )}
+              {isMaximize && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-2 right-2 z-50 bg-black/20 hover:bg-black/40 text-white" 
+                    onClick={() => setIsMaximize(false)}
+                  >
+                      <Minimize2 className="h-6 w-6" />
                   </Button>
-              </DialogHeader>
+              )}
               <div className="flex-1 min-h-0 bg-black/5 rounded-lg border border-border overflow-hidden mt-4">
                    {selectedCoin && (
                        <MarketChart symbol={getTradingViewSymbol(selectedCoin)} />
