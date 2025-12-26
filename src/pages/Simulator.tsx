@@ -45,24 +45,12 @@ export function Simulator() {
 
     const handleRunStrategy = () => {
         // Mock Strategy Check for Client Side Feedback
-        // In a real app we'd call an Edge Function, but here we can simulate logic based on live prices
-        const scanned = WATCHLIST_COINS.map(symbol => {
-            const price = prices[symbol]
-            if (!price) return null
-            
-            // Random "Analysis" for demo (since we don't have historical candles in frontend for RSI)
-            // But we can make it look realistic
-            const randomRsi = Math.floor(Math.random() * (70 - 30 + 1)) + 30
-            let status = "NEUTRAL"
-            let reason = `RSI ${randomRsi} | Trend Stable`
-            
-            if (randomRsi < 35) { status = "WATCHING"; reason = `Oversold (RSI ${randomRsi})` }
-            
-            return { symbol, status, reason }
-        }).filter(Boolean)
+        const scanned = WATCHLIST_COINS.slice(0, 5).map(symbol => { // Limit to top 5 for alert readability
+             const randomRsi = Math.floor(Math.random() * (70 - 30 + 1)) + 30
+             return `${symbol.replace("USDT","")}: RSI ${randomRsi} (${randomRsi < 35 ? "Oversold" : "Neutral"})`
+        })
         
-        console.log("Manual Scan Result:", scanned)
-        // could show a toast here
+        alert(`Strategy Scan Complete:\n\n${scanned.join("\n")}\n\n(Full backend scan runs every 10 mins)`)
     }
 
     return (
@@ -75,11 +63,8 @@ export function Simulator() {
                     </h1>
                     <p className="text-muted-foreground mt-1">Server-side autonomous trading & manual control</p>
                 </div>
-                 <div className="flex gap-4 items-center">
-                    <Button variant="outline" onClick={() => {
-                        const results = ["BTC", "ETH", "SOL"].map(c => `${c}: RSI ${Math.floor(Math.random() * 40 + 30)} (Neutral)`).join("\n")
-                        alert(`Strategy Scan Complete:\n\n${results}\n\n(Full backend scan runs every 10 mins)`)
-                    }}>
+                <div className="flex gap-4 items-center">
+                    <Button variant="outline" onClick={handleRunStrategy}>
                         <Activity className="mr-2 h-4 w-4" /> Run Strategy Check
                     </Button>
                 </div>
