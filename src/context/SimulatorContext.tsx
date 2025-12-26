@@ -31,9 +31,11 @@ const SimulatorContext = createContext<SimulatorContextType | undefined>(undefin
 export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   const [balance, setBalance] = useState<number>(0)
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([])
-  const [isBotActive, setIsBotActive] = useState<boolean>(true)
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isBotActive, setIsBotActive] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const { toast } = useToast()
+
+  const isConnected = !!supabase
 
   // 1. Initial Data Fetch
   const fetchData = async () => {
@@ -58,7 +60,11 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
 
   // 2. Realtime Subscription (The "Live TV" effect)
   useEffect(() => {
-    if (!supabase) return
+    if (!isConnected) {
+        // Warn only once on mount if keys are missing to avoid annoyance, but keep app running
+        console.warn("Supabase keys missing. Simulator features disabled.")
+        return
+    }
 
     fetchData()
 
@@ -86,7 +92,10 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
 
   // 3. User Actions (Manual Overrides)
   const toggleBot = async () => {
-    if (!supabase) return
+    if (!supabase) {
+        toast({ title: "Connection Error", description: "Supabase keys missing.", variant: "destructive" })
+        return
+    }
     const newState = !isBotActive
     setIsBotActive(newState)
     await supabase.from('sim_settings').update({ is_bot_active: newState }).gt('id', 0) // Updates all rows
@@ -94,7 +103,10 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   }
 
   const resetSimulator = async () => {
-    if (!supabase) return
+    if (!supabase) {
+        toast({ title: "Connection Error", description: "Supabase keys missing.", variant: "destructive" })
+        return
+    }
     if (!confirm("Are you sure? This deletes all trade history.")) return
     
     setIsLoading(true)
@@ -104,10 +116,6 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
     
     await fetchData()
     toast({ title: "Simulator Reset", description: "Balance restored to $10,000" })
-  }
-
-  if (!supabase) {
-      return <div className="p-10 text-red-500">Error: Supabase Keys missing in .env</div>
   }
 
   return (
