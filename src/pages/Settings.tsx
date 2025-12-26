@@ -11,75 +11,16 @@ import { Loader2, Trash2, ShieldCheck, AlertTriangle } from "lucide-react"
 export function Settings() {
   const { toast } = useToast()
   
-  const [apiKey, setApiKey] = useState("")
-  const [secretKey, setSecretKey] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
-  
   // Real Trading Mode State
   const [realTradingEnabled, setRealTradingEnabled] = useState(false)
 
-
-
   useEffect(() => {
      // Load initial state
-     const creds = binanceService.getCredentials()
-     if (creds) {
-         setApiKey(creds.apiKey)
-         setSecretKey(creds.secretKey)
-         setIsSaved(true)
-     }
-
      const mode = localStorage.getItem("trading_mode")
      if (mode === "real") setRealTradingEnabled(true)
-     
-
-
   }, [])
 
-
-
-  const handleSave = async () => {
-     if (!apiKey || !secretKey) {
-         toast({ title: "Error", description: "Please enter both API Key and Secret Key", variant: "destructive" })
-         return
-     }
-
-     setIsLoading(true)
-     try {
-         // Validate
-         binanceService.setCredentials(apiKey, secretKey)
-         const isValid = await binanceService.validateConnection()
-         
-         if (isValid) {
-             setIsSaved(true)
-             toast({ title: "Success", description: "API Credentials verified and saved." })
-         } else {
-             binanceService.clearCredentials()
-             toast({ title: "Connection Failed", description: "Could not verify credentials.", variant: "destructive" })
-         }
-     } catch (error) {
-         toast({ title: "Error", description: "Failed to connect to API", variant: "destructive" })
-     } finally {
-         setIsLoading(false)
-     }
-  }
-
-  const handleClear = () => {
-      binanceService.clearCredentials()
-      setApiKey("")
-      setSecretKey("")
-      setIsSaved(false)
-      setRealTradingEnabled(false)
-      localStorage.setItem("trading_mode", "simulator")
-      toast({ title: "Cleared", description: "Credentials removed." })
-  }
-
   const handleModeToggle = (enabled: boolean) => {
-      if (enabled && !isSaved) {
-          toast({ title: "Restricted", description: "Configure API Credentials before enabling Real Trading.", variant: "destructive" })
-          return
-      }
       setRealTradingEnabled(enabled)
       localStorage.setItem("trading_mode", enabled ? "real" : "simulator")
       
@@ -89,6 +30,10 @@ export function Settings() {
           toast({ title: "Simulator Mode", description: "Switched back to paper trading." })
       }
   }
+
+
+
+
 
   return (
     <div className="space-y-6">
@@ -100,46 +45,24 @@ export function Settings() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border-orange-500/20 bg-orange-500/5">
+          <Card className="border-green-500/20 bg-green-500/5">
               <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5 text-orange-500" />
-                      Binance API Connection
+                      <ShieldCheck className="h-5 w-5 text-green-500" />
+                      Server-Side Bot Active
                   </CardTitle>
                   <CardDescription>
-                      Your keys are stored locally in your browser.
+                      Your trading bot is running on the cloud (GitHub Actions).
                   </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                       <Label>API Key</Label>
-                       <Input 
-                         type="password" 
-                         value={apiKey} 
-                         onChange={e => setApiKey(e.target.value)}
-                         placeholder="Paste your Binance API Key" 
-                        />
+                  <div className="text-sm text-green-200 bg-green-900/40 p-4 rounded-md border border-green-800">
+                      <strong>Secure Configuration:</strong><br/>
+                      API Keys are now managed securely via <strong>GitHub Secrets</strong>.<br/>
+                      You do not need to enter credentials here.
                   </div>
-                  <div className="space-y-2">
-                       <Label>Secret Key</Label>
-                       <Input 
-                         type="password" 
-                         value={secretKey} 
-                         onChange={e => setSecretKey(e.target.value)}
-                         placeholder="Paste your Binance Secret Key" 
-                        />
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                      <Button onClick={handleSave} disabled={isLoading || isSaved} className="flex-1">
-                          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          {isSaved ? "Saved" : "Verify & Save"}
-                      </Button>
-                      {isSaved && (
-                          <Button variant="outline" onClick={handleClear} className="w-12 px-0 text-red-500 hover:text-red-400">
-                             <Trash2 className="h-4 w-4" />
-                          </Button>
-                      )}
+                  <div className="text-xs text-muted-foreground">
+                      To update keys, go to your GitHub Repository &gt; Settings &gt; Secrets.
                   </div>
               </CardContent>
           </Card>
