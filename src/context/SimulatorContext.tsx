@@ -37,6 +37,7 @@ interface SimulatorContextType {
   isBotActive: boolean
   toggleBot: () => void
   resetSimulator: () => void
+  updateBalance: (newBalance: number) => Promise<void>
 }
 
 const SimulatorContext = createContext<SimulatorContextType | undefined>(undefined)
@@ -128,6 +129,22 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
     toast({ title: newState ? "Bot Resumed" : "Bot Paused" })
   }
 
+  const updateBalance = async (newBalance: number) => {
+      if (!supabase) {
+          toast({ title: "Connection Error", description: "Supabase keys missing.", variant: "destructive" })
+          return
+      }
+      setBalance(newBalance) // Optimistic update
+      const { error } = await supabase.from('sim_settings').update({ balance_usdt: newBalance }).gt('id', 0)
+      
+      if (error) {
+          toast({ title: "Update Failed", description: error.message, variant: "destructive" })
+          fetchData() // Revert
+      } else {
+          toast({ title: "Wallet Updated", description: `Balance set to $${newBalance.toLocaleString()}` })
+      }
+  }
+
   const resetSimulator = async () => {
     if (!supabase) {
         toast({ title: "Connection Error", description: "Supabase keys missing.", variant: "destructive" })
@@ -147,7 +164,7 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SimulatorContext.Provider value={{ balance, portfolio, logs, history, isLoading, isBotActive, toggleBot, resetSimulator }}>
+    <SimulatorContext.Provider value={{ balance, portfolio, logs, history, isLoading, isBotActive, toggleBot, resetSimulator, updateBalance }}>
       {children}
     </SimulatorContext.Provider>
   )
