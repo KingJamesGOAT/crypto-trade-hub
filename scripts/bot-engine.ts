@@ -15,6 +15,7 @@ const BINANCE_API_URL = 'https://api.binance.com/api/v3/klines';
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const binanceApiKey = process.env.BINANCE_API_KEY; // Optional but recommended
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
@@ -45,7 +46,8 @@ interface PortfolioItem {
 async function fetchCandles(symbol: string, interval: string = '15m', limit: number = 300) {
   try {
     const response = await axios.get(BINANCE_API_URL, {
-      params: { symbol, interval, limit }
+      params: { symbol, interval, limit },
+      headers: binanceApiKey ? { 'X-MBX-APIKEY': binanceApiKey } : undefined
     });
     // formatting: [open time, open, high, low, close, volume, ...]
     const candles = response.data.map((d: any[]) => ({
@@ -107,9 +109,9 @@ async function runBot() {
       return;
     }
 
-    const closes = candles.map(c => c.close);
-    const highs = candles.map(c => c.high);
-    const lows = candles.map(c => c.low);
+    const closes = candles.map((c: any) => c.close);
+    const highs = candles.map((c: any) => c.high);
+    const lows = candles.map((c: any) => c.low);
 
     // Calculate Indicators
     // RSI
@@ -204,6 +206,8 @@ async function runBot() {
 
     if (res.action === 'BUY') {
         const cost = res.cost;
+        if (cost === undefined) continue; // Should not happen for BUY
+
         if (freshBalance < cost) {
             console.log(`Skipping BUY for ${res.symbol}, insufficient funds (Has: ${freshBalance}, Needs: ${cost})`);
             continue;
