@@ -45,7 +45,7 @@ export function Simulator() {
 
     const handleRunStrategy = () => {
         // Mock Strategy Check for Client Side Feedback
-        const scanned = WATCHLIST_COINS.slice(0, 5).map(symbol => { // Limit to top 5 for alert readability
+        const scanned = WATCHLIST_COINS.map(symbol => { // Scan all coins
              const randomRsi = Math.floor(Math.random() * (70 - 30 + 1)) + 30
              return `${symbol.replace("USDT","")}: RSI ${randomRsi} (${randomRsi < 35 ? "Oversold" : "Neutral"})`
         })
