@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 
-import { Loader2, Trash2, ShieldCheck, AlertTriangle } from "lucide-react"
+import { ShieldCheck, AlertTriangle } from "lucide-react"
 
 export function Settings() {
   const { toast } = useToast()
