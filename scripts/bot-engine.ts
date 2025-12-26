@@ -40,6 +40,11 @@ interface Settings {
 }
 
 // --- HELPERS ---
+async function logActivity(message: string) {
+    const { error } = await supabase.from('sim_logs').insert({ message, timestamp: new Date().toISOString() });
+    if(error) console.error("Log Error:", error.message);
+}
+
 async function fetchCandles(symbol: string, limit: number = 300) {
   try {
     const response = await axios.get(BINANCE_API_URL, {
@@ -50,6 +55,7 @@ async function fetchCandles(symbol: string, limit: number = 300) {
     return response.data.map((d: any[]) => parseFloat(d[4]));
   } catch (error) {
     console.error(`[API ERROR] Could not fetch ${symbol}`);
+    await logActivity(`[API ERROR] Could not fetch ${symbol}`);
     return [];
   }
 }
@@ -57,14 +63,19 @@ async function fetchCandles(symbol: string, limit: number = 300) {
 // --- MAIN ENGINE ---
 async function runBot() {
   console.log(`\n👻 GHOST BOT INITIATED: ${new Date().toISOString()}`);
+  await logActivity(`👻 Ghost Bot woken up. Scanning market...`);
 
   // 1. LOAD BRAIN (Settings)
   const { data: settingsData, error } = await supabase.from('sim_settings').select('*').single();
-  if (error || !settingsData) return console.error('Failed to load settings from Supabase.');
+  if (error || !settingsData) {
+      console.error('Failed to load settings from Supabase.');
+      return;
+  }
   
   const settings: Settings = settingsData;
   if (!settings.is_bot_active) {
       console.log('Bot is globally PAUSED in settings.');
+      await logActivity('Bot is PAUSED. Sleeping.');
       return;
   }
 
@@ -77,13 +88,19 @@ async function runBot() {
   const bb_std = settings.config?.bb_std || 2;
 
   let availableBalance = parseFloat(settings.balance_usdt.toString());
+  let currentInvested = 0;
 
   console.log(`💰 BALANCE: $${availableBalance.toFixed(2)}`);
 
   // 2. LOAD PORTFOLIO
   const { data: portfolioData } = await supabase.from('sim_portfolio').select('*');
   const portfolioMap = new Map<string, any>();
-  portfolioData?.forEach((p: any) => portfolioMap.set(p.symbol, p));
+  if (portfolioData) {
+      portfolioData.forEach((p: any) => {
+          portfolioMap.set(p.symbol, p);
+          currentInvested += (p.amount * p.avg_buy_price); // Approx value
+      });
+  }
 
   // 3. ANALYZE MARKET (Parallel Fetching)
   const tradeDecisions = await Promise.all(COINS.map(async (symbol) => {
@@ -117,7 +134,10 @@ async function runBot() {
 
       if (isUptrend && isOversold && isRsiLow) {
         action = 'BUY';
-        reason = `Sniper Entry! Price ($${currentPrice}) < Lower BB ($${bb.lower.toFixed(2)})`;
+        reason = `Sniper Entry! Price ($${currentPrice.toFixed(2)}) < Lower BB ($${bb.lower.toFixed(2)})`;
+      } else {
+         // Verbose logging for debugging "why didn't it buy?"
+         // console.log(`${symbol}: RSI=${rsi.toFixed(2)} Price=${currentPrice.toFixed(2)} LowerBB=${bb.lower.toFixed(2)} Uptrend=${isUptrend}`);
       }
     } else {
       // SELL: Overbought (RSI High) OR Price hits Upper Band OR Trend Broken
@@ -140,6 +160,7 @@ async function runBot() {
   }));
 
   // 4. EXECUTE TRADES (Sequential to protect balance)
+  let tradesMade = false;
   for (const trade of tradeDecisions) {
     if (!trade) continue;
 
@@ -152,6 +173,7 @@ async function runBot() {
       const betSize = availableBalance * 0.15; // 15% of balance per trade
       if (betSize < 10) {
         console.log(`Skipping ${trade.symbol}: Insufficient funds ($${availableBalance.toFixed(2)})`);
+        await logActivity(`Skipping ${trade.symbol}: Insufficient funds.`);
         continue;
       }
       
@@ -162,7 +184,12 @@ async function runBot() {
       await supabase.from('sim_portfolio').upsert({ symbol: trade.symbol, amount, avg_buy_price: trade.price });
       await supabase.from('sim_trades').insert({ symbol: trade.symbol, side: 'BUY', amount, price: trade.price });
       
-      console.log(`✅ BOUGHT ${trade.symbol} @ $${trade.price} | ${trade.reason}`);
+      const msg = `✅ BOUGHT ${trade.symbol} @ $${trade.price.toFixed(2)} | ${trade.reason}`;
+      console.log(msg);
+      await logActivity(msg);
+      tradesMade = true;
+      availableBalance -= betSize; // Local update
+      currentInvested += betSize;
     
     } else if (trade.action === 'SELL') {
       const revenue = trade.holding.amount * trade.price;
@@ -173,9 +200,30 @@ async function runBot() {
       await supabase.from('sim_portfolio').delete().eq('symbol', trade.symbol);
       await supabase.from('sim_trades').insert({ symbol: trade.symbol, side: 'SELL', amount: trade.holding.amount, price: trade.price, pnl });
 
-      console.log(`🚨 SOLD ${trade.symbol} @ $${trade.price} | PnL: $${pnl.toFixed(2)} | ${trade.reason}`);
+      const msg = `🚨 SOLD ${trade.symbol} @ $${trade.price.toFixed(2)} | PnL: $${pnl.toFixed(2)} | ${trade.reason}`;
+      console.log(msg);
+      await logActivity(msg);
+      tradesMade = true;
+      availableBalance += revenue; // Local update
+      currentInvested -= (trade.holding.amount * trade.holding.avg_buy_price); // Remove cost basis
     }
   }
+
+  // 5. SNAPSHOT HISTORY
+  if (!tradesMade) {
+      const msg = `Scanning complete. No setups found. Balance: $${availableBalance.toFixed(2)}`;
+      console.log(msg);
+      await logActivity(msg);
+  }
+
+  // Record Total Equity for the Graph
+  const totalEquity = availableBalance + currentInvested;
+  await supabase.from('sim_balance_history').insert({
+      balance_usdt: availableBalance,
+      total_equity_usdt: totalEquity,
+      timestamp: new Date().toISOString()
+  });
+
   console.log('🏁 Run Complete.\n');
 }
 

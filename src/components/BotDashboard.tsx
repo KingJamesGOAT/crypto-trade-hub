@@ -1,9 +1,10 @@
 import { useSimulator } from "@/context/SimulatorContext"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 
 export function BotDashboard() {
-  const { portfolio, balance } = useSimulator()
+  const { portfolio, balance, logs } = useSimulator()
 
   const holdings = portfolio
   
@@ -80,6 +81,34 @@ export function BotDashboard() {
           </CardContent>
       </Card>
       
+      {/* Live Activity Log */}
+      <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+              <CardTitle>Live Terminal</CardTitle>
+              <CardDescription>Real-time bot decision logs</CardDescription>
+          </CardHeader>
+          <CardContent>
+              <div className="bg-black/80 rounded-lg p-4 h-[300px] overflow-y-auto font-mono text-xs border border-primary/20 shadow-inner">
+                  {logs.length === 0 ? (
+                      <div className="text-muted-foreground italic">Waiting for bot activity...</div>
+                  ) : (
+                      logs.map((log) => (
+                          <div key={log.id} className="mb-1 border-b border-white/5 pb-1 last:border-0 last:pb-0">
+                              <span className="text-blue-400">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{" "}
+                              <span className={cn(
+                                  "text-gray-300",
+                                  log.message.includes("BOUGHT") ? "text-green-400 font-bold" : "",
+                                  log.message.includes("SOLD") ? "text-red-400 font-bold" : "",
+                                  log.message.includes("ERROR") ? "text-red-500 bg-red-900/20" : ""
+                              )}>
+                                  {log.message}
+                              </span>
+                          </div>
+                      ))
+                  )}
+              </div>
+          </CardContent>
+      </Card>
     </div>
   )
 }

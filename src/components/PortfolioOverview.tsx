@@ -5,7 +5,7 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 
 export function PortfolioOverview() {
-    const { portfolio, balance } = useSimulator()
+    const { portfolio, balance, history } = useSimulator()
     const [activeTab, setActiveTab] = useState<"simulator" | "real">("simulator")
 
     // Calculate Net Worths
@@ -14,12 +14,21 @@ export function PortfolioOverview() {
     }, 0)
     const simulatorNetWorth = balance + holdingsValue
 
-    // Mock Graph Data for Visuals (since we don't have history in context yet)
-    const graphData = Array.from({ length: 24 }, (_, i) => ({
-        date: `${i}:00`,
-        simulator: simulatorNetWorth * (1 + (Math.random() * 0.02 - 0.01)), // Fake subtle movement
+    // Real Graph Data from Supabase
+    const graphData = history.map(point => ({
+        date: new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        simulator: point.total_equity_usdt,
         real: 0
     }))
+
+    // Add current moment if history is empty (visual fix)
+    if (graphData.length === 0) {
+        graphData.push({
+            date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            simulator: simulatorNetWorth,
+            real: 0
+        })
+    }
 
     return (
         <Card className="col-span-4 border-border h-full flex flex-col">

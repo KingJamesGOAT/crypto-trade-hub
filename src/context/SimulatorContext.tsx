@@ -17,9 +17,22 @@ interface PortfolioItem {
   avg_buy_price: number
 }
 
+interface LogItem {
+  id: number
+  timestamp: string
+  message: string
+}
+
+interface HistoryItem {
+  timestamp: string
+  total_equity_usdt: number
+}
+
 interface SimulatorContextType {
   balance: number
   portfolio: PortfolioItem[]
+  logs: LogItem[]
+  history: HistoryItem[]
   isLoading: boolean
   isBotActive: boolean
   toggleBot: () => void
@@ -31,6 +44,8 @@ const SimulatorContext = createContext<SimulatorContextType | undefined>(undefin
 export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   const [balance, setBalance] = useState<number>(0)
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([])
+  const [logs, setLogs] = useState<LogItem[]>([])
+  const [history, setHistory] = useState<HistoryItem[]>([])
   const [isBotActive, setIsBotActive] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const { toast } = useToast()
@@ -51,9 +66,15 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
 
     // Fetch Portfolio
     const { data: holdings } = await supabase.from('sim_portfolio').select('*')
-    if (holdings) {
-      setPortfolio(holdings)
-    }
+    if (holdings) setPortfolio(holdings)
+
+    // Fetch Recent Logs
+    const { data: recentLogs } = await supabase.from('sim_logs').select('*').order('id', { ascending: false }).limit(50)
+    if (recentLogs) setLogs(recentLogs)
+
+    // Fetch History (for graph)
+    const { data: historyData } = await supabase.from('sim_balance_history').select('timestamp, total_equity_usdt').order('id', { ascending: true }).limit(100)
+    if (historyData) setHistory(historyData)
     
     setIsLoading(false)
   }
@@ -61,7 +82,6 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   // 2. Realtime Subscription (The "Live TV" effect)
   useEffect(() => {
     if (!isConnected) {
-        // Warn only once on mount if keys are missing to avoid annoyance, but keep app running
         console.warn("Supabase keys missing. Simulator features disabled.")
         return
     }
@@ -72,18 +92,24 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
     const channel = supabase
       .channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sim_settings' }, (payload) => {
-        // Update balance instantly
         if(payload.new) {
             setBalance(Number((payload.new as any).balance_usdt))
             setIsBotActive((payload.new as any).is_bot_active)
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sim_portfolio' }, () => {
-        // Reload portfolio if coins change
         supabase.from('sim_portfolio').select('*').then(({ data }) => {
             if(data) setPortfolio(data)
         })
         toast({ title: "Bot Activity Detected", description: "Portfolio updated from cloud." })
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sim_logs' }, (payload) => {
+          const newLog = payload.new as LogItem
+          setLogs(prev => [newLog, ...prev])
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sim_balance_history' }, (payload) => {
+          const newPoint = payload.new as HistoryItem
+          setHistory(prev => [...prev, newPoint])
       })
       .subscribe()
 
@@ -98,7 +124,7 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
     }
     const newState = !isBotActive
     setIsBotActive(newState)
-    await supabase.from('sim_settings').update({ is_bot_active: newState }).gt('id', 0) // Updates all rows
+    await supabase.from('sim_settings').update({ is_bot_active: newState }).gt('id', 0) 
     toast({ title: newState ? "Bot Resumed" : "Bot Paused" })
   }
 
@@ -112,6 +138,8 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
     await supabase.from('sim_trades').delete().neq('id', 0)
     await supabase.from('sim_portfolio').delete().neq('symbol', '0')
+    await supabase.from('sim_logs').delete().neq('id', 0) // Clear logs too
+    await supabase.from('sim_balance_history').delete().neq('id', 0) // Clear history
     await supabase.from('sim_settings').update({ balance_usdt: 10000.00 }).gt('id', 0)
     
     await fetchData()
@@ -119,7 +147,7 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SimulatorContext.Provider value={{ balance, portfolio, isLoading, isBotActive, toggleBot, resetSimulator }}>
+    <SimulatorContext.Provider value={{ balance, portfolio, logs, history, isLoading, isBotActive, toggleBot, resetSimulator }}>
       {children}
     </SimulatorContext.Provider>
   )
