@@ -237,17 +237,26 @@ async function runBot() {
             }
         } 
         else {
-            // SELL CHECK
-            // Condition: Overbought Cross Down OR Stop Loss? (For now just Strategy Exit)
-            // Stop Loss could be added, but adhering to prompt:
-            // "Sell Signal: K line crosses BELOW D line while both are > 80 (Overbought Cross)."
+            // HOLDING LOGIC: Sell if Profit Target, Indicator Exit, or STOP LOSS
             
-            if (stochCrossDown && isOverbought) {
-                 console.log("   🔻 TECHNICAL SELL SIGNAL (Overbought Cross). Executing...");
+            const amount = parseFloat(holding.amount);
+            const avgPrice = parseFloat(holding.avg_buy_price);
+            const pnlPct = (currentPrice - avgPrice) / avgPrice;
+            const STOP_LOSS_PCT = config.stop_loss_pct || 0.03; // Default 3% stop loss
+
+            let sellReason = "";
+
+            if (pnlPct < -STOP_LOSS_PCT) {
+                sellReason = `🛑 STOP LOSS HIT (${(pnlPct * 100).toFixed(2)}%)`;
+            } else if (stochCrossDown && isOverbought) {
+                sellReason = "📉 StochRSI Overbought Cross";
+            }
+
+            if (sellReason) {
+                 console.log(`   🚨 EXECUTE SELL: ${sellReason}`);
                  
-                 const amount = parseFloat(holding.amount);
                  const revenue = amount * currentPrice;
-                 const profit = revenue - (amount * parseFloat(holding.avg_buy_price));
+                 const profit = revenue - (amount * avgPrice);
                  
                  // Execute DB
                  await supabase.from('sim_portfolio').delete().eq('symbol', coin + "USDT");
@@ -262,9 +271,9 @@ async function runBot() {
                  });
                  
                  currentBalance += revenue;
-                 await log(`💰 SOLD ${coin} @ $${currentPrice.toFixed(2)} | PnL: $${profit.toFixed(2)}`);
+                 await log(`🚨 SOLD ${coin} @ $${currentPrice.toFixed(2)} | PnL: $${profit.toFixed(2)} | ${sellReason}`);
             } else {
-                console.log("   -> Holding. Waiting for exit.");
+                console.log(`   -> Holding ${coin}. PnL: ${(pnlPct * 100).toFixed(2)}%`);
             }
         }
     }
