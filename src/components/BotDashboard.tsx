@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Terminal, Activity, RefreshCw } from "lucide-react"
+import { Terminal, Activity } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 
 // Initialize Supabase (Frontend)
