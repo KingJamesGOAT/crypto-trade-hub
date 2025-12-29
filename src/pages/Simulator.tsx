@@ -31,7 +31,7 @@ export function Simulator() {
     const handleFund = async () => {
         if (!fundAmount) return
         const amount = parseFloat(fundAmount)
-        await updateBalance(parseFloat(balance) + amount)
+        await updateBalance(balance + amount)
         setFundAmount("")
     }
 
@@ -86,7 +86,7 @@ export function Simulator() {
                     </CardHeader>
                     <CardContent>
                          <div className="text-3xl font-bold tracking-tight text-foreground">
-                             ${parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                             ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                          </div>
                          <div className="flex gap-2 mt-4">
                              <Input 
