@@ -5,7 +5,8 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 
 export function PortfolioOverview() {
-    const { portfolio, balance, activeHistory /* assuming activeHistory or just history */, history } = useSimulator()
+    // Removed 'activeHistory' (was incorrect)
+    const { portfolio, balance, history } = useSimulator()
     const [activeTab, setActiveTab] = useState<"simulator" | "real">("simulator")
 
     // Calculate Net Worths
@@ -17,31 +18,28 @@ export function PortfolioOverview() {
     // Use history from context
     const realHistory = history || []
 
-    // Generate Mock Data if History is empty (Visual fill for new users)
-    // We want the graph to look "alive" even on Day 0
-    const activeData = realHistory.length > 1 ? realHistory.map(point => ({
-        date: new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        simulator: point.total_equity_usdt,
-        real: 0
-    })) : Array.from({ length: 15 }).map((_, i) => {
-        // Generate a fake curve that ends at the current net worth
-        // Base value + random variance
-        const timeOffset = (14 - i) * 15 * 60 * 1000 // 15 mins per point
-        const date = new Date(Date.now() - timeOffset)
-        
-        // Random walk ending at simulatorNetWorth
-        // We work backwards: final is current, previous is current +/- simple drift
-        // But for static render, let's just do a sine wave drift around a mean
-        const variance = (Math.sin(i) * 20) + (i * 10) // Upward trend
-        const startValue = simulatorNetWorth - 200 // Start $200 lower
-        const val = startValue + ((200 / 14) * i) + (Math.random() * 50 - 25)
-
-        return {
-            date: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            simulator: i === 14 ? simulatorNetWorth : val, // Force exact match on last point
+    // Ensure we always have a line to draw
+    // If we have history > 1 point, use it.
+    // If not (e.g. just started), generate a "flat line" or minimal history based on current worth
+    let activeData;
+    
+    if (realHistory.length > 1) {
+        activeData = realHistory.map(point => ({
+            date: new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            simulator: point.total_equity_usdt,
             real: 0
-        }
-    })
+        }));
+    } else {
+        // Generate a 24-point flat line (or slightly organic) ending at current net worth
+        activeData = Array.from({ length: 24 }).map((_, i) => {
+            const date = new Date(Date.now() - (23 - i) * 60 * 60 * 1000) // Last 24h
+            return {
+                date: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                simulator: simulatorNetWorth, // Flat line at current value
+                real: 0
+            }
+        })
+    }
 
     return (
         <Card className="col-span-4 border-border h-full flex flex-col bg-card shadow-sm">
