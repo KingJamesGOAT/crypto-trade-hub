@@ -41,6 +41,17 @@ async function log(message: string) {
     await supabase.from('sim_logs').insert({ message, timestamp: new Date().toISOString() });
 }
 
+// Fetch Market Mood (Fear & Greed Index)
+async function getMarketMood(): Promise<number> {
+    try {
+        const { data } = await axios.get("https://api.alternative.me/fng/?limit=1");
+        return parseInt(data.data[0].value);
+    } catch (e) {
+        console.error("⚠️ F&G API failed, assuming 50.");
+        return 50;
+    }
+}
+
 // Fetch Candles from Binance (Public API)
 async function getCandles(symbol: string, limit: number = 300): Promise<Candle[]> {
     try {
@@ -121,14 +132,28 @@ async function runBot() {
     if (!portfolio) portfolio = [];
 
     const config = settings.config || {};
-    const RISK_PER_TRADE = config.risk_per_trade || 0.05; // Default 5% of balance per trade
+    let RISK_PER_TRADE = config.risk_per_trade || 0.05; // Default 5% of balance per trade
+    let STOP_LOSS_PCT = config.stop_loss_pct || 0.03; // Default 3% stop loss
     
     let currentBalance = parseFloat(settings.balance_usdt);
     console.log(`💰 WALLET BALANCE: $${currentBalance.toFixed(2)}`);
 
+    // 2. Market Mood Analysis
+    const mood = await getMarketMood();
+
+    if (mood < 20) {
+        RISK_PER_TRADE = 0.08;
+        await log(`😱 Extreme Fear detected (${mood}). Sniper Mode ACTIVATE! (Risk 8%)`);
+    } else if (mood > 80) {
+        STOP_LOSS_PCT = 0.01;
+        await log(`🤑 Extreme Greed detected (${mood}). Tightening Stop Losses to 1%.`);
+    } else {
+        console.log(`🧠 Market Mood: Neutral (${mood}). Using defaults.`);
+    }
+
     let tradeMade = false;
 
-    // 2. Scan Market (All Coins)
+    // 3. Scan Market (All Coins)
     for (const coin of COINS) {
         console.log(`\n🔍 Analyzing ${coin}...`);
         
@@ -181,7 +206,7 @@ async function runBot() {
         
         // Buy Logic: Stoch Cross Up (<20) AND Positive Momentum AND Up Trend
         const stochCrossUp = prevStoch.k < prevStoch.d && latestStoch.k > latestStoch.d;
-        const isOversold = latestStoch.k < 20 && latestStoch.d < 20;
+        // const isOversold = latestStoch.k < 20 && latestStoch.d < 20; // Removed per user preference
 
         // Sell Logic: Stoch Cross Down (>80)
         const stochCrossDown = prevStoch.k > prevStoch.d && latestStoch.k < latestStoch.d;
@@ -206,7 +231,7 @@ async function runBot() {
                     await log(`🚫 Skipped BUY on ${coin}: Technicals Good but News FUD (${sentiment.reason})`);
                 } else {
                     // Valid Buy
-                    const amount = (currentBalance * 0.05) / currentPrice; // 5% risk
+                    const amount = (currentBalance * RISK_PER_TRADE) / currentPrice; 
                     
                     // Execute DB
                     await supabase.from('sim_portfolio').insert({ symbol: coin + "USDT", amount, avg_buy_price: currentPrice });
@@ -222,7 +247,7 @@ async function runBot() {
 
                     currentBalance -= (amount * currentPrice); // Update local for next iteration
                     tradeMade = true;
-                    await log(`✅ BOUGHT ${coin} @ $${currentPrice.toFixed(2)} | News: ${sentiment.score}`);
+                    await log(`✅ BOUGHT ${coin} @ $${currentPrice.toFixed(2)} | Vol: $${(amount * currentPrice).toFixed(2)} | News: ${sentiment.score}`);
                 }
             } else {
                 // 🗣️ THIS MAKES IT TALKATIVE!
@@ -238,7 +263,7 @@ async function runBot() {
             const amount = parseFloat(holding.amount);
             const avgPrice = parseFloat(holding.avg_buy_price);
             const pnlPct = (currentPrice - avgPrice) / avgPrice;
-            const STOP_LOSS_PCT = config.stop_loss_pct || 0.03; // Default 3% stop loss
+            // STOP_LOSS_PCT is now dynamic based on mood
 
             let sellReason = "";
 
@@ -275,7 +300,7 @@ async function runBot() {
         }
     }
 
-    // 3. Heartbeat & History
+    // 4. Heartbeat & History
     await supabase.from('sim_settings').update({ last_run: new Date().toISOString() }).eq('id', settings.id);
     
     if (!tradeMade) {
