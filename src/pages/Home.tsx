@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react"
-import { getTopCoins, type CoinMarketData } from "@/api/coingecko"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { getTopCoins, getTrendingCoins, getTopVolumeCoins, type CoinMarketData } from "@/api/coingecko"
+import { fetchCryptoNews, type NewsArticle } from "@/api/news-service"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { MarketChart } from "@/components/MarketChart"
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts"
-import { Loader2, TrendingUp, TrendingDown, Maximize2, Minimize2 } from "lucide-react"
+import { Loader2, TrendingUp, TrendingDown, Maximize2, Minimize2, Newspaper, Zap, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PortfolioOverview } from "@/components/PortfolioOverview"
-
+import { Badge } from "@/components/ui/badge"
 import { useSimulator } from "@/context/SimulatorContext"
 
 export function Home() {
@@ -18,17 +19,33 @@ export function Home() {
   const [selectedCoin, setSelectedCoin] = useState<CoinMarketData | null>(null)
   const [isMaximize, setIsMaximize] = useState(false);
 
+  // New Data States
+  const [news, setNews] = useState<NewsArticle[]>([])
+  const [trending, setTrending] = useState<any[]>([])
+  const [topVolume, setTopVolume] = useState<CoinMarketData[]>([])
+
   useEffect(() => {
     async function loadData() {
       setLoading(true)
-      const data = await getTopCoins(50)
-      if (data) setCoins(data)
+      
+      // parallel fetch for speed
+      const [marketData, newsData, trendData, volData] = await Promise.all([
+          getTopCoins(50),
+          fetchCryptoNews(),
+          getTrendingCoins(),
+          getTopVolumeCoins(5)
+      ])
+
+      if (marketData) setCoins(marketData)
+      if (newsData) setNews(newsData)
+      if (trendData) setTrending(trendData.slice(0, 5)) // Top 5 trending (Social proxy)
+      if (volData) setTopVolume(volData)
+      
       setLoading(false)
     }
     loadData()
   }, [])
 
-  // ... (existing helper functions getTradingViewSymbol, formatNumber, PercentChange)
   const getTradingViewSymbol = (coin: CoinMarketData) => {
       if (coin.symbol.toUpperCase() === "USDT") return "BINANCE:BTCUSDT"; 
       if (coin.symbol.toUpperCase() === "USDC") return "BINANCE:BTCUSDT";
@@ -51,33 +68,25 @@ export function Home() {
       )
   }
 
-  // Helper to get coin image from CoinGecko list if available
   const getCoinImage = (symbol: string) => {
-      // symbol is "BTCUSDT" -> "btc"
       const tick = symbol.replace("USDT", "").toLowerCase()
       const found = coins.find(c => c.symbol === tick)
       return found?.image
   }
 
   const getCoinPrice = (symbol: string) => {
-      // 1. Try Live WebSocket Price (Fastest) - Temporarily disabled as missing in context
-      // if (latestPrices[symbol]) return latestPrices[symbol]
-
-      // 2. Try Portfolio Price (if held)
       const held = portfolio.find(p => p.symbol === symbol)
-      if (held) return held.avg_buy_price // Approximation for display if live price missing
-      
-      // 3. Try CoinGecko Cache (Slowest/Fallback)
+      if (held) return held.avg_buy_price 
       const tick = symbol.replace("USDT", "").toLowerCase()
       const found = coins.find(c => c.symbol === tick)
       return found?.current_price || 0
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
       <PortfolioOverview />
       
-      {/* BOT ACTIVE SCANS */}
+      {/* 1. GHOST BOT WATCHLIST */}
       <div>
           <div className="flex items-center gap-2 mb-4">
               <div className="relative flex h-3 w-3">
@@ -125,6 +134,125 @@ export function Home() {
                       </Card>
                   )
               })}
+          </div>
+      </div>
+
+      {/* 2. MARKET INTELLIGENCE GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* LATEST NEWS */}
+          <Card className="lg:col-span-2 border-primary/20 bg-card/50">
+             <CardHeader className="pb-2">
+                 <CardTitle className="flex items-center gap-2">
+                    <Newspaper className="h-5 w-5 text-blue-400" />
+                    Market Headlines
+                 </CardTitle>
+                 <CardDescription>Top stories driving the market today</CardDescription>
+             </CardHeader>
+             <CardContent>
+                 {loading ? (
+                     <div className="h-40 flex items-center justify-center text-muted-foreground">Loading News...</div>
+                 ) : (
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         {/* Main Story (Most Important) */}
+                         {news.length > 0 && (
+                             <div className="group cursor-pointer relative rounded-xl overflow-hidden border border-border h-full min-h-[200px]" onClick={() => window.open(news[0].url, "_blank")}>
+                                 <img src={news[0].imageurl} alt={news[0].title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-60 group-hover:opacity-40" />
+                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent p-4 flex flex-col justify-end">
+                                     <Badge className="w-fit mb-2 bg-blue-600 hover:bg-blue-700 text-white border-0">Top Story</Badge>
+                                     <h3 className="text-lg font-bold text-white leading-tight group-hover:text-blue-300 transition-colors">
+                                         {news[0].title}
+                                     </h3>
+                                     <p className="text-xs text-slate-300 mt-1 line-clamp-2">{news[0].body}</p>
+                                     <span className="text-xs text-slate-400 mt-2 font-mono">{news[0].source} • 1h ago</span>
+                                 </div>
+                             </div>
+                         )}
+
+                         {/* Recent List (Next 3) */}
+                         <div className="space-y-4">
+                             {news.slice(1, 4).map(article => (
+                                 <div key={article.id} className="flex gap-3 items-start group cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors" onClick={() => window.open(article.url, "_blank")}>
+                                     <img src={article.imageurl} alt="thumbnail" className="w-16 h-16 rounded-md object-cover bg-slate-800" />
+                                     <div className="flex-1 min-w-0">
+                                         <h4 className="text-sm font-semibold line-clamp-2 leading-relaxed group-hover:text-blue-400 transition-colors">
+                                             {article.title}
+                                         </h4>
+                                         <div className="flex items-center gap-2 mt-1">
+                                             <Badge variant="outline" className="text-[10px] h-5 px-1 text-muted-foreground border-white/10">
+                                                 {article.source}
+                                             </Badge>
+                                         </div>
+                                     </div>
+                                 </div>
+                             ))}
+                         </div>
+                     </div>
+                 )}
+             </CardContent>
+          </Card>
+
+          {/* SOCIAL & TRENDING */}
+          <div className="space-y-6">
+              
+              {/* Top 5 Social / Trending */}
+              <Card className="border-primary/20 bg-card/50">
+                 <CardHeader className="pb-2">
+                     <CardTitle className="flex items-center gap-2 text-base">
+                        <Zap className="h-4 w-4 text-yellow-400" />
+                        Top 5 Social Hype
+                     </CardTitle>
+                 </CardHeader>
+                 <CardContent className="space-y-3">
+                     {loading ? (
+                         <div className="text-sm text-muted-foreground">Scanning Socials...</div>
+                     ) : (
+                         trending.map((coin, i) => (
+                             <div key={coin.id} className="flex items-center justify-between p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors border border-white/5">
+                                 <div className="flex items-center gap-3">
+                                     <span className="text-xs font-mono font-bold text-muted-foreground w-4">0{i+1}</span>
+                                     <img src={coin.small} alt={coin.name} className="w-6 h-6 rounded-full" />
+                                     <span className="font-bold text-sm">{coin.symbol}</span>
+                                 </div>
+                                 <Badge variant="secondary" className="text-[10px] bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
+                                     Rank #{coin.market_cap_rank || "N/A"}
+                                 </Badge>
+                             </div>
+                         ))
+                     )}
+                 </CardContent>
+              </Card>
+
+              {/* Top Volume */}
+              <Card className="border-primary/20 bg-card/50">
+                 <CardHeader className="pb-2">
+                     <CardTitle className="flex items-center gap-2 text-base">
+                        <Activity className="h-4 w-4 text-purple-400" />
+                        Top Trading (Vol)
+                     </CardTitle>
+                 </CardHeader>
+                 <CardContent className="space-y-3">
+                     {loading ? (
+                         <div className="text-sm text-muted-foreground">Calculating Volume...</div>
+                     ) : (
+                         topVolume.map((coin) => (
+                             <div key={coin.id} className="flex items-center justify-between p-2 rounded-lg bg-black/20 hover:bg-black/30 border border-white/5">
+                                 <div className="flex items-center gap-3">
+                                     <img src={coin.image} alt={coin.name} className="w-6 h-6 rounded-full" />
+                                     <span className="font-bold text-sm">{coin.symbol.toUpperCase()}</span>
+                                 </div>
+                                 <div className="text-right">
+                                    <div className="text-xs font-mono text-slate-300">${(coin.total_volume / 1000000000).toFixed(2)}B</div>
+                                    <div className={`text-[10px] font-bold ${coin.price_change_percentage_24h_in_currency >= 0 ? "text-green-400" : "text-red-400"}`}>
+                                        {coin.price_change_percentage_24h_in_currency > 0 ? "+" : ""}{coin.price_change_percentage_24h_in_currency.toFixed(2)}%
+                                    </div>
+                                 </div>
+                             </div>
+                         ))
+                     )}
+                 </CardContent>
+              </Card>
+
           </div>
       </div>
 
@@ -225,7 +353,7 @@ export function Home() {
       </Card>
 
       <Dialog open={!!selectedCoin} onOpenChange={(open) => !open && setSelectedCoin(null)}>
-          <DialogContent className={isMaximize ? "w-[100vw] h-[100vh] max-w-none rounded-none border-0" : "max-w-4xl h-[80vh] flex flex-col"}>
+          <DialogContent className={isMaximize ? "w-[100vw] h-[100vh] max-w-none rounded-none border-0 p-0" : "max-w-4xl h-[80vh] flex flex-col"}>
               {!isMaximize && (
                   <DialogHeader className="flex flex-row items-center justify-between space-y-0 pr-8">
                       <div className="flex flex-col gap-1">
@@ -256,9 +384,12 @@ export function Home() {
                       <Minimize2 className="h-6 w-6" />
                   </Button>
               )}
-              <div className="flex-1 min-h-0 bg-black/5 rounded-lg border border-border overflow-hidden mt-4">
+              <div className={`flex-1 min-h-0 bg-black/5 rounded-lg border border-border overflow-hidden ${!isMaximize ? "mt-4" : ""}`}>
                    {selectedCoin && (
-                       <MarketChart symbol={getTradingViewSymbol(selectedCoin)} />
+                       <MarketChart 
+                           symbol={getTradingViewSymbol(selectedCoin)} 
+                           className="h-full w-full border-0 rounded-none" 
+                       />
                    )}
               </div>
           </DialogContent>

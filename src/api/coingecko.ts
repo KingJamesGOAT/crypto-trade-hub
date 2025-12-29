@@ -59,6 +59,38 @@ export async function getTopCoins(count: number = 10): Promise<CoinMarketData[] 
         return null;
     }
 }
+
+export async function getTrendingCoins(): Promise<any[]> {
+    try {
+        const response = await fetch(`${COINGECKO_API}/search/trending`);
+        if (!response.ok) throw new Error("Failed to fetch trending");
+        const data = await response.json();
+        return data.coins.map((coin: any) => coin.item);
+    } catch (error) {
+         console.error("CoinGecko Trending Error:", error);
+         return [];
+    }
+}
+
+export async function getTopVolumeCoins(count: number = 5): Promise<CoinMarketData[]> {
+    try {
+        const params = new URLSearchParams({
+            vs_currency: "usd",
+            order: "volume_desc",
+            per_page: count.toString(),
+            page: "1",
+            sparkline: "true",
+            price_change_percentage: "24h"
+        });
+        const response = await fetch(`${COINGECKO_API}/coins/markets?${params}`);
+         if (!response.ok) throw new Error("Failed to fetch volume leaders");
+        return await response.json();
+    } catch (error) {
+        console.error("CoinGecko Volume Error:", error);
+        return [];
+    }
+}
+
 export interface CandleData {
   time: number
   open: number

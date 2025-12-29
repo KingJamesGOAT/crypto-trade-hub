@@ -2,11 +2,12 @@ import { AdvancedRealTimeChart } from "react-ts-tradingview-widgets";
 
 interface MarketChartProps {
   symbol: string;
+  className?: string; // Allow external styling overrides (e.g., h-full)
 }
 
-export function MarketChart({ symbol }: MarketChartProps) {
+export function MarketChart({ symbol, className }: MarketChartProps) {
   return (
-    <div className="h-[500px] w-full rounded-xl overflow-hidden border border-border">
+    <div className={`w-full rounded-xl overflow-hidden border border-border ${className || "h-[500px]"}`}>
       <AdvancedRealTimeChart 
         theme="dark" 
         symbol={symbol}
