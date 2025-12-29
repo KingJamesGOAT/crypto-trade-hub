@@ -194,8 +194,8 @@ async function runBot() {
         // D. Execution
         if (!holding) {
             // BUY CHECK
-            // Condition: Oversold Cross UP + MACD Positive + Above EMA200
-            if (stochCrossUp && isOversold && isMacdPositive && isUpTrend) {
+            // Condition: Stoch Cross Up + Positive Momentum + Up Trend
+            if (stochCrossUp && isMacdPositive && isUpTrend) {
                 console.log("   ✅ TECHNICAL BUY SIGNAL DETECTED! Checking News...");
                 
                 // News Filter
@@ -206,47 +206,30 @@ async function runBot() {
                     await log(`🚫 Skipped BUY on ${coin}: Technicals Good but News FUD (${sentiment.reason})`);
                 } else {
                     // Valid Buy
-                    let positionSize = currentBalance * RISK_PER_TRADE;
-                    let sizeReason = "Standard Size";
+                    const amount = (currentBalance * 0.05) / currentPrice; // 5% risk
+                    
+                    // Execute DB
+                    await supabase.from('sim_portfolio').insert({ symbol: coin + "USDT", amount, avg_buy_price: currentPrice });
+                    await supabase.from('sim_settings').update({ balance_usdt: currentBalance - (amount * currentPrice) }).eq('id', settings.id);
+                    await supabase.from('sim_trades').insert({ 
+                        symbol: coin + "USDT", 
+                        side: "BUY", 
+                        amount, 
+                        price: currentPrice, 
+                        news_score: sentiment.score,
+                        pnl: 0 
+                    });
 
-                    // News Boost
-                    if (sentiment.score > 2) {
-                        positionSize *= 1.5;
-                        sizeReason = "News Boost 1.5x 🚀";
-                    }
-
-                    if (currentBalance >= positionSize) {
-                        const amount = positionSize / currentPrice;
-                        
-                        // Execute DB
-                        await supabase.from('sim_portfolio').insert({ symbol: coin + "USDT", amount, avg_buy_price: currentPrice });
-                        await supabase.from('sim_settings').update({ balance_usdt: currentBalance - positionSize }).eq('id', settings.id);
-                        await supabase.from('sim_trades').insert({ 
-                            symbol: coin + "USDT", 
-                            side: "BUY", 
-                            amount, 
-                            price: currentPrice, 
-                            news_score: sentiment.score,
-                            pnl: 0 
-                        });
-
-                        currentBalance -= positionSize; // Update local for next iteration
-                        tradeMade = true;
-                        await log(`✅ BOUGHT ${coin} @ $${currentPrice.toFixed(2)} | ${sizeReason}`);
-                    }
+                    currentBalance -= (amount * currentPrice); // Update local for next iteration
+                    tradeMade = true;
+                    await log(`✅ BOUGHT ${coin} @ $${currentPrice.toFixed(2)} | News: ${sentiment.score}`);
                 }
             } else {
-                 // Detailed Rejection Logging
-                 let reasons = [];
-                 let mainReason = "Neutral";
-
-                 if(!isUpTrend) mainReason = "Bear Market (Below EMA200)";
-                 else if(!isMacdPositive) mainReason = "Momentum Weak (MACD < 0)";
-                 else if(!isOversold) mainReason = "StochRSI not in Buy Zone";
-                 else if(!stochCrossUp) mainReason = "Waiting for Stoch Cross";
-
-                 // Log the main rejection reason
-                 await log(`🚫 Skipped ${coin}: ${mainReason}`);
+                // 🗣️ THIS MAKES IT TALKATIVE!
+                // Only log "Skipped" for major coins (BTC/ETH/SOL) to avoid spamming 11 lines every time
+                if (["BTC", "ETH", "SOL"].includes(coin)) {
+                     await log(`📉 Skipped ${coin}: Trend=${isUpTrend ? '✅' : '❌'} Momentum=${isMacdPositive ? '✅' : '❌'} Stoch=${stochCrossUp ? '✅' : '❌'}`);
+                }
             }
         } 
         else {
@@ -288,8 +271,6 @@ async function runBot() {
                  await log(`🚨 SOLD ${coin} @ $${currentPrice.toFixed(2)} | PnL: $${profit.toFixed(2)} | ${sellReason}`);
             } else {
                 console.log(`   -> Holding ${coin}. PnL: ${(pnlPct * 100).toFixed(2)}%`);
-                // Optional: Log Hold status if talkative mode requires it, but usually "Skipped" refers to buying.
-                // Keeping it clean for holds unless user asks.
             }
         }
     }
