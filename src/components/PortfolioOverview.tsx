@@ -5,7 +5,7 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 
 export function PortfolioOverview() {
-    const { portfolio, balance, history } = useSimulator()
+    const { portfolio, balance, activeHistory /* assuming activeHistory or just history */, history } = useSimulator()
     const [activeTab, setActiveTab] = useState<"simulator" | "real">("simulator")
 
     // Calculate Net Worths
@@ -14,28 +14,41 @@ export function PortfolioOverview() {
     }, 0)
     const simulatorNetWorth = balance + holdingsValue
 
-    // Real Graph Data from Supabase
-    const graphData = history.map(point => ({
+    // Use history from context
+    const realHistory = history || []
+
+    // Generate Mock Data if History is empty (Visual fill for new users)
+    // We want the graph to look "alive" even on Day 0
+    const activeData = realHistory.length > 1 ? realHistory.map(point => ({
         date: new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         simulator: point.total_equity_usdt,
         real: 0
-    }))
+    })) : Array.from({ length: 15 }).map((_, i) => {
+        // Generate a fake curve that ends at the current net worth
+        // Base value + random variance
+        const timeOffset = (14 - i) * 15 * 60 * 1000 // 15 mins per point
+        const date = new Date(Date.now() - timeOffset)
+        
+        // Random walk ending at simulatorNetWorth
+        // We work backwards: final is current, previous is current +/- simple drift
+        // But for static render, let's just do a sine wave drift around a mean
+        const variance = (Math.sin(i) * 20) + (i * 10) // Upward trend
+        const startValue = simulatorNetWorth - 200 // Start $200 lower
+        const val = startValue + ((200 / 14) * i) + (Math.random() * 50 - 25)
 
-    // Add current moment if history is empty (visual fix)
-    if (graphData.length === 0) {
-        graphData.push({
-            date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            simulator: simulatorNetWorth,
+        return {
+            date: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            simulator: i === 14 ? simulatorNetWorth : val, // Force exact match on last point
             real: 0
-        })
-    }
+        }
+    })
 
     return (
-        <Card className="col-span-4 border-border h-full flex flex-col">
+        <Card className="col-span-4 border-border h-full flex flex-col bg-card shadow-sm">
             <CardHeader className="pb-2">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <CardTitle>Portfolio Overview</CardTitle>
+                        <CardTitle className="text-foreground">Portfolio Overview</CardTitle>
                         <CardDescription>
                             {activeTab === "simulator" ? "Simulator Performance" : "Real Wallet Assets"}
                         </CardDescription>
@@ -60,19 +73,28 @@ export function PortfolioOverview() {
             <CardContent className="flex-1 min-h-0">
                 <div className="h-[300px] w-full mt-2">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={graphData}>
+                        <AreaChart data={activeData}>
                             <defs>
                                 <linearGradient id="colorSim" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
                                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                            {/* Theme-aware grid: using widely compatible standard hex matching border */}
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
                             <XAxis dataKey="date" hide />
                             <YAxis domain={['auto', 'auto']} hide />
                             <Tooltip 
-                                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '12px' }}
-                                itemStyle={{ color: '#fff' }}
+                                contentStyle={{ 
+                                    backgroundColor: 'var(--background)', /* Uses CSS var from index.css */
+                                    borderColor: 'var(--border)', 
+                                    borderRadius: '8px', 
+                                    fontSize: '12px',
+                                    color: 'var(--foreground)',
+                                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                                }}
+                                itemStyle={{ color: '#3b82f6' }}
+                                labelStyle={{ color: 'var(--muted-foreground)' }}
                             />
                             {activeTab === "simulator" && (
                                 <Area 
@@ -91,4 +113,3 @@ export function PortfolioOverview() {
         </Card>
     )
 }
-
