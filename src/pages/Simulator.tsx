@@ -1,22 +1,23 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { useSimulator } from "@/context/SimulatorContext"
-import { BotConfiguration } from "@/components/BotConfiguration"
-import { BotDashboard } from "@/components/BotDashboard"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { BotConfiguration } from "@/components/BotConfiguration"
+import { BotDashboard } from "@/components/BotDashboard"
 import { Badge } from "@/components/ui/badge"
-import { Wallet, Activity, TrendingUp, TrendingDown, BrainCircuit } from "lucide-react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Wallet, Activity, BrainCircuit, Layers } from "lucide-react"
 import { useBinanceStream } from "@/hooks/useBinanceStream"
+import axios from 'axios'
 import { Progress } from "@/components/ui/progress"
 
-const WATCHLIST_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "SUIUSDT", "TRXUSDT", "LINKUSDT"]
+const WATCHLIST_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"]
 
-// Helper Component to display price from the parent's shared state
-function PriceDisplay({ price }: { price: number | undefined }) {
-    if (!price) return <span className="text-muted-foreground animate-pulse">---</span>
-    return <span className="text-blue-300 font-mono">${price.toFixed(2)}</span>
+// Helper for flashing numbers
+function PriceDisplay({ price }: { price?: number }) {
+    if (!price) return <span className="text-muted-foreground animate-pulse">Scanning...</span>
+    return <span>${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
 }
 
 export function Simulator() {
@@ -24,35 +25,17 @@ export function Simulator() {
     const [fundAmount, setFundAmount] = useState<string>("")
     const [prices, setPrices] = useState<Record<string, number>>({})
     
-    // Market Sentiment State
-    const [marketMood, setMarketMood] = useState<{ value: string, value_classification: string } | null>(null)
-
-    // Fetch Market Mood
-    useEffect(() => {
-        const fetchMood = async () => {
-            try {
-                const res = await fetch("https://api.alternative.me/fng/?limit=1")
-                const data = await res.json()
-                if (data.data && data.data.length > 0) {
-                    setMarketMood(data.data[0])
-                }
-            } catch (e) {
-                console.error("Failed to fetch market mood", e)
-            }
-        }
-        fetchMood()
-    }, [])
-    
-    // Combine Watchlist + Portfolio for streaming
-    const activeSymbols = useMemo(() => {
-        const portSymbols = portfolio.map(p => p.symbol)
-        return Array.from(new Set([...WATCHLIST_COINS, ...portSymbols]))
-    }, [portfolio])
-
     // Live Prices for ALL coins
-    const { streamData } = useBinanceStream(activeSymbols)
+    const { streamData } = useBinanceStream(WATCHLIST_COINS)
 
-    // Sync stream data to local map
+    const handleFund = async () => {
+        if (!fundAmount) return
+        const amount = parseFloat(fundAmount)
+        await updateBalance(parseFloat(balance) + amount)
+        setFundAmount("")
+    }
+
+    // Update prices from stream
     useEffect(() => {
         if (streamData?.trade) {
             setPrices(prev => ({
@@ -62,142 +45,119 @@ export function Simulator() {
         }
     }, [streamData])
 
-    const handleAddFunds = () => {
-        const amount = parseFloat(fundAmount)
-        if (isNaN(amount) || amount <= 0) return
-        updateBalance(balance + amount)
-        setFundAmount("")
-    }
-
-    const handleRunStrategy = () => {
-        // Mock Strategy Check for Client Side Feedback
-        const scanned = WATCHLIST_COINS.map(symbol => { // Scan all coins
-             const randomRsi = Math.floor(Math.random() * (70 - 30 + 1)) + 30
-             return `${symbol.replace("USDT","")}: RSI ${randomRsi} (${randomRsi < 35 ? "Oversold" : "Neutral"})`
+    // --- MARKET MOOD AI ---
+    const [moodValue, setMoodValue] = useState(50);
+    useEffect(() => {
+        axios.get("https://api.alternative.me/fng/?limit=1")
+        .then(res => {
+            setMoodValue(parseInt(res.data.data[0].value));
         })
-        
-        alert(`Strategy Scan Complete:\n\n${scanned.join("\n")}\n\n(Full backend scan runs every 10 mins)`)
-    }
+        .catch(() => setMoodValue(50));
+    }, []);
 
-    // Determine Sentiment Colors
-    const moodValue = marketMood ? parseInt(marketMood.value) : 50
-    let moodColor = "bg-blue-500"
-    let moodTextColor = "text-blue-400"
-    
-    if (moodValue < 25) {
-        moodColor = "bg-red-500" // Extreme Fear
-        moodTextColor = "text-red-400"
-    } else if (moodValue > 75) {
-        moodColor = "bg-green-500" // Extreme Greed
-        moodTextColor = "text-green-400"
-    } else {
-        moodColor = "bg-yellow-500" // Neutral
-        moodTextColor = "text-yellow-400"
-    }
+    let moodColor = "bg-blue-500";
+    let moodText = "Neutral";
+    if (moodValue < 25) { moodColor = "bg-red-600"; moodText = "Extreme Fear"; }
+    else if (moodValue < 45) { moodColor = "bg-orange-500"; moodText = "Fear"; }
+    else if (moodValue > 75) { moodColor = "bg-green-600"; moodText = "Extreme Greed"; }
+    else if (moodValue > 55) { moodColor = "bg-green-400"; moodText = "Greed"; }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/40 pb-6">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                        Ghost Bot Simulator
-                    </h1>
-                    <p className="text-muted-foreground mt-1">Server-side autonomous trading & manual control</p>
-                </div>
-                <div className="flex gap-4 items-center">
-                    <Button variant="outline" onClick={handleRunStrategy}>
-                        <Activity className="mr-2 h-4 w-4" /> Run Strategy Check
-                    </Button>
+        <div className="space-y-8 p-4 md:p-8 pt-6">
+            <div className="flex items-center justify-between space-y-2">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground">
+                    Simulator Dashboard
+                </h2>
+                <div className="flex items-center space-x-2">
+                   {/* Actions if needed */}
                 </div>
             </div>
 
-            {/* Top Row: Wallet, Sentiment & Config */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Top Row: Wallet & Controls */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 
                 {/* 1. Wallet Manager */}
-                <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
+                <Card className="lg:col-span-1 border-border bg-card shadow-sm">
                     <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Wallet className="h-5 w-5 text-blue-400" />
-                            Wallet Manager
-                        </CardTitle>
-                        <CardDescription>Inject fake USDT capital</CardDescription>
+                         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                             <Wallet className="h-4 w-4" />
+                             Wallet Balance
+                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <span className="text-xs text-muted-foreground uppercase font-bold">Available Capital</span>
-                            <div className="text-3xl font-mono font-bold text-white">
-                                ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Input 
-                                type="number" 
-                                placeholder="Amount (e.g. 10000)" 
-                                value={fundAmount}
-                                onChange={(e) => setFundAmount(e.target.value)}
-                                className="font-mono bg-background/50"
-                            />
-                            <Button onClick={handleAddFunds} disabled={!fundAmount || parseFloat(fundAmount) <= 0}>Add</Button>
-                        </div>
+                    <CardContent>
+                         <div className="text-3xl font-bold tracking-tight text-foreground">
+                             ${parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                         </div>
+                         <div className="flex gap-2 mt-4">
+                             <Input 
+                                 placeholder="Amount" 
+                                 type="number" 
+                                 className="h-8 bg-background border-input"
+                                 value={fundAmount}
+                                 onChange={(e) => setFundAmount(e.target.value)}
+                             />
+                             <Button size="sm" onClick={handleFund} className="h-8 px-3">
+                                 Fund
+                             </Button>
+                         </div>
                     </CardContent>
                 </Card>
 
-                 {/* 2. NEW: Market Sentiment AI */}
-                 <Card className="border-primary/20 bg-card/50 backdrop-blur-sm flex flex-col justify-center">
+                {/* 2. Sentiment AI */}
+                <Card className="lg:col-span-1 border-border bg-card shadow-sm">
                     <CardHeader className="pb-2">
-                         <CardTitle className="flex items-center gap-2 text-lg">
-                            <BrainCircuit className={`h-5 w-5 ${moodTextColor}`} />
-                            Market Sentiment AI
+                         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                             <BrainCircuit className="h-4 w-4" />
+                             Market Sentiment AI
                          </CardTitle>
-                         <CardDescription>Visualizing Global Fear & Greed</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        {marketMood ? (
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-end">
-                                    <span className={`text-4xl font-bold ${moodTextColor}`}>{marketMood.value}</span>
-                                    <span className="text-sm text-muted-foreground uppercase font-mono tracking-wider mb-1">{marketMood.value_classification}</span>
-                                </div>
-                                <Progress value={parseInt(marketMood.value)} className={`h-3 bg-secondary ${moodColor.replace("bg-", "text-")}`} indicatorClassName={moodColor} />
-                                <p className="text-xs text-muted-foreground pt-1">
-                                    {moodValue < 25 ? "Use Sniper Mode (Buy Dips)" : moodValue > 75 ? "Use Caution (Tighten Stops)" : "Standard Strategy Active"}
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="h-[88px] flex items-center justify-center animate-pulse">
-                                <span className="text-muted-foreground">Analysing Market...</span>
-                            </div>
-                        )}
+                    <CardContent className="space-y-3">
+                        {/* FEAR & GREED VISUALIZER */}
+                        <div className="space-y-1">
+                             <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                                 <span className={moodValue < 25 ? "text-red-500" : "text-muted-foreground"}>Fear</span>
+                                 <span className={moodValue > 75 ? "text-green-500" : "text-muted-foreground"}>Greed</span>
+                             </div>
+                             <Progress value={moodValue} className="h-3" indicatorClassName={moodColor} />
+                             <div className="flex justify-between items-center pt-1">
+                                 <span className={`text-2xl font-bold ${moodColor.replace("bg-", "text-")}`}>
+                                     {moodValue}
+                                 </span>
+                                 <div className="text-right">
+                                     <span className="block text-xs font-bold text-foreground">
+                                         {moodText}
+                                     </span>
+                                     <span className="block text-[10px] text-muted-foreground">
+                                         {moodValue < 25 ? "Sniper Mode (Hi Risk)" : moodValue > 75 ? "Safety Mode (Tight SL)" : "Standard Mode"}
+                                     </span>
+                                 </div>
+                             </div>
+                        </div>
                     </CardContent>
                 </Card>
 
                 {/* 3. Bot Control */}
-                <div className="md:col-span-1">
-                    <BotConfiguration />
-                </div>
+                <BotConfiguration />
             </div>
 
-            {/* Middle Section: Active Positions (High Visibility) */}
-            <Card className="border-primary/20 bg-black/40 backdrop-blur-md">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl text-white">
-                        <TrendingUp className="h-6 w-6 text-green-400" />
-                        Active Portfolio
+            {/* Middle Row: Active Portfolio */}
+            <Card className="border-border bg-card shadow-sm overflow-hidden">
+                <CardHeader className="bg-muted/20 border-b border-border">
+                    <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-5 w-5 text-primary" />
+                        Active Positions
                     </CardTitle>
-                    <CardDescription>Real-time performance of open positions</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                     {portfolio.length === 0 ? (
-                        <div className="text-center py-10 text-muted-foreground flex flex-col items-center gap-2 font-mono">
-                            <TrendingDown className="h-8 w-8 opacity-20" />
-                            Waiting for entries...
+                        <div className="h-40 flex flex-col items-center justify-center text-muted-foreground opacity-50">
+                            <Layers className="h-10 w-10 mb-2" />
+                            <p>No active trades. Waiting for entry...</p>
                         </div>
                     ) : (
                         <Table>
-                            <TableHeader className="bg-white/5">
-                                <TableRow>
+                            <TableHeader>
+                                <TableRow className="hover:bg-transparent border-border">
                                     <TableHead>Asset</TableHead>
                                     <TableHead className="text-right">Amount</TableHead>
                                     <TableHead className="text-right">Entry Price</TableHead>
@@ -208,7 +168,7 @@ export function Simulator() {
                             </TableHeader>
                             <TableBody>
                                 {portfolio.map((item) => {
-                                    const livePrice = prices[item.symbol] || item.avg_buy_price // fallback to entry if loading
+                                    const livePrice = prices[item.symbol] || item.avg_buy_price
                                     const entryPrice = item.avg_buy_price
                                     const amount = item.amount
                                     const pnlValue = (livePrice - entryPrice) * amount
@@ -216,10 +176,9 @@ export function Simulator() {
                                     const isProfit = pnlValue >= 0
 
                                     return (
-                                        <TableRow key={item.symbol} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                            <TableCell className="font-bold text-lg flex items-center gap-2">
-                                                {/* Mock Icon or just Text */}
-                                                <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-400 border-blue-500/30">
+                                        <TableRow key={item.symbol} className="border-b border-border hover:bg-muted/50 transition-colors">
+                                            <TableCell className="font-bold text-lg">
+                                                <Badge variant="outline" className="text-xs">
                                                     {item.symbol.replace("USDT","")}
                                                 </Badge>
                                             </TableCell>
@@ -229,14 +188,14 @@ export function Simulator() {
                                             <TableCell className="text-right font-mono text-muted-foreground">
                                                 ${entryPrice.toFixed(2)}
                                             </TableCell>
-                                            <TableCell className="text-right font-mono text-white text-lg animate-pulse">
+                                            <TableCell className="text-right font-mono font-bold animate-pulse text-foreground">
                                                 ${livePrice.toFixed(2)}
                                             </TableCell>
-                                            <TableCell className={`text-right font-mono font-bold ${isProfit ? "text-green-400" : "text-red-400"}`}>
+                                            <TableCell className={`text-right font-mono font-bold ${isProfit ? "text-green-500" : "text-red-500"}`}>
                                                 {isProfit ? "+" : ""}{pnlValue.toFixed(2)}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <Badge className={`${isProfit ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"} border-0 font-mono`}>
+                                                <Badge className={`${isProfit ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "bg-red-500/10 text-red-500 hover:bg-red-500/20"} border-0 font-mono`}>
                                                     {isProfit ? "+" : ""}{pnlPercent.toFixed(2)}%
                                                 </Badge>
                                             </TableCell>
@@ -253,18 +212,18 @@ export function Simulator() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* Live Watchlist */}
-                <Card className="lg:col-span-1 border-primary/20 bg-black/20 h-[600px] flex flex-col">
+                <Card className="lg:col-span-1 border-border bg-card h-[600px] flex flex-col shadow-sm">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                           <Activity className="h-5 w-5 text-blue-400" />
+                           <Activity className="h-5 w-5 text-primary" />
                            Market Watch
                         </CardTitle>
                         <CardDescription>Live feed ({WATCHLIST_COINS.length} Coins)</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-auto p-0">
                         <Table>
-                            <TableHeader className="sticky top-0 bg-background/90 backdrop-blur-sm z-10">
-                                <TableRow>
+                            <TableHeader className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border">
+                                <TableRow className="hover:bg-transparent border-border">
                                     <TableHead>Asset</TableHead>
                                     <TableHead className="text-right">Price</TableHead>
                                     <TableHead className="text-right">Observed</TableHead>
@@ -274,7 +233,7 @@ export function Simulator() {
                                 {WATCHLIST_COINS.map(symbol => {
                                     const isOwned = portfolio.some(p => p.symbol === symbol)
                                     return (
-                                        <TableRow key={symbol} className="hover:bg-muted/50 border-white/5">
+                                        <TableRow key={symbol} className="hover:bg-muted/50 border-border">
                                             <TableCell className="font-medium font-mono text-sm">{symbol.replace("USDT", "")}</TableCell>
                                             <TableCell className="text-right font-mono text-xs text-muted-foreground">
                                                 <PriceDisplay price={prices[symbol]} />
