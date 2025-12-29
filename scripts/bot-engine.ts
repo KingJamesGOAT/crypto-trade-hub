@@ -33,6 +33,11 @@ interface SentimentResult {
     reason: string;
 }
 
+interface CoinScope {
+    symbol: string;
+    id?: string; // Optional, present only for Tier 2 (Trending) coins
+}
+
 // --- HELPERS ---
 
 async function log(message: string) {
@@ -53,18 +58,47 @@ async function getMarketMood(): Promise<number> {
 }
 
 // Fetch Trending Coins (Discovery Mode)
-async function getTrendingCoins(): Promise<string[]> {
+async function getTrendingCoins(): Promise<CoinScope[]> {
     try {
         const { data } = await axios.get("https://api.coingecko.com/api/v3/search/trending");
         // Extract top 7
-        const trends = data.coins.slice(0, 7).map((c: any) => c.item.symbol.toUpperCase());
-        // Filter 1: Deduplication
-        const unique = trends.filter((symbol: string) => !COINS.includes(symbol));
+        const trends = data.coins.slice(0, 7).map((c: any) => ({
+             symbol: c.item.symbol.toUpperCase(),
+             id: c.item.id
+        }));
+        
+        // Filter 1: Deduplication (Ignore if already in Tier 1)
+        const unique = trends.filter((coin: CoinScope) => !COINS.includes(coin.symbol));
+        
         // Filter 2: Basic formatting safety
-        return unique.filter((symbol: string) => /^[A-Z0-9]+$/.test(symbol)); 
+        return unique.filter((coin: CoinScope) => /^[A-Z0-9]+$/.test(coin.symbol)); 
     } catch (e) {
         console.error("⚠️ Failed to fetch trending coins, defaulting to empty list.");
         return [];
+    }
+}
+
+// Check Social Hype (Social Intelligence)
+async function checkSocialHype(id: string): Promise<boolean> {
+    try {
+        // Fetch Community Data
+        const url = `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=false&community_data=true&developer_data=false`;
+        const { data } = await axios.get(url, { timeout: 5000 });
+        
+        const twitter = data.community_data?.twitter_followers || 0;
+        const reddit = data.community_data?.reddit_subscribers || 0;
+
+        // "Ghost Town" Filter: If NO community, it's a fake pump
+        if (twitter < 500 && reddit < 100) {
+            return false;
+        }
+        
+        return true;
+    } catch (e) {
+        // Fail-safe: If API limits hit (429) or other error, assume it's SAFE to avoid missing real gems
+        // In a real production bot, you might want to be safer, but for "Gem Hunting" we default to Open.
+        console.log(`⚠️ Social Check API failed for ${id} (Rate Limit?), assuming Safe.`);
+        return true;
     }
 }
 
@@ -169,11 +203,12 @@ async function runBot() {
     }
 
     // 3. Discovery Mode (Build Coin List)
-    const tier1Coins = [...COINS];
-    const tier2Coins = await getTrendingCoins();
+    const tier1Coins: CoinScope[] = COINS.map(s => ({ symbol: s }));
+    const tier2Coins: CoinScope[] = await getTrendingCoins();
     
     if (tier2Coins.length > 0) {
-        await log(`💎 Gem Hunter found: [${tier2Coins.join(", ")}]`);
+        const symbols = tier2Coins.map(t => t.symbol).join(", ");
+        await log(`💎 Gem Hunter found: [${symbols}]`);
     }
 
     // Merge lists
@@ -183,10 +218,20 @@ async function runBot() {
 
     // 4. Scan Market (All Coins)
     for (const coin of allCoins) {
-        console.log(`\n🔍 Analyzing ${coin}...`);
+        console.log(`\n🔍 Analyzing ${coin.symbol}...`);
         
+        // --- SOCIAL INTELLIGENCE CHECK (Tier 2 Only) ---
+        if (coin.id) {
+             const isHypeReal = await checkSocialHype(coin.id);
+             if (!isHypeReal) {
+                 await log(`🚫 Skipped Gem ${coin.symbol}: Price is trending but Socials are dead (Fake Pump risk).`);
+                 continue;
+             }
+             await log(`🗣️ Social AI: ${coin.symbol} community is active. Proceeding to technical scan.`);
+        }
+
         // A. Fetch Data (Robust Validation)
-        const candles = await getCandles(coin);
+        const candles = await getCandles(coin.symbol);
         if (candles.length < 200) {
             // Already logged inside getCandles if it was a 404
             if (candles.length > 0 && candles.length < 200) {
@@ -231,7 +276,7 @@ async function runBot() {
         }
 
         // C. Logic Checks
-        const holding = portfolio.find((p: any) => p.symbol === coin + "USDT");
+        const holding = portfolio.find((p: any) => p.symbol === coin.symbol + "USDT");
         const isUpTrend = currentPrice > latestEma200;
         const isMacdPositive = (latestMacd.histogram || 0) > 0;
         
@@ -254,17 +299,20 @@ async function runBot() {
                 console.log("   ✅ TECHNICAL BUY SIGNAL DETECTED! Checking News...");
                 
                 // News Filter
-                const sentiment = await getNewsSentiment(coin);
+                const sentiment = await getNewsSentiment(coin.symbol);
                 console.log(`   📰 Sentiment Score: ${sentiment.score} (${sentiment.reason})`);
 
                 if (sentiment.score < -1) {
-                    await log(`🚫 Skipped BUY on ${coin}: Technicals Good but News FUD (${sentiment.reason})`);
+                    await log(`🚫 Skipped BUY on ${coin.symbol}: Technicals Good but News FUD (${sentiment.reason})`);
                 } else {
                     // Valid Buy - Dynamic Risk Management
                     let RISK_USED = STANDARD_RISK;
                     let typeLog = "Standard Trade Setup";
                     
-                    if (!tier1Coins.includes(coin)) {
+                    // Check if it's a Tier 1 Coin (General)
+                    const isTier1 = COINS.includes(coin.symbol);
+
+                    if (!isTier1) {
                          // Tier 2 (Scout)
                          RISK_USED = 0.015; // 1.5% Risk
                          typeLog = "🚀 HYPE TRADE! Low Risk Mode (1.5%)";
@@ -273,10 +321,10 @@ async function runBot() {
                     const amount = (currentBalance * RISK_USED) / currentPrice; 
                     
                     // Execute DB
-                    await supabase.from('sim_portfolio').insert({ symbol: coin + "USDT", amount, avg_buy_price: currentPrice });
+                    await supabase.from('sim_portfolio').insert({ symbol: coin.symbol + "USDT", amount, avg_buy_price: currentPrice });
                     await supabase.from('sim_settings').update({ balance_usdt: currentBalance - (amount * currentPrice) }).eq('id', settings.id);
                     await supabase.from('sim_trades').insert({ 
-                        symbol: coin + "USDT", 
+                        symbol: coin.symbol + "USDT", 
                         side: "BUY", 
                         amount, 
                         price: currentPrice, 
@@ -288,20 +336,21 @@ async function runBot() {
                     tradeMade = true;
                     
                     // Add Gem Emoji to log if Tier 2
-                    const gemEmoji = !tier1Coins.includes(coin) ? "💎" : "";
-                    await log(`✅ BOUGHT ${coin} ${gemEmoji} @ $${currentPrice.toFixed(2)} | ${typeLog} | News: ${sentiment.score}`);
+                    const gemEmoji = !isTier1 ? "💎" : "";
+                    await log(`✅ BOUGHT ${coin.symbol} ${gemEmoji} @ $${currentPrice.toFixed(2)} | ${typeLog} | News: ${sentiment.score}`);
                 }
             } else {
                 // Not a Buy - Log Skipped
                 // Only log "Skipped" for major coins (BTC/ETH/SOL) OR if it was a Trending Coin that almost made it
-                if (tier1Coins.includes(coin)) {
-                     if (["BTC", "ETH", "SOL"].includes(coin)) {
-                         await log(`📉 Skipped ${coin}: Trend=${isUpTrend ? '✅' : '❌'} Momentum=${isMacdPositive ? '✅' : '❌'} Stoch=${stochCrossUp ? '✅' : '❌'}`);
+                const isTier1 = COINS.includes(coin.symbol);
+                if (isTier1) {
+                     if (["BTC", "ETH", "SOL"].includes(coin.symbol)) {
+                         await log(`📉 Skipped ${coin.symbol}: Trend=${isUpTrend ? '✅' : '❌'} Momentum=${isMacdPositive ? '✅' : '❌'} Stoch=${stochCrossUp ? '✅' : '❌'}`);
                      }
                 } else {
                     // Reduce noise for skipped random meme coins, maybe only log if Trend was OK?
                     if (isUpTrend) {
-                        console.log(`📉 Skipped GEM ${coin}: Trend Good but Momentum/Stoch weak.`);
+                        console.log(`📉 Skipped GEM ${coin.symbol}: Trend Good but Momentum/Stoch weak.`);
                     }
                 }
             }
@@ -328,10 +377,10 @@ async function runBot() {
                  const profit = revenue - (amount * avgPrice);
                  
                  // Execute DB
-                 await supabase.from('sim_portfolio').delete().eq('symbol', coin + "USDT");
+                 await supabase.from('sim_portfolio').delete().eq('symbol', coin.symbol + "USDT");
                  await supabase.from('sim_settings').update({ balance_usdt: currentBalance + revenue }).eq('id', settings.id);
                  await supabase.from('sim_trades').insert({ 
-                    symbol: coin + "USDT", 
+                    symbol: coin.symbol + "USDT", 
                     side: "SELL", 
                     amount, 
                     price: currentPrice, 
@@ -341,9 +390,9 @@ async function runBot() {
                  
                  currentBalance += revenue;
                  tradeMade = true;
-                 await log(`🚨 SOLD ${coin} @ $${currentPrice.toFixed(2)} | PnL: $${profit.toFixed(2)} | ${sellReason}`);
+                 await log(`🚨 SOLD ${coin.symbol} @ $${currentPrice.toFixed(2)} | PnL: $${profit.toFixed(2)} | ${sellReason}`);
             } else {
-                console.log(`   -> Holding ${coin}. PnL: ${(pnlPct * 100).toFixed(2)}%`);
+                console.log(`   -> Holding ${coin.symbol}. PnL: ${(pnlPct * 100).toFixed(2)}%`);
             }
         }
     }
