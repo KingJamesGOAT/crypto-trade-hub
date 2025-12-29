@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Wifi, Wallet, Activity, TrendingUp, TrendingDown, DollarSign } from "lucide-react"
+import { Wallet, Activity, TrendingUp, TrendingDown } from "lucide-react"
 import { useBinanceStream } from "@/hooks/useBinanceStream"
 
 const WATCHLIST_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "SUIUSDT", "TRXUSDT", "LINKUSDT"]
