@@ -28,8 +28,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           if (puter.auth.isSignedIn()) {
             const user = await puter.auth.getUser();
-            setUsername(user.username);
-            setIsAuthenticated(true);
+            
+            // 🔒 Security Check: Whitelist Admin
+            if (user.username === 'CryptoTradeHub') {
+                setUsername('blackswan'); // 🥸 Alias as requested
+                setIsAuthenticated(true);
+            } else {
+                console.warn(`Unauthorized access attempt by: ${user.username}`);
+                await puter.auth.signOut();
+                // We don't alert here to avoid spamming on reload, just deny access
+                setIsAuthenticated(false);
+            }
           }
         } catch (err) {
           console.warn("Puter auth check failed", err);
@@ -62,8 +71,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // This triggers the Puter.com secure popup
       await puter.auth.signIn();
       const user = await puter.auth.getUser();
-      setUsername(user.username);
-      setIsAuthenticated(true);
+      
+      // 🔒 Security Check
+      if (user.username === 'CryptoTradeHub') {
+          setUsername('blackswan'); // Alias
+          setIsAuthenticated(true);
+      } else {
+          await puter.auth.signOut();
+          alert("⛔ ACCESS DENIED: You are not the authorized Admin (blackswan).");
+          setIsAuthenticated(false);
+      }
     } catch (error) {
       console.error("Login failed:", error);
     }
