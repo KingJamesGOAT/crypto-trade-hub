@@ -108,8 +108,8 @@ async function getNewsSentiment(symbol: string): Promise<SentimentResult> {
 
 async function runBot() {
     console.log(`\n👻 GHOST BOT ENGINE STARTING... [${new Date().toISOString()}]`);
-    console.log(`🚀 Strategy: High-Velocity Swing (StochRSI + MACD + EMA200 + NewsSentiment)`);
-
+    await log("👻 Scan Started...");
+    
     // 1. Load Settings & Portfolio
     const { data: settings } = await supabase.from('sim_settings').select('*').limit(1).single();
     if (!settings || !settings.is_bot_active) {
@@ -125,6 +125,8 @@ async function runBot() {
     
     let currentBalance = parseFloat(settings.balance_usdt);
     console.log(`💰 WALLET BALANCE: $${currentBalance.toFixed(2)}`);
+
+    let tradeMade = false;
 
     // 2. Scan Market (All Coins)
     for (const coin of COINS) {
@@ -229,11 +231,22 @@ async function runBot() {
                         });
 
                         currentBalance -= positionSize; // Update local for next iteration
+                        tradeMade = true;
                         await log(`✅ BOUGHT ${coin} @ $${currentPrice.toFixed(2)} | ${sizeReason}`);
                     }
                 }
             } else {
-                 console.log("   -> No Buy Signal.");
+                 // Detailed Rejection Logging
+                 let reasons = [];
+                 let mainReason = "Neutral";
+
+                 if(!isUpTrend) mainReason = "Bear Market (Below EMA200)";
+                 else if(!isMacdPositive) mainReason = "Momentum Weak (MACD < 0)";
+                 else if(!isOversold) mainReason = "StochRSI not in Buy Zone";
+                 else if(!stochCrossUp) mainReason = "Waiting for Stoch Cross";
+
+                 // Log the main rejection reason
+                 await log(`🚫 Skipped ${coin}: ${mainReason}`);
             }
         } 
         else {
@@ -271,9 +284,12 @@ async function runBot() {
                  });
                  
                  currentBalance += revenue;
+                 tradeMade = true;
                  await log(`🚨 SOLD ${coin} @ $${currentPrice.toFixed(2)} | PnL: $${profit.toFixed(2)} | ${sellReason}`);
             } else {
                 console.log(`   -> Holding ${coin}. PnL: ${(pnlPct * 100).toFixed(2)}%`);
+                // Optional: Log Hold status if talkative mode requires it, but usually "Skipped" refers to buying.
+                // Keeping it clean for holds unless user asks.
             }
         }
     }
@@ -281,15 +297,11 @@ async function runBot() {
     // 3. Heartbeat & History
     await supabase.from('sim_settings').update({ last_run: new Date().toISOString() }).eq('id', settings.id);
     
-    // Save history snapshot (useful for graph)
-    // We calculate total equity approximately
-    const { data: finalPortfolio } = await supabase.from('sim_portfolio').select('*');
-    let equity = currentBalance;
-    // We would need current prices for all held assets to be accurate, 
-    // but for 10-min resolution, fetching again or using last fetch is fine.
-    // Simpler: Just save cash balance + approx value if needed, 
-    // but typically history tracks total Net Worth.
-    // For now, let's just log status.
+    if (!tradeMade) {
+        await log("🏁 Scan Complete. Market calm.");
+    } else {
+        await log("🏁 Scan Complete. Trades executed.");
+    }
     
     console.log("🏁 Run Complete.");
 }
