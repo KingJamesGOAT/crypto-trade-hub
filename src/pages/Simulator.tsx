@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Wallet, Activity, TrendingUp, TrendingDown } from "lucide-react"
+import { Wallet, Activity, TrendingUp, TrendingDown, BrainCircuit } from "lucide-react"
 import { useBinanceStream } from "@/hooks/useBinanceStream"
+import { Progress } from "@/components/ui/progress"
 
 const WATCHLIST_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "SUIUSDT", "TRXUSDT", "LINKUSDT"]
 
@@ -22,6 +23,25 @@ export function Simulator() {
     const { balance, updateBalance, portfolio } = useSimulator()
     const [fundAmount, setFundAmount] = useState<string>("")
     const [prices, setPrices] = useState<Record<string, number>>({})
+    
+    // Market Sentiment State
+    const [marketMood, setMarketMood] = useState<{ value: string, value_classification: string } | null>(null)
+
+    // Fetch Market Mood
+    useEffect(() => {
+        const fetchMood = async () => {
+            try {
+                const res = await fetch("https://api.alternative.me/fng/?limit=1")
+                const data = await res.json()
+                if (data.data && data.data.length > 0) {
+                    setMarketMood(data.data[0])
+                }
+            } catch (e) {
+                console.error("Failed to fetch market mood", e)
+            }
+        }
+        fetchMood()
+    }, [])
     
     // Combine Watchlist + Portfolio for streaming
     const activeSymbols = useMemo(() => {
@@ -59,6 +79,22 @@ export function Simulator() {
         alert(`Strategy Scan Complete:\n\n${scanned.join("\n")}\n\n(Full backend scan runs every 10 mins)`)
     }
 
+    // Determine Sentiment Colors
+    const moodValue = marketMood ? parseInt(marketMood.value) : 50
+    let moodColor = "bg-blue-500"
+    let moodTextColor = "text-blue-400"
+    
+    if (moodValue < 25) {
+        moodColor = "bg-red-500" // Extreme Fear
+        moodTextColor = "text-red-400"
+    } else if (moodValue > 75) {
+        moodColor = "bg-green-500" // Extreme Greed
+        moodTextColor = "text-green-400"
+    } else {
+        moodColor = "bg-yellow-500" // Neutral
+        moodTextColor = "text-yellow-400"
+    }
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-10">
             {/* Header */}
@@ -76,8 +112,9 @@ export function Simulator() {
                 </div>
             </div>
 
-            {/* Top Row: Wallet & Config */}
+            {/* Top Row: Wallet, Sentiment & Config */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
                 {/* 1. Wallet Manager */}
                 <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
                     <CardHeader className="pb-2">
@@ -107,8 +144,37 @@ export function Simulator() {
                     </CardContent>
                 </Card>
 
-                {/* 2. Bot Control */}
-                <div className="md:col-span-2">
+                 {/* 2. NEW: Market Sentiment AI */}
+                 <Card className="border-primary/20 bg-card/50 backdrop-blur-sm flex flex-col justify-center">
+                    <CardHeader className="pb-2">
+                         <CardTitle className="flex items-center gap-2 text-lg">
+                            <BrainCircuit className={`h-5 w-5 ${moodTextColor}`} />
+                            Market Sentiment AI
+                         </CardTitle>
+                         <CardDescription>Visualizing Global Fear & Greed</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {marketMood ? (
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-end">
+                                    <span className={`text-4xl font-bold ${moodTextColor}`}>{marketMood.value}</span>
+                                    <span className="text-sm text-muted-foreground uppercase font-mono tracking-wider mb-1">{marketMood.value_classification}</span>
+                                </div>
+                                <Progress value={parseInt(marketMood.value)} className={`h-3 bg-secondary ${moodColor.replace("bg-", "text-")}`} indicatorClassName={moodColor} />
+                                <p className="text-xs text-muted-foreground pt-1">
+                                    {moodValue < 25 ? "Use Sniper Mode (Buy Dips)" : moodValue > 75 ? "Use Caution (Tighten Stops)" : "Standard Strategy Active"}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="h-[88px] flex items-center justify-center animate-pulse">
+                                <span className="text-muted-foreground">Analysing Market...</span>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* 3. Bot Control */}
+                <div className="md:col-span-1">
                     <BotConfiguration />
                 </div>
             </div>
