@@ -5,7 +5,6 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 
 export function PortfolioOverview() {
-    // Removed 'activeHistory' (was incorrect)
     const { portfolio, balance, history } = useSimulator()
     const [activeTab, setActiveTab] = useState<"simulator" | "real">("simulator")
 
@@ -19,26 +18,52 @@ export function PortfolioOverview() {
     const realHistory = history || []
 
     // Ensure we always have a line to draw
-    // If we have history > 1 point, use it.
-    // If not (e.g. just started), generate a "flat line" or minimal history based on current worth
-    let activeData;
+    // Strategy: Always show a "Full Graph" (e.g. last 24h or ~24 points)
+    // If real history is sparse (< 24 points), prepend flat-line data to fill the void.
     
-    if (realHistory.length > 1) {
-        activeData = realHistory.map(point => ({
-            date: new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            simulator: point.total_equity_usdt,
-            real: 0
+    let activeData = [];
+    const MIN_POINTS = 24; // Cover at least ~24 visual steps
+    
+    if (realHistory.length === 0) {
+        // Scenario A: Zero History -> Full Mock
+        // Generate points for the last 24 hours ending NOW
+        activeData = Array.from({ length: MIN_POINTS }).map((_, i) => ({
+             date: new Date(Date.now() - (MIN_POINTS - 1 - i) * 60 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+             simulator: simulatorNetWorth, // Flat line
+             real: 0
         }));
     } else {
-        // Generate a 24-point flat line (or slightly organic) ending at current net worth
-        activeData = Array.from({ length: 24 }).map((_, i) => {
-            const date = new Date(Date.now() - (23 - i) * 60 * 60 * 1000) // Last 24h
-            return {
-                date: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                simulator: simulatorNetWorth, // Flat line at current value
-                real: 0
-            }
-        })
+        // Scenario B: Some History -> Pad it if needed
+        const mappedHistory = realHistory.map(point => ({
+            date: new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            simulator: point.total_equity_usdt,
+            real: 0,
+            originalTimestamp: new Date(point.timestamp).getTime()
+        }));
+
+        if (mappedHistory.length < MIN_POINTS) {
+            const missingCount = MIN_POINTS - mappedHistory.length;
+            const firstPoint = mappedHistory[0];
+            const firstVal = firstPoint.simulator;
+            const firstTime = firstPoint.originalTimestamp;
+
+            // Generate padding BEFORE the first real point
+            const padding = Array.from({ length: missingCount }).map((_, i) => {
+                 // Go back in steps of 1 hour from the first real point
+                 // offset = (missingCount - i) * 1 hour
+                 const time = firstTime - ((missingCount - i) * 60 * 60 * 1000);
+                 return {
+                     date: new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                     simulator: firstVal, // Assumption: Balance was same before
+                     real: 0
+                 };
+            });
+            
+            activeData = [...padding, ...mappedHistory];
+        } else {
+            // Enough history, just show it
+            activeData = mappedHistory;
+        }
     }
 
     return (
