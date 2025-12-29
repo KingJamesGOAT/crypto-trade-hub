@@ -52,16 +52,16 @@ export function BotDashboard() {
                     Live Neural Terminal
                 </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-0 p-0 font-mono text-xs">
-                <ScrollArea className="h-full p-4">
-                    {logs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50 gap-2">
-                            <Activity className="h-8 w-8 animate-pulse" />
-                            <span>Waiting for Ghost Bot signal...</span>
-                        </div>
-                    ) : (
-                        <div className="space-y-1.5">
-                            {logs.map((log) => (
+            <CardContent className="flex-1 min-h-0 p-0 font-mono text-xs relative">
+                <ScrollArea className="h-full w-full">
+                    <div className="p-4 space-y-1.5">
+                        {logs.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50 gap-2 min-h-[400px]">
+                                <Activity className="h-8 w-8 animate-pulse" />
+                                <span>Waiting for Ghost Bot signal...</span>
+                            </div>
+                        ) : (
+                            logs.map((log) => (
                                 <div key={log.id} className="flex gap-3 border-l-2 border-white/5 pl-3 hover:bg-white/5 p-1 rounded transition-colors">
                                     <span className="text-muted-foreground w-20 shrink-0 opacity-50">
                                         {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -75,9 +75,9 @@ export function BotDashboard() {
                                         {log.message}
                                     </span>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                            ))
+                        )}
+                    </div>
                 </ScrollArea>
             </CardContent>
         </Card>

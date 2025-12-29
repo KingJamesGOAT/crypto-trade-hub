@@ -12,7 +12,7 @@ import { useBinanceStream } from "@/hooks/useBinanceStream"
 import axios from 'axios'
 import { Progress } from "@/components/ui/progress"
 
-const WATCHLIST_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"]
+const WATCHLIST_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "SUIUSDT", "TRXUSDT", "LINKUSDT"]
 
 // Helper for flashing numbers
 function PriceDisplay({ price }: { price?: number }) {
