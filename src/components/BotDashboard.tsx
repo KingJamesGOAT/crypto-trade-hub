@@ -45,14 +45,14 @@ export function BotDashboard() {
     }, [])
 
     return (
-        <Card className="h-[600px] flex flex-col border-primary/20 bg-black/40 backdrop-blur-md">
+        <Card className="h-[600px] flex flex-col border-primary/20 bg-black/40 backdrop-blur-md overflow-hidden">
             <CardHeader className="border-b border-white/10 bg-black/20">
                 <CardTitle className="flex items-center gap-2 text-sm font-mono text-muted-foreground uppercase tracking-wider">
                     <Terminal className="h-4 w-4 text-green-500" />
                     Live Neural Terminal
                 </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 p-0 font-mono text-xs">
+            <CardContent className="flex-1 min-h-0 p-0 font-mono text-xs">
                 <ScrollArea className="h-full p-4">
                     {logs.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50 gap-2">
