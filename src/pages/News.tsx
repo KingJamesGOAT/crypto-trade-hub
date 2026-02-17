@@ -16,6 +16,10 @@ const isArticleImportant = (item: NewsArticle) => {
     return text.includes("etf") || text.includes("sec") || text.includes("regulation") || text.includes("hack") || text.includes("all-time high") || text.includes("trump") || text.includes("federal reserve");
 };
 
+import { MarketIntelligence } from "@/components/MarketIntelligence";
+
+// ... existing imports ...
+
 export function News() {
   const { articles, loading, refreshNews } = useNews();
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
@@ -24,21 +28,22 @@ export function News() {
   const importantNews = articles.filter(isArticleImportant);
 
   return (
-    <div className="space-y-6 pb-12 max-w-7xl mx-auto">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-           <div>
-             <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-                Market Intelligence
+    <div className="space-y-6 pb-12 max-w-7xl mx-auto p-4 md:p-8">
+        {/* Market Intelligence Header */}
+        <div className="h-[280px]">
+            <MarketIntelligence />
+        </div>
+
+        {/* Header Section (Legacy - kept for refresh button) */}
+        <div className="flex items-center justify-between gap-4">
+             <h2 className="text-xl font-bold flex items-center gap-2">
+                 <ListFilter className="h-5 w-5 text-blue-500" />
+                 Global News Feed
              </h2>
-             <p className="text-muted-foreground mt-1">
-                Algorithmic sentiment analysis and real-time aggregation.
-             </p>
-           </div>
-           <Button variant="outline" size="sm" onClick={refreshNews} disabled={loading} className="w-fit">
-              <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh Data
-           </Button>
+             <Button variant="outline" size="sm" onClick={refreshNews} disabled={loading} className="w-fit">
+               <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+               Refresh
+            </Button>
         </div>
 
         {/* Section 1: The "Brains" (Dashboard) */}

@@ -1,4 +1,4 @@
-import { BarChart2, BookOpen, Home, Settings, Terminal, Newspaper } from "lucide-react"
+import { Home, Terminal, Newspaper } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -6,11 +6,11 @@ import { useAuth } from "@/context/AuthContext"
 
 const navigation = [
   { name: "Dashboard", href: "/home", icon: Home, protected: true },
-  { name: "Learning", href: "/learning", icon: BookOpen, protected: false },
+  // { name: "Learning", href: "/learning", icon: BookOpen, protected: false },
   { name: "Paper Trading", href: "/simulator", icon: Terminal, protected: true },
-  { name: "Backtesting", href: "/backtest", icon: BarChart2, protected: true },
+  // { name: "Backtesting", href: "/backtest", icon: BarChart2, protected: true },
   { name: "News", href: "/news", icon: Newspaper, protected: true },
-  { name: "Settings", href: "/settings", icon: Settings, protected: true },
+  // { name: "Settings", href: "/settings", icon: Settings, protected: true },
 ]
 
 interface SidebarProps {
