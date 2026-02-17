@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { LineChart, Line, ResponsiveContainer } from "recharts"
+import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts"
 import type { CoinMarketData } from "@/api/coingecko"
 import { getTopCoins } from "@/api/coingecko"
 import { Activity } from "lucide-react"
+import { CoinDetailModal } from "./CoinDetailModal"
 
 export function MarketOverviewTable() {
     const [coins, setCoins] = useState<CoinMarketData[]>([])
     const [loading, setLoading] = useState(true)
+    const [selectedCoin, setSelectedCoin] = useState<CoinMarketData | null>(null)
 
     useEffect(() => {
         const fetchMarket = async () => {
@@ -36,6 +38,7 @@ export function MarketOverviewTable() {
                 <Table>
                     <TableHeader className="bg-muted/20">
                         <TableRow className="hover:bg-transparent">
+                            <TableHead className="w-[50px]">#</TableHead>
                             <TableHead className="w-[200px]">Asset</TableHead>
                             <TableHead className="text-right">Price</TableHead>
                             <TableHead className="text-right">1h %</TableHead>
@@ -54,7 +57,14 @@ export function MarketOverviewTable() {
                             const chartColor = coin.price_change_percentage_7d_in_currency >= 0 ? "#10b981" : "#ef4444"
 
                             return (
-                                <TableRow key={coin.id} className="hover:bg-muted/10 border-border/50 transition-colors">
+                                <TableRow 
+                                    key={coin.id} 
+                                    className="hover:bg-muted/10 border-border/50 transition-colors cursor-pointer"
+                                    onClick={() => setSelectedCoin(coin)}
+                                >
+                                    <TableCell className="font-mono text-muted-foreground text-xs">
+                                        {coin.market_cap_rank}
+                                    </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <img src={coin.image} alt={coin.name} className="h-8 w-8 rounded-full" />
@@ -96,6 +106,7 @@ export function MarketOverviewTable() {
                                                         strokeWidth={2} 
                                                         dot={false} 
                                                     />
+                                                    <YAxis domain={['dataMin', 'dataMax']} hide />
                                                 </LineChart>
                                             </ResponsiveContainer>
                                         </div>
@@ -106,6 +117,12 @@ export function MarketOverviewTable() {
                     </TableBody>
                 </Table>
             </CardContent>
+
+            <CoinDetailModal 
+                isOpen={!!selectedCoin}
+                onClose={() => setSelectedCoin(null)}
+                coin={selectedCoin}
+            />
         </Card>
     )
 }
