@@ -20,7 +20,7 @@ export function AIChat() {
     if (isAuthenticated && messages.length === 0) {
        setMessages([{ 
          role: "model", 
-         content: `**Online.** I'm connected to the CryptoHub Engine. Ask me about the current *Strategy Logic*, *Backtest results*, or market trends.` 
+         content: `**Online.** I'm connected to CryptoTradeHub. Ask me entirely about the *Market Strategy*, *Scout Performance*, or trend analysis.` 
        }]);
     }
   }, [isAuthenticated]);
@@ -68,7 +68,7 @@ export function AIChat() {
             <Bot className="h-6 w-6 text-blue-400 group-hover:text-white transition-colors" />
             <span className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-slate-950"></span>
         </div>
-        <span className="text-sm font-semibold text-slate-200 group-hover:text-white pr-1">AI Analyst</span>
+        <span className="text-sm font-semibold text-slate-200 group-hover:text-white pr-1">Hub AI</span>
       </button>
     );
   }
@@ -84,10 +84,10 @@ export function AIChat() {
                 <Zap className="h-4 w-4 text-blue-400 fill-blue-400" />
             </div>
             <div>
-                <h3 className="text-sm font-bold text-white">Hub Intelligence</h3>
+                <h3 className="text-sm font-bold text-white">CryptoTradeHub AI</h3>
                 <p className="text-[10px] text-green-400 flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"/> 
-                    System Active
+                    Systems Online
                 </p>
             </div>
         </div>
