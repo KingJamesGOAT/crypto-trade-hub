@@ -33,10 +33,7 @@ export function Header({ toggleSidebar }: HeaderProps) {
         </Button>
         
         <div className="flex items-center gap-2 mr-4">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <span className="font-bold text-white">C</span>
-            </div>
-            <span className="font-bold tracking-tight hidden md:inline-block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+            <span className="text-lg font-bold tracking-tight hidden md:inline-block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
                 CryptoTradeHub
             </span>
         </div>
@@ -52,9 +49,6 @@ export function Header({ toggleSidebar }: HeaderProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Logged in as {username || 'User'}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/settings")}>Settings</DropdownMenuItem>
-                <DropdownMenuItem>Support</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
                     <LogOut className="mr-2 h-4 w-4" />
