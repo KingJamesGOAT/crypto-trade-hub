@@ -9,7 +9,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   // 1. PINNED STATE: Does the sidebar push content? (Persisted)
-  const [isSidebarPinned, setIsSidebarPinned] = useState(() => {
+  const [isSidebarPinned] = useState(() => {
      if (typeof window !== 'undefined') {
          const saved = localStorage.getItem("sidebar_pinned")
          return saved !== null ? saved === 'true' : true
@@ -44,10 +44,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* FIXED TOP HEADER */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <Header 
-            onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            onDesktopToggle={() => setIsSidebarPinned(!isSidebarPinned)} 
-            onMenuHover={handleHoverOpen} 
-            onMenuLeave={handleHoverClose}
+            toggleSidebar={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
         />
       </div>
 
