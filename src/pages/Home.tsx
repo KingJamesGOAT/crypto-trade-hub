@@ -6,6 +6,8 @@ import { FearMeter } from "@/components/FearMeter"
 import { HypeCloud } from "@/components/HypeCloud"
 import { MarketOverviewTable } from "@/components/MarketOverviewTable"
 
+import { CompactNewsFeed } from "@/components/CompactNewsFeed"
+
 export function Home() {
     return (
         <div className="space-y-6 pb-10 max-w-[1600px] mx-auto p-4 md:p-8 pt-6 min-h-screen animate-in fade-in duration-500">
@@ -15,6 +17,7 @@ export function Home() {
                     <DailyBriefingCard />
                 </div>
                 <div className="space-y-6">
+                    <CompactNewsFeed />
                     <FearMeter sentiment={40} /> {/* Dynamic prop later */}
                     <HypeCloud />
                 </div>
