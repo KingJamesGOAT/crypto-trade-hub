@@ -100,14 +100,14 @@ export function Simulator() {
             </div>
 
             {/* MIDDLE ROW: Active Positions */}
-            <Card className="border-white/10 bg-black/40 backdrop-blur-md shadow-sm overflow-hidden min-h-[300px]">
-                <CardHeader className="bg-white/5 border-b border-white/5 py-3">
-                    <CardTitle className="flex items-center gap-2 text-sm text-white font-mono uppercase tracking-wider">
+            <div className="rounded-xl border border-white/10 bg-black/40 backdrop-blur-md overflow-hidden min-h-[300px]">
+                <div className="bg-white/5 border-b border-white/5 py-3 px-6">
+                    <h3 className="flex items-center gap-2 text-sm text-white font-mono uppercase tracking-wider">
                         <Layers className="h-4 w-4 text-blue-400" />
                         Active Vector Allocations
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
+                    </h3>
+                </div>
+                <div className="p-0">
                     {portfolio.length === 0 ? (
                         <div className="h-40 flex flex-col items-center justify-center text-muted-foreground opacity-50 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-5">
                             <Activity className="h-10 w-10 mb-2 animate-pulse text-blue-500" />
@@ -180,8 +180,8 @@ export function Simulator() {
                             </TableBody>
                         </Table>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* BOTTOM ROW: Terminal & Watchlist */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[400px]">

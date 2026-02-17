@@ -17,13 +17,16 @@ export function analyzeMarketSentiment(articles: NewsArticle[]): { mode: Sentime
     const text = (article.title + " " + article.body).toLowerCase();
     
     // Weight "Title" matches higher (x2) than body matches
+    // Heavy weights (x3) for high impact words
     BULLISH_KEYWORDS.forEach(word => {
-        if (article.title.toLowerCase().includes(word)) score += 2;
+        const weight = ["launch", "etf", "approval"].includes(word) ? 3 : 2;
+        if (article.title.toLowerCase().includes(word)) score += weight;
         else if (text.includes(word)) score += 1;
     });
 
     BEARISH_KEYWORDS.forEach(word => {
-        if (article.title.toLowerCase().includes(word)) score -= 2;
+        const weight = ["hack", "ban", "sec", "lawsuit"].includes(word) ? 3 : 2;
+        if (article.title.toLowerCase().includes(word)) score -= weight;
         else if (text.includes(word)) score -= 1;
     });
   });

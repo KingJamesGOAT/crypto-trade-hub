@@ -4,6 +4,7 @@ import { PnLChart } from "@/components/PnLChart"
 import { WinLossChart } from "@/components/WinLossChart"
 import { FearMeter } from "@/components/FearMeter"
 import { HypeCloud } from "@/components/HypeCloud"
+import { MarketOverviewTable } from "@/components/MarketOverviewTable"
 
 export function Home() {
     return (
@@ -38,6 +39,11 @@ export function Home() {
             </h2>
             <div className="min-h-[300px]">
                 <ActiveTradesTable />
+            </div>
+
+            {/* 4. MARKET OVERVIEW */}
+            <div className="pt-8">
+                <MarketOverviewTable />
             </div>
         </div>
     )

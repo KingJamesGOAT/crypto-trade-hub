@@ -1,6 +1,6 @@
-import { Bell, Search, Menu, User, LogOut } from "lucide-react"
+import { Menu, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,29 +33,16 @@ export function Header({ toggleSidebar }: HeaderProps) {
         </Button>
         
         <div className="flex items-center gap-2 mr-4">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="font-bold text-primary-foreground">G</span>
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <span className="font-bold text-white">C</span>
             </div>
-            <span className="font-bold tracking-tight hidden md:inline-block">GHOST PROTOCOL</span>
+            <span className="font-bold tracking-tight hidden md:inline-block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+                CryptoTradeHub
+            </span>
         </div>
 
         <div className="flex flex-1 items-center justify-end space-x-4">
-          <div className="w-full max-w-sm hidden md:block">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search markets..."
-                className="pl-8 w-full bg-background"
-              />
-            </div>
-          </div>
-          
           <nav className="flex items-center space-x-2">
-            <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 animate-pulse border border-background"></span>
-            </Button>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
