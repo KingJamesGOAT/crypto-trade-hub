@@ -42,7 +42,7 @@ function App() {
                 <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
                 <Route path="/backtest" element={<ProtectedRoute><Backtest /></ProtectedRoute>} />
               <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
-              <Route path="/learning" element={<ProtectedRoute><Learning /></ProtectedRoute>} />
+              <Route path="/learning" element={<Learning />} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 
                 {/* Redirect root based on role */}
