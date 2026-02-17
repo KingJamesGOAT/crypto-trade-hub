@@ -19,6 +19,7 @@ interface Briefing {
 
 export function MarketIntelligence() {
     const [briefing, setBriefing] = useState<Briefing | null>(null)
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         if (!supabase) return
@@ -27,21 +28,46 @@ export function MarketIntelligence() {
             const { data } = await supabase
                 .from('market_briefings')
                 .select('*')
-                .order('id', { ascending: false })
+                .order('created_at', { ascending: false })
                 .limit(1)
                 .single()
             
             if (data) setBriefing(data)
+            setLoading(false)
         }
 
         fetchLatest()
+
+        // Realtime subscription for new briefings
+        const channel = supabase
+            .channel('market_briefings_realtime')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'market_briefings' }, (payload) => {
+                setBriefing(payload.new as Briefing)
+            })
+            .subscribe()
+            
+        return () => { supabase.removeChannel(channel) }
     }, [])
+
+    if (loading) {
+         return (
+            <Card className="h-full border-border bg-card shadow-sm opacity-50">
+                <CardHeader><CardTitle className="text-sm">Market Intelligence</CardTitle></CardHeader>
+                <CardContent className="text-xs animate-pulse">Establishing uplink to Headquarters...</CardContent>
+            </Card>
+        )
+    }
 
     if (!briefing) {
         return (
-            <Card className="h-full border-border bg-card shadow-sm opacity-50">
-                <CardHeader><CardTitle className="text-sm">Market Intelligence</CardTitle></CardHeader>
-                <CardContent className="text-xs">Initializing Neural Link...</CardContent>
+            <Card className="h-full border-purple-500/20 bg-black/40 backdrop-blur-md shadow-sm">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-mono text-purple-400 uppercase">AI Market Intelligence</CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs text-muted-foreground flex flex-col items-center justify-center h-[150px]">
+                    <Newspaper className="h-8 w-8 mb-2 opacity-20" />
+                    Waiting for Analyst Briefing...
+                </CardContent>
             </Card>
         )
     }
