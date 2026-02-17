@@ -142,11 +142,11 @@ export function Simulator() {
                         Active Vector Allocations
                     </h3>
                 </div>
-                <div className="p-0">
+                <div className="p-0 flex-1 flex flex-col">
                     {portfolio.length === 0 ? (
-                        <div className="h-40 flex flex-col items-center justify-center text-muted-foreground opacity-50 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-5">
-                            <Activity className="h-10 w-10 mb-2 animate-pulse text-blue-500" />
-                            <p className="font-mono text-xs">Awaiting Entry Signals...</p>
+                        <div className="flex-1 flex flex-col items-center justify-center min-h-[300px] text-muted-foreground/50">
+                            <Activity className="h-12 w-12 mb-3 animate-pulse text-blue-500/50" />
+                            <p className="font-mono text-sm uppercase tracking-widest">Awaiting Entry Signals...</p>
                         </div>
                     ) : (
                         <Table>
