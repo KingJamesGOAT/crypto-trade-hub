@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext"
 const navigation = [
   { name: "Dashboard", href: "/home", icon: Home, protected: true },
   { name: "Learning", href: "/learning", icon: BookOpen, protected: false },
-  { name: "Simulator", href: "/simulator", icon: Terminal, protected: true },
+  { name: "Paper Trading", href: "/simulator", icon: Terminal, protected: true },
   { name: "Backtesting", href: "/backtest", icon: BarChart2, protected: true },
   { name: "News", href: "/news", icon: Newspaper, protected: true },
   { name: "Settings", href: "/settings", icon: Settings, protected: true },

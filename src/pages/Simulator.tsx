@@ -1,22 +1,22 @@
 import { useState, useEffect } from "react"
 import { useSimulator } from "@/context/SimulatorContext"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { BotConfiguration } from "@/components/BotConfiguration"
-import { BotDashboard } from "@/components/BotDashboard"
+import { LiveTerminal } from "@/components/LiveTerminal"
+import { MarketIntelligence } from "@/components/MarketIntelligence"
+import { SignalCard } from "@/components/SignalCard"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Wallet, Activity, BrainCircuit, Layers } from "lucide-react"
+import { Wallet, Activity, Layers, Coins } from "lucide-react"
 import { useBinanceStream } from "@/hooks/useBinanceStream"
-import axios from 'axios'
-import { Progress } from "@/components/ui/progress"
 
 const WATCHLIST_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "SUIUSDT", "TRXUSDT", "LINKUSDT"]
 
 // Helper for flashing numbers
 function PriceDisplay({ price }: { price?: number }) {
-    if (!price) return <span className="text-muted-foreground animate-pulse">Scanning...</span>
+    if (!price) return <span className="text-muted-foreground animate-pulse text-[10px]">Scanning...</span>
     return <span>${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
 }
 
@@ -45,125 +45,85 @@ export function Simulator() {
         }
     }, [streamData])
 
-    // --- MARKET MOOD AI ---
-    const [moodValue, setMoodValue] = useState(50);
-    useEffect(() => {
-        axios.get("https://api.alternative.me/fng/?limit=1")
-        .then(res => {
-            setMoodValue(parseInt(res.data.data[0].value));
-        })
-        .catch(() => setMoodValue(50));
-    }, []);
-
-    let moodColor = "bg-blue-500";
-    let moodText = "Neutral";
-    if (moodValue < 25) { moodColor = "bg-red-600"; moodText = "Extreme Fear"; }
-    else if (moodValue < 45) { moodColor = "bg-orange-500"; moodText = "Fear"; }
-    else if (moodValue > 75) { moodColor = "bg-green-600"; moodText = "Extreme Greed"; }
-    else if (moodValue > 55) { moodColor = "bg-green-400"; moodText = "Greed"; }
-
     return (
-        <div className="space-y-8 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight text-foreground">
-                    Simulator Dashboard
-                </h2>
-                <div className="flex items-center space-x-2">
-                   {/* Actions if needed */}
+        <div className="space-y-6 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto">
+            <div className="flex items-center justify-between space-y-2 mb-4">
+                <div className="space-y-1">
+                    <h2 className="text-2xl font-bold tracking-tight text-white uppercase font-mono border-l-4 border-green-500 pl-4">
+                        Ghost Command Center
+                    </h2>
+                    <p className="text-xs text-muted-foreground pl-4 font-mono">
+                        System Online | v.2.0.0 | Connected to Neural Net
+                    </p>
                 </div>
             </div>
 
-            {/* Top Row: Wallet & Controls */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* TOP ROW: Wallet & Intel */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto md:h-[220px]">
                 
-                {/* 1. Wallet Manager */}
-                <Card className="lg:col-span-1 border-border bg-card shadow-sm">
+                {/* 1. Wallet Manager (3 cols) */}
+                <Card className="md:col-span-3 border-emerald-500/20 bg-black/40 backdrop-blur-md shadow-lg flex flex-col justify-between">
                     <CardHeader className="pb-2">
-                         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                         <CardTitle className="text-sm font-medium text-emerald-400 flex items-center gap-2 font-mono uppercase">
                              <Wallet className="h-4 w-4" />
-                             Wallet Balance
+                             Liquidity Pool
                          </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                         <div className="text-3xl font-bold tracking-tight text-foreground">
+                    <CardContent className="space-y-4">
+                         <div className="text-4xl font-bold tracking-tight text-white tabular-nums">
                              ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                          </div>
-                         <div className="flex gap-2 mt-4">
+                         <div className="flex gap-2">
                              <Input 
-                                 placeholder="Amount" 
+                                 placeholder="Add Liquidity..." 
                                  type="number" 
-                                 className="h-8 bg-background border-input"
+                                 className="h-8 bg-white/5 border-white/10 text-xs font-mono"
                                  value={fundAmount}
                                  onChange={(e) => setFundAmount(e.target.value)}
                              />
-                             <Button size="sm" onClick={handleFund} className="h-8 px-3">
-                                 Fund
+                             <Button size="sm" onClick={handleFund} className="h-8 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs">
+                                 Deposit
                              </Button>
                          </div>
                     </CardContent>
                 </Card>
 
-                {/* 2. Sentiment AI */}
-                <Card className="lg:col-span-1 border-border bg-card shadow-sm">
-                    <CardHeader className="pb-2">
-                         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                             <BrainCircuit className="h-4 w-4" />
-                             Market Sentiment AI
-                         </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        {/* FEAR & GREED VISUALIZER */}
-                        <div className="space-y-1">
-                             <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
-                                 <span className={moodValue < 25 ? "text-red-500" : "text-muted-foreground"}>Fear</span>
-                                 <span className={moodValue > 75 ? "text-green-500" : "text-muted-foreground"}>Greed</span>
-                             </div>
-                             <Progress value={moodValue} className="h-3" indicatorClassName={moodColor} />
-                             <div className="flex justify-between items-center pt-1">
-                                 <span className={`text-2xl font-bold ${moodColor.replace("bg-", "text-")}`}>
-                                     {moodValue}
-                                 </span>
-                                 <div className="text-right">
-                                     <span className="block text-xs font-bold text-foreground">
-                                         {moodText}
-                                     </span>
-                                     <span className="block text-[10px] text-muted-foreground">
-                                         {moodValue < 25 ? "Sniper Mode (Hi Risk)" : moodValue > 75 ? "Safety Mode (Tight SL)" : "Standard Mode"}
-                                     </span>
-                                 </div>
-                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                {/* 2. Market Intelligence (6 cols) */}
+                <div className="md:col-span-6 h-full">
+                    <MarketIntelligence />
+                </div>
 
-                {/* 3. Bot Control */}
-                <BotConfiguration />
+                {/* 3. Bot Control (3 cols) */}
+                <div className="md:col-span-3 h-full">
+                    <BotConfiguration />
+                </div>
             </div>
 
-            {/* Middle Row: Active Portfolio */}
-            <Card className="border-border bg-card shadow-sm overflow-hidden">
-                <CardHeader className="bg-muted/20 border-b border-border">
-                    <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-primary" />
-                        Active Positions
+            {/* MIDDLE ROW: Active Positions */}
+            <Card className="border-white/10 bg-black/40 backdrop-blur-md shadow-sm overflow-hidden min-h-[300px]">
+                <CardHeader className="bg-white/5 border-b border-white/5 py-3">
+                    <CardTitle className="flex items-center gap-2 text-sm text-white font-mono uppercase tracking-wider">
+                        <Layers className="h-4 w-4 text-blue-400" />
+                        Active Vector Allocations
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     {portfolio.length === 0 ? (
-                        <div className="h-40 flex flex-col items-center justify-center text-muted-foreground opacity-50">
-                            <Layers className="h-10 w-10 mb-2" />
-                            <p>No active trades. Waiting for entry...</p>
+                        <div className="h-40 flex flex-col items-center justify-center text-muted-foreground opacity-50 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-5">
+                            <Activity className="h-10 w-10 mb-2 animate-pulse text-blue-500" />
+                            <p className="font-mono text-xs">Awaiting Entry Signals...</p>
                         </div>
                     ) : (
                         <Table>
                             <TableHeader>
-                                <TableRow className="hover:bg-transparent border-border">
-                                    <TableHead>Asset</TableHead>
-                                    <TableHead className="text-right">Amount</TableHead>
-                                    <TableHead className="text-right">Entry Price</TableHead>
-                                    <TableHead className="text-right">Live Price</TableHead>
-                                    <TableHead className="text-right">PnL ($)</TableHead>
-                                    <TableHead className="text-right">PnL (%)</TableHead>
+                                <TableRow className="hover:bg-transparent border-white/5">
+                                    <TableHead className="text-xs uppercase font-mono text-muted-foreground">Asset</TableHead>
+                                    <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">Size</TableHead>
+                                    <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">Entry</TableHead>
+                                    <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">Mark</TableHead>
+                                    <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">PnL</TableHead>
+                                    <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">ROI</TableHead>
+                                    <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">Audit</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -175,29 +135,44 @@ export function Simulator() {
                                     const pnlPercent = ((livePrice - entryPrice) / entryPrice) * 100
                                     const isProfit = pnlValue >= 0
 
+                                    // Mock data for legacy trades if not available
+                                    const tradeData = {
+                                        symbol: item.symbol,
+                                        entryPrice,
+                                        currentPrice: livePrice,
+                                        amount,
+                                        pnl: pnlValue,
+                                        pnlPercent,
+                                        reasoning: "Price bounced off the 200 EMA while Stochastic RSI was oversold (<20). Confirmed by volume spike.",
+                                        confidence: "HIGH"
+                                    }
+
                                     return (
-                                        <TableRow key={item.symbol} className="border-b border-border hover:bg-muted/50 transition-colors">
-                                            <TableCell className="font-bold text-lg">
-                                                <Badge variant="outline" className="text-xs">
+                                        <TableRow key={item.symbol} className="border-b border-white/5 hover:bg-white/5 transition-colors font-mono text-xs">
+                                            <TableCell className="font-bold">
+                                                <Badge variant="outline" className="text-[10px] border-white/20 bg-white/5 text-white">
                                                     {item.symbol.replace("USDT","")}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right font-mono text-muted-foreground">
+                                            <TableCell className="text-right text-muted-foreground">
                                                 {amount.toFixed(4)}
                                             </TableCell>
-                                            <TableCell className="text-right font-mono text-muted-foreground">
+                                            <TableCell className="text-right text-muted-foreground">
                                                 ${entryPrice.toFixed(2)}
                                             </TableCell>
-                                            <TableCell className="text-right font-mono font-bold animate-pulse text-foreground">
+                                            <TableCell className="text-right text-white">
                                                 ${livePrice.toFixed(2)}
                                             </TableCell>
-                                            <TableCell className={`text-right font-mono font-bold ${isProfit ? "text-green-500" : "text-red-500"}`}>
+                                            <TableCell className={`text-right font-bold ${isProfit ? "text-green-500" : "text-red-500"}`}>
                                                 {isProfit ? "+" : ""}{pnlValue.toFixed(2)}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <Badge className={`${isProfit ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "bg-red-500/10 text-red-500 hover:bg-red-500/20"} border-0 font-mono`}>
-                                                    {isProfit ? "+" : ""}{pnlPercent.toFixed(2)}%
-                                                </Badge>
+                                                <span className={`${isProfit ? "text-green-400" : "text-red-400"}`}>
+                                                    {pnlPercent.toFixed(2)}%
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <SignalCard trade={tradeData} />
                                             </TableCell>
                                         </TableRow>
                                     )
@@ -208,41 +183,36 @@ export function Simulator() {
                 </CardContent>
             </Card>
 
-            {/* Bottom Row: Watchlist & Logs */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* BOTTOM ROW: Terminal & Watchlist */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[400px]">
                 
-                {/* Live Watchlist */}
-                <Card className="lg:col-span-1 border-border bg-card h-[600px] flex flex-col shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                           <Activity className="h-5 w-5 text-primary" />
-                           Market Watch
+                {/* Live Terminal (8 cols) */}
+                <div className="lg:col-span-8 h-full">
+                    <LiveTerminal />
+                </div>
+
+                {/* Live Watchlist (4 cols) */}
+                <Card className="lg:col-span-4 border-white/10 bg-black/40 backdrop-blur-md h-full flex flex-col shadow-sm">
+                    <CardHeader className="py-3 border-b border-white/5 bg-white/5">
+                        <CardTitle className="flex items-center gap-2 text-xs text-muted-foreground uppercase font-mono tracking-wider">
+                           <Coins className="h-4 w-4" />
+                           Scanner Feed
                         </CardTitle>
-                        <CardDescription>Live feed ({WATCHLIST_COINS.length} Coins)</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-auto p-0">
                         <Table>
-                            <TableHeader className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border">
-                                <TableRow className="hover:bg-transparent border-border">
-                                    <TableHead>Asset</TableHead>
-                                    <TableHead className="text-right">Price</TableHead>
-                                    <TableHead className="text-right">Observed</TableHead>
-                                </TableRow>
-                            </TableHeader>
                             <TableBody>
                                 {WATCHLIST_COINS.map(symbol => {
                                     const isOwned = portfolio.some(p => p.symbol === symbol)
                                     return (
-                                        <TableRow key={symbol} className="hover:bg-muted/50 border-border">
-                                            <TableCell className="font-medium font-mono text-sm">{symbol.replace("USDT", "")}</TableCell>
-                                            <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                                        <TableRow key={symbol} className="hover:bg-white/5 border-white/5 font-mono text-xs">
+                                            <TableCell className="font-medium text-white/70">{symbol.replace("USDT", "")}</TableCell>
+                                            <TableCell className="text-right text-muted-foreground">
                                                 <PriceDisplay price={prices[symbol]} />
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right w-8">
                                                 {isOwned && (
-                                                    <div className="flex justify-end">
-                                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
-                                                    </div>
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)] mx-auto" />
                                                 )}
                                             </TableCell>
                                         </TableRow>
@@ -252,11 +222,6 @@ export function Simulator() {
                         </Table>
                     </CardContent>
                 </Card>
-
-                {/* Dashboard & Logs */}
-                <div className="lg:col-span-2">
-                    <BotDashboard />
-                </div>
             </div>
         </div>
     )

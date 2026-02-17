@@ -39,9 +39,20 @@ interface CoinScope {
 
 // --- HELPERS ---
 
+async function logToTerminal(message: string, level: 'info' | 'success' | 'error' = 'info', meta?: any) {
+    console.log(message); // Keep console for GitHub Actions
+    // Write to Supabase for Frontend Terminal
+    await supabase.from('bot_logs').insert({ 
+        message, 
+        level, 
+        meta,
+        created_at: new Date().toISOString() 
+    });
+}
+
 async function log(message: string) {
-    console.log(message);
-    await supabase.from('sim_logs').insert({ message, timestamp: new Date().toISOString() });
+    await logToTerminal(message, 'info');
+    // Legacy support for sim_logs if still needed, otherwise bot_logs replaces it
 }
 
 async function getTrendingCoins(): Promise<CoinScope[]> {
@@ -83,7 +94,6 @@ async function getCandles(symbol: string, limit: number = 300): Promise<Candle[]
         // If Geo-Restricted (likely 451 or 403), try Binance.US
         if (e.response?.status === 451 || e.response?.status === 403) {
             try {
-                // console.log(`   🇺🇸 Switching to Binance.US for ${symbol}...`);
                 return await fetchFrom("https://api.binance.us");
             } catch (e2) {
                 console.log(`⚠️ Coin ${symbol} not found on Binance.US either.`);
@@ -99,7 +109,7 @@ async function getCandles(symbol: string, limit: number = 300): Promise<Candle[]
 
 async function runBot() {
     console.log(`\n👻 GHOST ENGINE AI ACTIVATED... [${new Date().toISOString()}]`);
-    await log("👻 Ghost Engine AI Scan Started...");
+    await logToTerminal("👻 Ghost Engine AI Scan Started...", 'info');
     
     // 1. Load Settings & Portfolio
     const { data: settings } = await supabase.from('sim_settings').select('*').limit(1).single();
@@ -124,7 +134,7 @@ async function runBot() {
     
     if (tier2Coins.length > 0) {
         const symbols = tier2Coins.map(t => t.symbol).join(", ");
-        await log(`💎 Gem Hunter found: [${symbols}]`);
+        await logToTerminal(`💎 Gem Hunter found: [${symbols}]`, 'info');
     }
 
     const allCoins = [...tier1Coins, ...tier2Coins];
@@ -132,7 +142,8 @@ async function runBot() {
 
     // 3. Scan Loop
     for (const coin of allCoins) {
-        console.log(`\n🔍 Analyzing ${coin.symbol}...`);
+        // Log scanning only to console to keep terminal clean, or use verbose mode
+        // process.stdout.write(`\r🔍 Analyzing ${coin.symbol}... `); 
         
         // A. Fetch Data
         const candles = await getCandles(coin.symbol);
@@ -176,14 +187,15 @@ async function runBot() {
         // This is the "Setup" that we ask the AI to validate
         const isSetup = isUpTrend && latestStoch.k < 30;
 
-        console.log(`   -> Price: $${currentPrice.toFixed(2)} | Trend: ${isUpTrend ? 'UP' : 'DOWN'} | Stoch: ${latestStoch.k.toFixed(2)}`);
+        // Interactive logging for terminal
+        await logToTerminal(`🔍 ${coin.symbol}: $${currentPrice.toFixed(2)} | Trend: ${isUpTrend ? 'UP' : 'DOWN'} | Stoch: ${latestStoch.k.toFixed(2)}`, 'info');
 
         const holding = portfolio.find((p: any) => p.symbol === coin.symbol + "USDT");
 
         if (!holding) {
             // BUY LOGIC
             if (isSetup) {
-                console.log("   🤖 Setup Found! Asking AI Agent...");
+                await logToTerminal(`🤖 ${coin.symbol} Setup Found! Asking AI Agent...`, 'info');
                 
                 const indicators = {
                     isUpTrend,
@@ -194,7 +206,7 @@ async function runBot() {
 
                 // AI VALIDATION
                 const aiDecision = await llm.analyzeSetup(coin.symbol, currentPrice, indicators);
-                console.log(`   🧠 AI Reasoning: ${aiDecision.reasoning} (Confidence: ${aiDecision.confidence})`);
+                // console.log(`   🧠 AI Reasoning: ${aiDecision.reasoning} (Confidence: ${aiDecision.confidence})`);
 
                 if (aiDecision.decision === "BUY" && aiDecision.confidence === "HIGH") {
                     // EXECUTE BUY
@@ -208,21 +220,23 @@ async function runBot() {
                         amount, 
                         price: currentPrice, 
                         news_score: 0, // Legacy field
-                        pnl: 0 
+                        pnl: 0,
+                        ai_reasoning: aiDecision.reasoning,
+                        ai_confidence: aiDecision.confidence
                     });
 
                     currentBalance -= (amount * currentPrice);
                     tradeMade = true;
 
                     // NOTIFY
-                    await log(`✅ AI BOUGHT ${coin.symbol} | ${aiDecision.reasoning}`);
+                    await logToTerminal(`🚀 AI BOUGHT ${coin.symbol} | ${aiDecision.reasoning}`, 'success');
                     await discord.sendAlert(`🚀 AI BUY SIGNAL: ${coin.symbol}`, [
                         { name: "Price", value: `$${currentPrice}`, inline: true },
                         { name: "Reasoning", value: aiDecision.reasoning, inline: false },
                         { name: "Confidence", value: aiDecision.confidence, inline: true }
                     ], 0x00ff00);
                 } else {
-                    console.log(`   📉 AI Reject: ${aiDecision.reasoning}`);
+                    await logToTerminal(`📉 AI Reject ${coin.symbol}: ${aiDecision.reasoning}`, 'info');
                 }
             }
         } else {
