@@ -18,7 +18,7 @@ function RootRedirect() {
   const { isAuthenticated, username } = useAuth()
   return (
     <Navigate 
-      to={isAuthenticated && username === 'blackswan' ? "/simulator" : "/learning"} 
+      to={isAuthenticated && username === 'blackswan' ? "/home" : "/learning"} 
       replace 
     />
   )

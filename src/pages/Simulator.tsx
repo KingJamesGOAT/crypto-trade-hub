@@ -59,10 +59,10 @@ export function Simulator() {
             </div>
 
             {/* TOP ROW: Wallet & Intel */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto md:h-[220px]">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 
                 {/* 1. Wallet Manager (3 cols) */}
-                <Card className="md:col-span-3 border-emerald-500/20 bg-black/40 backdrop-blur-md shadow-lg flex flex-col justify-between">
+                <Card className="md:col-span-3 border-emerald-500/20 bg-black/40 backdrop-blur-md shadow-lg flex flex-col h-full">
                     <CardHeader className="pb-2">
                          <CardTitle className="text-sm font-medium text-emerald-400 flex items-center gap-2 font-mono uppercase">
                              <Wallet className="h-4 w-4" />
@@ -89,12 +89,12 @@ export function Simulator() {
                 </Card>
 
                 {/* 2. Market Intelligence (6 cols) */}
-                <div className="md:col-span-6 h-full">
+                <div className="md:col-span-6">
                     <MarketIntelligence />
                 </div>
 
                 {/* 3. Bot Control (3 cols) */}
-                <div className="md:col-span-3 h-full">
+                <div className="md:col-span-3">
                     <BotConfiguration />
                 </div>
             </div>

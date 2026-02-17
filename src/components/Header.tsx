@@ -1,10 +1,6 @@
-import { Moon, Sun, User, Search, LogOut, LogIn, Menu } from "lucide-react"
-import { useTheme } from "@/components/theme-provider"
+import { Bell, Search, Menu, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useGlossary } from "./GlossaryModal"
-import { useAuth } from "@/context/AuthContext"
-import { useState } from "react"
-import { LoginModal } from "./LoginModal"
+import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,117 +9,75 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/context/AuthContext"
+import { useNavigate } from "react-router-dom"
 
 interface HeaderProps {
-    onMenuToggle: () => void
-    onDesktopToggle?: () => void
-    onMenuHover?: () => void
-    onMenuLeave?: () => void
+    toggleSidebar: () => void
 }
 
-export function Header({ onMenuToggle, onDesktopToggle, onMenuHover, onMenuLeave }: HeaderProps) {
-  const { setTheme, theme } = useTheme()
-  const { openGlossary } = useGlossary()
-  const { isAuthenticated, username, logout } = useAuth()
-  const [showLoginModal, setShowLoginModal] = useState(false)
+export function Header({ toggleSidebar }: HeaderProps) {
+  const { username, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login")
+  }
 
   return (
-    <header className="border-b bg-card w-full">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center px-4 md:px-6">
-        <Button 
-            variant="ghost" 
-            size="icon" 
-            className="mr-2"
-            onMouseEnter={onMenuHover} // Trigger sidebar peek on hover
-            onMouseLeave={onMenuLeave} // Handle mouse leave
-            onClick={() => {
-                if (window.innerWidth >= 768) {
-                   onDesktopToggle?.()
-                } else {
-                   onMenuToggle()
-                }
-            }}
-        >
+        <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={toggleSidebar}>
             <Menu className="h-5 w-5" />
         </Button>
+        
+        <div className="flex items-center gap-2 mr-4">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <span className="font-bold text-primary-foreground">G</span>
+            </div>
+            <span className="font-bold tracking-tight hidden md:inline-block">GHOST PROTOCOL</span>
+        </div>
 
-        <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent truncate">
-          CryptoTradeHub
-        </h1>
-        <div className="ml-auto flex items-center space-x-2 md:space-x-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="hidden md:flex gap-2 text-muted-foreground w-64 justify-between"
-            onClick={openGlossary}
-          >
-            <span className="flex items-center gap-2">
-                <Search className="h-4 w-4" />
-                Search Glossary...
-            </span>
-            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                <span className="text-xs">⌘</span>K
-            </kbd>
-          </Button>
-          <Button
-             variant="ghost"
-             size="icon"
-             className="md:hidden"
-             onClick={openGlossary}
-          >
-             <Search className="h-5 w-5" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            <span className="sr-only">Toggle theme</span>
-          </Button>
+        <div className="flex flex-1 items-center justify-end space-x-4">
+          <div className="w-full max-w-sm hidden md:block">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search markets..."
+                className="pl-8 w-full bg-background"
+              />
+            </div>
+          </div>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                {isAuthenticated ? (
-                  <img 
-                    src={`${import.meta.env.BASE_URL}blackswan-logo.jpg`}
-                    alt="Black Swan" 
-                    className="h-8 w-8 rounded-full object-cover ring-2 ring-blue-500/20"
-                  />
-                ) : (
+          <nav className="flex items-center space-x-2">
+            <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 animate-pulse border border-background"></span>
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
                   <User className="h-5 w-5" />
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {isAuthenticated ? (
-                <>
-                  <DropdownMenuLabel>Logged in as {username}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="text-red-500 cursor-pointer">
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Logged in as {username || 'User'}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/settings")}>Settings</DropdownMenuItem>
+                <DropdownMenuItem>Support</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <>
-                  <DropdownMenuLabel>Not logged in</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowLoginModal(true)} className="cursor-pointer">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Admin Login
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </nav>
         </div>
       </div>
-      
-      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
     </header>
   )
 }

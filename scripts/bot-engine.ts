@@ -109,6 +109,7 @@ async function getCandles(symbol: string, limit: number = 300): Promise<Candle[]
 
 async function runBot() {
     console.log(`\n👻 GHOST ENGINE AI ACTIVATED... [${new Date().toISOString()}]`);
+    console.log("⚠️  IMPORTANT: To stay within Gemini Free Tier limits, run this max 3 times per minute.");
     await logToTerminal("👻 Ghost Engine AI Scan Started...", 'info');
     
     // 1. Load Settings & Portfolio
@@ -127,6 +128,34 @@ async function runBot() {
     let currentBalance = parseFloat(settings.balance_usdt);
 
     console.log(`💰 BALANCE: $${currentBalance.toFixed(2)}`);
+
+    // --- MARKET INTELLIGENCE PHASE ---
+    try {
+        await logToTerminal("🧠 Generating Daily Market Briefing...", 'info');
+        
+        // 1. Fetch News (Replicating basic news-service logic for Node)
+        const newsUrl = "https://min-api.cryptocompare.com/data/v2/news/?lang=EN";
+        const { data: newsData } = await axios.get(newsUrl);
+        const headlines = newsData.Data.slice(0, 10).map((n: any) => n.title);
+
+        // 2. Generate AI Briefing
+        const briefing = await llm.generateMarketBriefing(headlines);
+        
+        // 3. Save to Supabase
+        await supabase.from('market_briefings').insert({
+            sentiment_score: briefing.sentiment_score,
+            summary: briefing.summary,
+            key_narratives: briefing.key_narratives,
+            created_at: new Date().toISOString()
+        });
+
+        await logToTerminal(`🧠 Intelligence Updated: Sentiment ${briefing.sentiment_score.toFixed(2)}`, 'success');
+
+    } catch (e: any) {
+        console.error("News/Briefing Error:", e.message);
+        await logToTerminal("⚠️ Failed to update Market Intelligence.", 'error');
+    }
+    // --------------------------------
 
     // 2. Discovery
     const tier1Coins: CoinScope[] = COINS.map(s => ({ symbol: s }));
