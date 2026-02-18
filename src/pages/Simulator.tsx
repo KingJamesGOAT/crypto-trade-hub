@@ -8,7 +8,7 @@ import { MarketIntelligence } from "@/components/MarketIntelligence"
 import { SignalCard } from "@/components/SignalCard"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Wallet, Activity, Layers, Coins } from "lucide-react"
+import { Wallet, Activity, Layers, Coins, RotateCcw, Loader2 } from "lucide-react"
 import { useBinanceStream } from "@/hooks/useBinanceStream"
 import { TrendBias } from "@/components/TrendBias"
 
@@ -65,72 +65,66 @@ export function Simulator() {
             {/* CONTROL PANEL ROW */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 
-                {/* 1. Unified Control Panel (8 cols) */}
-                <Card className="md:col-span-8 border-emerald-500/20 bg-black/40 backdrop-blur-md shadow-lg flex flex-col justify-center">
-                    <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-                        
-                        {/* Wallet Section */}
-                        <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-3 bg-emerald-500/10 rounded-full">
-                                    <Wallet className="h-6 w-6 text-emerald-400" />
-                                </div>
-                                <div>
-                                    <div className="text-sm text-muted-foreground font-mono uppercase tracking-wider">Wallet Balance</div>
-                                    <div className="text-3xl font-bold tracking-tight text-white tabular-nums">
-                                        ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </div>
-                                </div>
+                {/* 1. Wallet Balance (4 cols) */}
+                <Card className="md:col-span-4 border-emerald-500/20 bg-black/40 backdrop-blur-md shadow-lg flex flex-col justify-center overflow-hidden h-full">
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <div className="text-[10px] uppercase font-mono text-muted-foreground tracking-widest flex items-center gap-2 mb-1">
+                                <Wallet className="h-3 w-3 text-emerald-500" /> Available Balance
                             </div>
-
-                            <div className="h-10 w-px bg-white/10 hidden md:block" />
-
-                            <div className="flex items-center gap-2">
-                                <Input 
-                                    placeholder="Amount..." 
-                                    type="number" 
-                                    className="h-9 w-32 bg-white/5 border-white/10 text-xs font-mono"
-                                    value={fundAmount}
-                                    onChange={(e) => setFundAmount(e.target.value)}
-                                />
-                                <Button size="sm" onClick={handleFund} className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs">
-                                    Deposit
-                                </Button>
-                                <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    onClick={() => updateBalance(10000)}
-                                    className="h-9 border-white/10 hover:bg-white/5 text-muted-foreground hover:text-white font-mono text-xs"
-                                >
-                                    Reset
-                                </Button>
+                            <div className="text-3xl font-bold tracking-tight text-white tabular-nums flex items-baseline gap-1">
+                                ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                <span className="text-sm font-normal text-muted-foreground">USDT</span>
                             </div>
                         </div>
 
-                        {/* Bot Toggle Section */}
-                        <div className="flex items-center gap-4 bg-white/5 p-2 rounded-lg border border-white/5">
-                            <div className="text-right hidden lg:block">
-                                <div className="text-[10px] text-muted-foreground uppercase font-bold">Bot Status</div>
-                                <div className={`text-xs font-mono ${isBotActive ? "text-green-400" : "text-amber-400"}`}>
-                                    {isBotActive ? "ACTIVE & SCANNING" : "STANDBY MODE"}
-                                </div>
-                            </div>
-                            <Button 
-                                size="sm"
-                                variant={isBotActive ? "destructive" : "default"}
-                                onClick={toggleBot}
-                                disabled={isLoading}
-                                className={`h-10 px-6 font-bold tracking-wider transition-all ${
-                                    isBotActive 
-                                        ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50" 
-                                        : "bg-green-500 hover:bg-green-400 text-black"
-                                }`}
-                            >
-                                {isLoading ? "SYNCING..." : (isBotActive ? "STOP ENGINE" : "START ENGINE")}
+                        <div className="flex items-center gap-2">
+                             <Input 
+                                placeholder="Add..." 
+                                type="number" 
+                                className="h-9 flex-1 bg-white/5 border-white/10 text-xs font-mono focus-visible:ring-0 px-3"
+                                value={fundAmount}
+                                onChange={(e) => setFundAmount(e.target.value)}
+                            />
+                            <Button size="icon" onClick={handleFund} className="h-9 w-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md shrink-0" title="Deposit">
+                                <span className="text-lg leading-none pb-1">+</span>
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => updateBalance(10000)} className="h-9 w-9 text-muted-foreground hover:text-white rounded-md shrink-0" title="Reset">
+                                <RotateCcw className="h-4 w-4" />
                             </Button>
                         </div>
+                    </div>
+                </Card>
 
-                    </CardContent>
+                {/* 2. Bot Status (4 cols) */}
+                <Card className="md:col-span-4 border-emerald-500/20 bg-black/40 backdrop-blur-md shadow-lg flex flex-col justify-center overflow-hidden h-full"> 
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <div className="text-[10px] uppercase font-mono text-muted-foreground tracking-widest flex items-center gap-2 mb-1">
+                                <Activity className="h-3 w-3 text-blue-500" /> System Status
+                            </div>
+                            <div className={`text-xl font-bold tracking-tight flex items-center gap-2 ${isBotActive ? "text-green-400" : "text-amber-400"}`}>
+                                <div className={`h-2.5 w-2.5 rounded-full ${isBotActive ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-amber-500"}`} />
+                                {isBotActive ? "SYSTEM ONLINE" : "STANDBY MODE"}
+                            </div>
+                        </div>
+
+                        <Button 
+                            className={`w-full h-9 font-bold tracking-wider transition-all shadow-lg ${
+                                isBotActive 
+                                    ? "bg-red-500/80 hover:bg-red-500 text-white border border-red-400/20" 
+                                    : "bg-emerald-500 hover:bg-emerald-400 text-black border border-emerald-400/20"
+                            }`}
+                            onClick={toggleBot}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                isBotActive ? "STOP ENGINE" : "START ENGINE"
+                            )}
+                        </Button>
+                    </div>
                 </Card>
 
                 {/* 2. Market Intelligence (4 cols) - kept as is but resized */}
