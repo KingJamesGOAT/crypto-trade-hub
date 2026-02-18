@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export class LLMAgent {
     
@@ -35,7 +35,8 @@ export class LLMAgent {
             return JSON.parse(jsonStr);
         } catch (e: any) {
             console.error("❌ AI Error Details:", e.message || e);
-            return { decision: "WAIT", confidence: "LOW", reasoning: "AI Error" };
+            // Return actual error to the bot log so user sees it
+            return { decision: "WAIT", confidence: "LOW", reasoning: `AI Error: ${e.message || "Unknown"}` };
         }
     }
 

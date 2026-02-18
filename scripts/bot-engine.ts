@@ -261,4 +261,20 @@ async function runBot() {
     console.log("🏁 Run Complete.");
 }
 
-runBot();
+const RUN_INTERVAL = 60 * 1000; // 1 minute
+
+async function startLoop() {
+    while (true) {
+        try {
+            await runBot();
+        } catch (e) {
+            console.error("💥 Bot Crash Recovered:", e);
+            await logToTerminal(`💥 Critical Error: ${e instanceof Error ? e.message : String(e)}`, 'error');
+        }
+        
+        console.log(`⏳ Sleeping for ${RUN_INTERVAL / 1000}s...`);
+        await new Promise(r => setTimeout(r, RUN_INTERVAL));
+    }
+}
+
+startLoop();

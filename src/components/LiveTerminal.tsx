@@ -25,13 +25,15 @@ export function LiveTerminal() {
     useEffect(() => {
         if (!supabase) return
 
-        // 1. Fetch initial logs
+        // 1. Fetch initial logs (Last 1 Hour only)
         const fetchInitial = async () => {
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
             const { data } = await supabase
                 .from('bot_logs')
                 .select('*')
+                .gt('created_at', oneHourAgo)
                 .order('id', { ascending: false })
-                .limit(50)
+                .limit(100)
             
             if (data) setLogs(data.reverse())
         }
@@ -42,7 +44,9 @@ export function LiveTerminal() {
         const channel = supabase
             .channel('bot_logs_realtime')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bot_logs' }, (payload) => {
-                setLogs(prev => [...prev.slice(-99), payload.new as BotLog]) // Keep last 100
+                const newLog = payload.new as BotLog
+                // Only add if it's recent (sanity check, though real-time implies new)
+                setLogs(prev => [...prev.slice(-99), newLog]) 
             })
             .subscribe((status) => {
                 setIsConnected(status === 'SUBSCRIBED')
@@ -50,6 +54,17 @@ export function LiveTerminal() {
 
         return () => { supabase.removeChannel(channel) }
     }, [])
+
+    const clearLogs = async () => {
+        if (!supabase) return
+        if (!confirm("Clear all terminal history? This cannot be undone.")) return
+        
+        // Delete logs from DB
+        const { error } = await supabase.from('bot_logs').delete().neq('id', 0) 
+        if (!error) {
+            setLogs([])
+        }
+    }
 
     // Auto-scroll effect on new logs
     useEffect(() => {
@@ -89,8 +104,8 @@ export function LiveTerminal() {
                         variant="ghost" 
                         size="icon" 
                         className="h-6 w-6 text-white/20 hover:text-white hover:bg-white/10"
-                        onClick={() => setLogs([])}
-                        title="Clear LOgs"
+                        onClick={clearLogs}
+                        title="Clear Logs (Persistent)"
                     >
                         <Trash2 className="h-3 w-3" />
                     </Button>
@@ -113,7 +128,7 @@ export function LiveTerminal() {
                             </div>
                         ))}
                         {logs.length === 0 && (
-                            <div className="text-white/20 italic">Initializing detailed connection...</div>
+                            <div className="text-white/20 italic">Terminal memory cleared. Awaiting signals...</div>
                         )}
                         {/* Fake cursor at the end */}
                         <div className="inline-block w-2 h-4 bg-green-500/50 animate-pulse translate-y-1 ml-1"></div>
