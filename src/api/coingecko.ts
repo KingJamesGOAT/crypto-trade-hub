@@ -60,11 +60,27 @@ export async function getTopCoins(count: number = 10): Promise<CoinMarketData[] 
     }
 }
 
-export async function getTrendingCoins(): Promise<any[]> {
+// Search/Trending endpoint
+export interface TrendingCoin {
+    id: string
+    coin_id: number
+    name: string
+    symbol: string
+    market_cap_rank: number
+    thumb: string
+    small: string
+    large: string
+    slug: string
+    price_btc: number
+    score: number
+}
+
+export async function getTrendingCoins(): Promise<TrendingCoin[]> {
     try {
         const response = await fetch(`${COINGECKO_API}/search/trending`);
         if (!response.ok) throw new Error("Failed to fetch trending");
         const data = await response.json();
+        // CoinGecko returns { coins: [{ item: { ... } }, ... ] }
         return data.coins.map((coin: any) => coin.item);
     } catch (error) {
          console.error("CoinGecko Trending Error:", error);
@@ -79,7 +95,7 @@ export async function getTopVolumeCoins(count: number = 5): Promise<CoinMarketDa
             order: "volume_desc",
             per_page: count.toString(),
             page: "1",
-            sparkline: "true",
+            sparkline: "false",
             price_change_percentage: "24h"
         });
         const response = await fetch(`${COINGECKO_API}/coins/markets?${params}`);
@@ -119,6 +135,19 @@ export async function getCoinCandles(coinId: string, days: number = 365): Promis
         }));
     } catch (error) {
         console.error("CoinGecko History Error:", error);
+        return null;
+    }
+}
+
+// Global Data
+export async function getGlobalMarketData(): Promise<{ total_market_cap: { usd: number }, market_cap_change_percentage_24h_usd: number } | null> {
+    try {
+        const response = await fetch(`${COINGECKO_API}/global`);
+        if (!response.ok) throw new Error("Failed to fetch global data");
+        const data = await response.json();
+        return data.data;
+    } catch (error) {
+        console.error("CoinGecko Global Error:", error);
         return null;
     }
 }
