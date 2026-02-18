@@ -3,7 +3,6 @@ import axios from 'axios';
 import { StochasticRSI, BollingerBands, RSI } from 'technicalindicators';
 import * as dotenv from 'dotenv';
 import { DiscordAgent } from './services/discord';
-import { LLMAgent } from './services/llm';
 
 dotenv.config();
 
@@ -29,7 +28,6 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const discord = new DiscordAgent();
-const llm = new LLMAgent();
 
 // Types
 interface Candle {
@@ -87,7 +85,7 @@ async function getCandles(symbol: string, limit: number = 200): Promise<number[]
 async function runBot() {
     console.log(`\n👻 GHOST ENGINE SCOUT ACTIVATED... [${new Date().toISOString()}]`);
     console.log("⚠️  Running Aggressive Strategy (1:3 Risk/Reward)");
-    await logToTerminal("👻 Scout Engine Scan Started...", 'info');
+    await logToTerminal("👻 Scout Engine Scan Started (Pure Math Mode)...", 'info');
     
     // 1. Load Settings
     const { data: settings } = await supabase.from('sim_settings').select('*').limit(1).single();
@@ -164,20 +162,8 @@ async function runBot() {
     // ---------------------------------------------
 
 
-    // --- PHASE 1: MARKET BRIEFING ---
-    try {
-        const newsUrl = "https://min-api.cryptocompare.com/data/v2/news/?lang=EN";
-        const { data: newsData } = await axios.get(newsUrl);
-        const headlines = newsData.Data.slice(0, 10).map((n: any) => n.title);
-        const briefing = await llm.generateMarketBriefing(headlines);
-        await supabase.from('market_briefings').insert({
-            sentiment_score: briefing.sentiment_score,
-            summary: briefing.summary,
-            key_narratives: briefing.key_narratives,
-            created_at: new Date().toISOString()
-        });
-    } catch(e) { /* Silent fail for brevity */ }
-
+    // --- PHASE 1: MARKET BRIEFING (SKIPPED) ---
+    // AI Dependency Removed
 
     // --- PHASE 2: DISCOVERY & ENTRY ---
     const trending = await getTrendingCoins();
@@ -226,34 +212,28 @@ async function runBot() {
             const stopLoss = currentPrice * (1 - STRATEGY.RISK_PCT);
             const takeProfit = currentPrice * (1 + STRATEGY.REWARD_PCT);
             
-            // ASK AI FOR 2nd OPINION (The filter)
-            await logToTerminal(`🤖 ${coin.symbol} Setup Found (${reasoning}). Asking AI...`, 'info');
-            const aiDecision = await llm.analyzeSetup(coin.symbol, currentPrice, { k: currentRSI, d: 50, isUpTrend: true, isMacdPositive: true }); // Mocking indicators for the LLM function signature
+            // EXECUTE BUY (Deterministic Mode)
+            await logToTerminal(`⚡ SIGNAL FOUND: ${coin.symbol} | Strategy: ${reasoning}`, 'info');
+
+            const amountUsd = currentBalance * STRATEGY.ALLOCATION_PCT;
+            const tokenAmount = amountUsd / currentPrice;
+
+            // EXECUTE BUY
+            await supabase.from('sim_portfolio').insert({
+                symbol: coin.symbol + "USDT",
+                amount: tokenAmount,
+                avg_buy_price: currentPrice,
+                stop_loss: stopLoss,
+                take_profit: takeProfit
+            });
             
-            if (aiDecision.decision === "BUY") {
-                const amountUsd = currentBalance * STRATEGY.ALLOCATION_PCT;
-                const tokenAmount = amountUsd / currentPrice;
+            await supabase.from('sim_settings').update({ balance_usdt: currentBalance - amountUsd }).eq('id', settings.id);
 
-                // EXECUTE BUY
-                await supabase.from('sim_portfolio').insert({
-                    symbol: coin.symbol + "USDT",
-                    amount: tokenAmount,
-                    avg_buy_price: currentPrice,
-                    stop_loss: stopLoss,
-                    take_profit: takeProfit
-                });
-                
-                await supabase.from('sim_settings').update({ balance_usdt: currentBalance - amountUsd }).eq('id', settings.id);
-
-                await logToTerminal(`🚀 BOUGHT ${coin.symbol} @ $${currentPrice.toFixed(4)}`, 'success');
-                await discord.sendAlert(`🚀 ENTRY: ${coin.symbol} ${coin.isTrending ? '(🔥 Trending)' : ''}`, [
-                    { name: "Strategy", value: reasoning, inline: false },
-                    { name: "Plan", value: `TP: $${takeProfit.toFixed(4)} (+6%) | SL: $${stopLoss.toFixed(4)} (-2%)`, inline: false },
-                    { name: "AI View", value: aiDecision.reasoning, inline: false }
-                ], 0x00ff00);
-            } else {
-                 await logToTerminal(`✋ AI Rejected ${coin.symbol}: ${aiDecision.reasoning}`, 'info');
-            }
+            await logToTerminal(`🚀 BOUGHT ${coin.symbol} @ $${currentPrice.toFixed(4)}`, 'success');
+            await discord.sendAlert(`🚀 ENTRY: ${coin.symbol} ${coin.isTrending ? '(🔥 Trending)' : ''}`, [
+                { name: "Strategy", value: reasoning, inline: false },
+                { name: "Plan", value: `TP: $${takeProfit.toFixed(4)} (+6%) | SL: $${stopLoss.toFixed(4)} (-2%)`, inline: false }
+            ], 0x00ff00);
         }
     }
 
