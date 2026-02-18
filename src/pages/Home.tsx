@@ -12,15 +12,23 @@ export function Home() {
     return (
         <div className="space-y-6 pb-10 max-w-[1600px] mx-auto p-4 md:p-8 pt-6 min-h-screen animate-in fade-in duration-500">
             {/* 1. HERO SECTION: Daily Intelligence */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <div className="lg:col-span-2">
                     <DailyBriefingCard />
                 </div>
-                <div className="space-y-6">
-                    <CompactNewsFeed />
-                    <FearMeter sentiment={40} /> {/* Dynamic prop later */}
-                    <HypeCloud />
+                <div className="space-y-6 flex flex-col h-full">
+                    <div className="flex-1">
+                        <CompactNewsFeed />
+                    </div>
+                    <div className="h-[200px]">
+                        <FearMeter sentiment={40} />
+                    </div>
                 </div>
+            </div>
+
+            {/* 1.5 MARKET HYPE ROW */}
+            <div className="h-[350px] mb-8">
+                <HypeCloud />
             </div>
 
             {/* 2. PERFORMANCE CENTER */}

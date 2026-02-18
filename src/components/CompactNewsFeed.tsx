@@ -19,7 +19,7 @@ export function CompactNewsFeed() {
     }, [])
 
     return (
-        <Card className="border-orange-500/20 bg-black/40 backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.1)] flex flex-col">
+        <Card className="h-full border-orange-500/20 bg-black/40 backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.1)] flex flex-col">
             <CardHeader className="py-3 px-4 border-b border-white/5 bg-white/5 flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-sm font-mono text-orange-400 uppercase tracking-wider">
                     <Flame className="h-4 w-4 text-orange-500" />
