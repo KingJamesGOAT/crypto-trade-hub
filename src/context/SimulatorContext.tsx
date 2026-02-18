@@ -15,6 +15,8 @@ interface PortfolioItem {
   symbol: string
   amount: number
   avg_buy_price: number
+  stop_loss: number
+  take_profit: number
 }
 
 interface LogItem {

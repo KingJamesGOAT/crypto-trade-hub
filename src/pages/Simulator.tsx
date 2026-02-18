@@ -153,6 +153,7 @@ export function Simulator() {
                                 <TableRow className="hover:bg-transparent border-white/5">
                                     <TableHead className="text-xs uppercase font-mono text-muted-foreground">Asset</TableHead>
                                     <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">Size</TableHead>
+                                    <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">Invested</TableHead>
                                     <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">Entry</TableHead>
                                     <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">Mark</TableHead>
                                     <TableHead className="text-right text-xs uppercase font-mono text-muted-foreground">PnL</TableHead>
@@ -165,11 +166,18 @@ export function Simulator() {
                                     const livePrice = prices[item.symbol] || item.avg_buy_price
                                     const entryPrice = item.avg_buy_price
                                     const amount = item.amount
+                                    const invested = amount * entryPrice
                                     const pnlValue = (livePrice - entryPrice) * amount
                                     const pnlPercent = ((livePrice - entryPrice) / entryPrice) * 100
                                     const isProfit = pnlValue >= 0
 
-                                    // Mock data for legacy trades if not available
+                                    // Generate "Smart Audit" derived from state
+                                    const isTrailing = pnlPercent > 6
+                                    const stopLoss = item.stop_loss
+                                    const auditReason = isTrailing 
+                                        ? `🚀 MOON BAG MODE: Profit locked. Trailing stop active at $${stopLoss.toFixed(4)}. Riding the wave until structure breaks.`
+                                        : `🛡️ DEFENSE MODE: Holding position. Price is ${Math.abs(pnlPercent).toFixed(1)}% from entry. Stop Loss set at $${stopLoss.toFixed(4)}.`
+
                                     const tradeData = {
                                         symbol: item.symbol,
                                         entryPrice,
@@ -177,8 +185,8 @@ export function Simulator() {
                                         amount,
                                         pnl: pnlValue,
                                         pnlPercent,
-                                        reasoning: "Price bounced off the 200 EMA while Stochastic RSI was oversold (<20). Confirmed by volume spike.",
-                                        confidence: "HIGH"
+                                        reasoning: auditReason,
+                                        confidence: isTrailing ? "VERY HIGH" : "NORMAL"
                                     }
 
                                     return (
@@ -191,11 +199,14 @@ export function Simulator() {
                                             <TableCell className="text-right text-muted-foreground">
                                                 {amount.toFixed(4)}
                                             </TableCell>
+                                            <TableCell className="text-right text-blue-300">
+                                                ${invested.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                            </TableCell>
                                             <TableCell className="text-right text-muted-foreground">
-                                                ${entryPrice.toFixed(2)}
+                                                ${entryPrice.toFixed(4)}
                                             </TableCell>
                                             <TableCell className="text-right text-white">
-                                                ${livePrice.toFixed(2)}
+                                                ${livePrice.toFixed(4)}
                                             </TableCell>
                                             <TableCell className={`text-right font-bold ${isProfit ? "text-green-500" : "text-red-500"}`}>
                                                 {isProfit ? "+" : ""}{pnlValue.toFixed(2)}
@@ -236,17 +247,31 @@ export function Simulator() {
                     <CardContent className="flex-1 overflow-auto p-0">
                         <Table>
                             <TableBody>
-                                {WATCHLIST_COINS.map(symbol => {
-                                    const isOwned = portfolio.some(p => p.symbol === symbol)
+                                {/* Merge Watchlist with Portfolio Holdings not in watchlist */}
+                                {Array.from(new Set([...WATCHLIST_COINS, ...portfolio.map(p => p.symbol)])).map(symbol => {
+                                    const portfolioItem = portfolio.find(p => p.symbol === symbol)
+                                    const isOwned = !!portfolioItem
+                                    // Use portfolio avg price if we don't have stream data yet
+                                    const price = prices[symbol] || (isOwned ? portfolioItem.avg_buy_price : 0)
+                                    const pnlPercent = isOwned && price ? ((price - portfolioItem.avg_buy_price) / portfolioItem.avg_buy_price) * 100 : 0
+                                    const isProfit = pnlPercent >= 0
+
                                     return (
                                         <TableRow key={symbol} className="hover:bg-white/5 border-white/5 font-mono text-xs">
-                                            <TableCell className="font-medium text-white/70">{symbol.replace("USDT", "")}</TableCell>
-                                            <TableCell className="text-right text-muted-foreground">
-                                                <PriceDisplay price={prices[symbol]} />
-                                            </TableCell>
-                                            <TableCell className="text-right w-8">
+                                            <TableCell className="font-medium text-white/70 relative">
+                                                {symbol.replace("USDT", "")}
                                                 {isOwned && (
-                                                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)] mx-auto" />
+                                                    <div className="absolute -left-2 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right text-muted-foreground">
+                                                <PriceDisplay price={price} />
+                                            </TableCell>
+                                            <TableCell className="text-right w-16">
+                                                {isOwned && (
+                                                    <Badge variant="outline" className={`text-[9px] h-5 px-1 border-0 ${isProfit ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                                                        {pnlPercent > 0 ? "+" : ""}{pnlPercent.toFixed(1)}%
+                                                    </Badge>
                                                 )}
                                             </TableCell>
                                         </TableRow>

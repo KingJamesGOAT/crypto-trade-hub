@@ -84,8 +84,8 @@ async function getCandles(symbol: string, limit: number = 200): Promise<number[]
 
 async function runBot() {
     console.log(`\n👻 GHOST ENGINE SCOUT ACTIVATED... [${new Date().toISOString()}]`);
-    console.log("⚠️  Running Aggressive Strategy (1:3 Risk/Reward)");
-    await logToTerminal("👻 Scout Engine Scan Started (Pure Math Mode)...", 'info');
+    console.log("⚠️  Running Smart Money Strategy (Slots + Trailing Stop + Cooldown)");
+    await logToTerminal("👻 Scout Engine Scan Started (Smart Mode)...", 'info');
     
     // 1. Load Settings
     const { data: settings } = await supabase.from('sim_settings').select('*').limit(1).single();
@@ -99,8 +99,7 @@ async function runBot() {
     
     let currentBalance = parseFloat(settings.balance_usdt);
 
-    // --- PHASE 0: EXIT MANAGER (Crucial Step) ---
-    // Check all open positions first using LIVE price
+    // --- PHASE 0: EXIT MANAGER (Trailing Stop & Hard Stop) ---
     for (const position of portfolio) {
         const symbol = position.symbol.replace("USDT", "");
         const candles = await getCandles(symbol, 5); // Just need latest price
@@ -108,19 +107,31 @@ async function runBot() {
         
         const currentPrice = candles[candles.length - 1];
         const stopLoss = parseFloat(position.stop_loss);
-        const takeProfit = parseFloat(position.take_profit);
         const entryPrice = parseFloat(position.avg_buy_price);
         const amount = parseFloat(position.amount); // Asset Amount
         
         let exitReason = "";
         let isWin = false;
 
+        // 1. Check Hard Stop Loss
         if (stopLoss > 0 && currentPrice <= stopLoss) {
-            exitReason = "🛑 STOP LOSS HIT (-2%)";
+            exitReason = "🛑 STOP LOSS HIT";
             isWin = false;
-        } else if (takeProfit > 0 && currentPrice >= takeProfit) {
-            exitReason = "💰 TAKE PROFIT HIT (+6%)";
-            isWin = true;
+        } 
+        
+        // 2. Manage Trailing Stop (The "Moon Bag" Logic)
+        // If price > 6% profit, we shift from "Target" to "Trailing Stop"
+        if (!exitReason && currentPrice >= entryPrice * 1.06) {
+            const newTrailingStop = currentPrice * 0.98; // Trail by 2%
+            
+            // Only update if we are moving the stop UP
+            if (newTrailingStop > stopLoss) {
+                await supabase.from('sim_portfolio')
+                    .update({ stop_loss: newTrailingStop })
+                    .eq('symbol', position.symbol);
+                
+                await logToTerminal(`📈 TRAILING STOP UPDATED: ${symbol} locked at $${newTrailingStop.toFixed(4)}`, 'success');
+            }
         }
 
         if (exitReason) {
@@ -159,24 +170,51 @@ async function runBot() {
              );
         }
     }
-    // ---------------------------------------------
 
+    // --- PHASE 1: DISCOVERY & ENTRY ---
+    
+    // A. Check Slot Availability
+    const MAX_SLOTS = 5;
+    if (portfolio.length >= MAX_SLOTS) {
+        console.log("🔒 Portfolio Full (Max 5 Slots). Skipping scan.");
+        return;
+    }
 
-    // --- PHASE 1: MARKET BRIEFING (SKIPPED) ---
-    // AI Dependency Removed
+    // B. Calculate Dynamic Position Size (Slot Based)
+    // Equity = Cash + Portfolio Value
+    // We approximate Portfolio Value as (Entry Price * Amount) for simplicity, or we could fetch live prices.
+    // For speed, let's use the Balance + Cost Basis of current holds.
+    const portfolioValue = portfolio.reduce((acc: number, p: any) => acc + (parseFloat(p.avg_buy_price) * parseFloat(p.amount)), 0);
+    const totalEquity = currentBalance + portfolioValue;
+    const targetSlotSize = totalEquity / MAX_SLOTS;
+    
+    // C. Get Cooldown List (Coins sold for loss in last 60 mins)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: recentLosses } = await supabase
+        .from('sim_trades')
+        .select('symbol')
+        .eq('exit_reason', '🛑 STOP LOSS HIT')
+        .gt('closed_at', oneHourAgo);
+    
+    const cooldownSymbols = recentLosses?.map((t: any) => t.symbol) || [];
 
-    // --- PHASE 2: DISCOVERY & ENTRY ---
     const trending = await getTrendingCoins();
-    // Merge lists, prioritize Tier 1
-    // Explicitly cast to CoinScope[] to avoid type errors
     const scanList: CoinScope[] = [
         ...COINS.map(s => ({ symbol: s })), 
         ...trending.filter(t => !COINS.includes(t.symbol))
     ];
     
     for (const coin of scanList) {
-        // Skip if we already own it
-        if (portfolio.some((p: any) => p.symbol === coin.symbol + "USDT")) continue;
+        const pair = coin.symbol + "USDT";
+        
+        // 1. Skip if owned
+        if (portfolio.some((p: any) => p.symbol === pair)) continue;
+        
+        // 2. Skip if Cooldown
+        if (cooldownSymbols.includes(pair)) {
+            // console.log(`❄️ COOLDOWN: Skipping ${coin.symbol} (Recent Loss)`);
+            continue;
+        }
 
         const candles = await getCandles(coin.symbol);
         if (candles.length < 50) continue;
@@ -208,32 +246,41 @@ async function runBot() {
         }
 
         if (buySignal) {
-            // RISK MANAGEMENT 1:3
-            const stopLoss = currentPrice * (1 - STRATEGY.RISK_PCT);
-            const takeProfit = currentPrice * (1 + STRATEGY.REWARD_PCT);
+            // RISK MANAGEMENT
+            const stopLoss = currentPrice * 0.98; // Start with tighter 2% stop
+            // No fixed Take Profit anymore.
             
-            // EXECUTE BUY (Deterministic Mode)
             await logToTerminal(`⚡ SIGNAL FOUND: ${coin.symbol} | Strategy: ${reasoning}`, 'info');
 
-            const amountUsd = currentBalance * STRATEGY.ALLOCATION_PCT;
+            // Use Slot Size from above
+            const amountUsd = targetSlotSize;
+            
+            if (amountUsd > currentBalance) {
+                console.log("⚠️ Insufficient funds for full slot.");
+                continue;
+            }
+
             const tokenAmount = amountUsd / currentPrice;
 
             // EXECUTE BUY
             await supabase.from('sim_portfolio').insert({
-                symbol: coin.symbol + "USDT",
+                symbol: pair,
                 amount: tokenAmount,
                 avg_buy_price: currentPrice,
                 stop_loss: stopLoss,
-                take_profit: takeProfit
+                take_profit: 0 // Unlimited upside (Trailing Stop handles exit)
             });
             
             await supabase.from('sim_settings').update({ balance_usdt: currentBalance - amountUsd }).eq('id', settings.id);
 
-            await logToTerminal(`🚀 BOUGHT ${coin.symbol} @ $${currentPrice.toFixed(4)}`, 'success');
+            await logToTerminal(`🚀 BOUGHT ${coin.symbol} @ $${currentPrice.toFixed(4)} | Size: $${amountUsd.toFixed(0)}`, 'success');
             await discord.sendAlert(`🚀 ENTRY: ${coin.symbol} ${coin.isTrending ? '(🔥 Trending)' : ''}`, [
                 { name: "Strategy", value: reasoning, inline: false },
-                { name: "Plan", value: `TP: $${takeProfit.toFixed(4)} (+6%) | SL: $${stopLoss.toFixed(4)} (-2%)`, inline: false }
+                { name: "Plan", value: `Trailing Stop Mode | Initial SL: $${stopLoss.toFixed(4)} (-2%)`, inline: false }
             ], 0x00ff00);
+            
+            // Stop scanning after 1 buy to prevent over-trading in one tick (wait for next loop)
+            break; 
         }
     }
 
