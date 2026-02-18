@@ -41,8 +41,12 @@ export class DiscordAgent {
                     timestamp: new Date().toISOString()
                 }]
             });
-        } catch (e) {
-            console.error("Discord Error", e);
+        } catch (e: any) {
+            console.error("❌ Discord Alert Failed:", e.message);
+            if (e.response) {
+                console.error("Status:", e.response.status);
+                console.error("Data:", JSON.stringify(e.response.data, null, 2));
+            }
         }
     }
 
@@ -56,7 +60,13 @@ export class DiscordAgent {
                 await axios.post(this.webhookUrl, { 
                     content: `**☀️ Daily Scout Report**\n${chunk}` 
                 });
-            } catch (e) { console.error("Discord Briefing Error", e); }
+            } catch (e: any) {
+                console.error("❌ Discord Briefing Failed:", e.message);
+                if (e.response) {
+                    console.error("Status:", e.response.status);
+                    console.error("Data:", JSON.stringify(e.response.data, null, 2));
+                }
+            }
         }
     }
 }

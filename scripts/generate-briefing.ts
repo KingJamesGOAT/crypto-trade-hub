@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
+import { DiscordAgent } from './services/discord';
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY || !GEMINI_API_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const discord = new DiscordAgent();
 
 async function fetchMarketContext() {
     // 1. Fetch Generic Global Macro (Mocked/RSS or real API if avail, using wide context)
@@ -50,7 +52,8 @@ async function generateBriefing() {
 
     const marketData = await fetchMarketContext();
     
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // Use gemini-1.5-flash for better free tier limits and speed
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const prompt = `
     You are a Senior Global Macro Strategist for a hedge fund. 
@@ -91,6 +94,11 @@ async function generateBriefing() {
         });
         
         console.log("💾 Saved to DB.");
+
+        // Send to Discord
+        console.log("📨 Sending to Discord...");
+        await discord.sendBriefing(text);
+        console.log("✅ Sent to Discord.");
     } catch (e) {
         console.error("❌ AI Generation Error:", e);
     }
