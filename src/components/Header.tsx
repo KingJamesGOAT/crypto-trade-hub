@@ -1,5 +1,6 @@
 import { Menu, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SessionClock } from "@/components/SessionClock"
 
 import {
   DropdownMenu,
@@ -32,10 +33,12 @@ export function Header({ toggleSidebar }: HeaderProps) {
             <Menu className="h-5 w-5" />
         </Button>
         
-        <div className="flex items-center gap-2 mr-4">
+        <div className="flex items-center gap-4 mr-4">
             <span className="text-lg font-bold tracking-tight hidden md:inline-block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
                 CryptoTradeHub
             </span>
+            <div className="hidden lg:block h-6 w-px bg-white/10" />
+            <SessionClock />
         </div>
 
         <div className="flex flex-1 items-center justify-end space-x-4">

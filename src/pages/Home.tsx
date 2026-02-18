@@ -1,7 +1,7 @@
 import { DailyBriefingCard } from "@/components/DailyBriefingCard"
 import { ActiveTradesTable } from "@/components/ActiveTradesTable"
 import { PnLChart } from "@/components/PnLChart"
-import { WinLossChart } from "@/components/WinLossChart"
+import { TradePerformance } from "@/components/TradePerformance"
 import { FearMeter } from "@/components/FearMeter"
 import { HypeCloud } from "@/components/HypeCloud"
 import { MarketOverviewTable } from "@/components/MarketOverviewTable"
@@ -40,7 +40,7 @@ export function Home() {
                     <PnLChart />
                 </div>
                 <div className="h-[300px]">
-                     <WinLossChart />
+                     <TradePerformance />
                 </div>
             </div>
 

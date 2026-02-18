@@ -287,6 +287,31 @@ export class BinanceService {
       
       return allCandles
   }
+  async get24hTicker(symbols: string[]): Promise<any[]> {
+      // https://api.binance.com/api/v3/ticker/24hr
+      // If symbols provided, we can filter or use 'symbol' param. 
+      // Single symbol: ?symbol=BTCUSDT
+      // Multiple: Not directly supported as comma list in v3/ticker/24hr usually without formatting, 
+      // but easier to fetch ALL and filter in client if list is small, OR fetch one by one.
+      // Optimization: Fetch ALL (lighter weight than it sounds?) or Promise.all single fetches.
+      // Let's use Promise.all for < 5 symbols.
+      
+      try {
+          const promises = symbols.map(s => 
+              fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${s}`).then(r => r.json())
+          )
+          const results = await Promise.all(promises)
+          return results.map(d => ({
+              symbol: d.symbol,
+              priceChange: parseFloat(d.priceChange),
+              priceChangePercent: parseFloat(d.priceChangePercent),
+              lastPrice: parseFloat(d.lastPrice)
+          }))
+      } catch (e) {
+          console.error("get24hTicker failed", e)
+          return []
+      }
+  }
 }
 
 export const binanceService = new BinanceService()

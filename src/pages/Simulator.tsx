@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Wallet, Activity, Layers, Coins } from "lucide-react"
 import { useBinanceStream } from "@/hooks/useBinanceStream"
+import { TrendBias } from "@/components/TrendBias"
 
 const WATCHLIST_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "SUIUSDT", "TRXUSDT", "LINKUSDT"]
 
@@ -54,6 +55,10 @@ export function Simulator() {
                     <p className="text-xs text-muted-foreground pl-4 font-mono">
                         System Online | v.2.0.0 | Connected to Neural Net
                     </p>
+                </div>
+                {/* Trend Bias Widget */}
+                <div className="hidden md:block">
+                    <TrendBias />
                 </div>
             </div>
 

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
 import { createClient } from "@supabase/supabase-js"
 import { Target } from "lucide-react"
+import { RiskCalculator } from "@/components/RiskCalculator"
 
 const supabase = createClient(
     import.meta.env.VITE_SUPABASE_URL,
@@ -32,11 +33,12 @@ export function ActiveTradesTable() {
     
     return (
         <Card className="h-full border-border bg-card/50 backdrop-blur">
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between text-base">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
                     <span>Active Scout Missions</span>
                     <Badge variant="secondary">{positions.length} Active</Badge>
                 </CardTitle>
+                <RiskCalculator />
             </CardHeader>
             <CardContent className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                 {positions.length === 0 && (
