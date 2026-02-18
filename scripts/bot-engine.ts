@@ -37,12 +37,14 @@ interface Candle {
 interface CoinScope {
     symbol: string;
     isTrending?: boolean;
+    trendingRank?: number;
 }
 
 // --- HELPERS ---
 
 async function logToTerminal(message: string, level: 'info' | 'success' | 'error' = 'info', meta?: any) {
-    console.log(`${level === 'error' ? '❌' : level === 'success' ? '✅' : 'ℹ️'} ${message}`);
+    const timestamp = new Date().toISOString().split('T')[1].split('.')[0]; 
+    console.log(`[${timestamp}] ${level.toUpperCase()}: ${message}`);
     await supabase.from('bot_logs').insert({ 
         message, 
         level, 
@@ -54,9 +56,10 @@ async function logToTerminal(message: string, level: 'info' | 'success' | 'error
 async function getTrendingCoins(): Promise<CoinScope[]> {
     try {
         const { data } = await axios.get("https://api.coingecko.com/api/v3/search/trending");
-        return data.coins.slice(0, 5).map((c: any) => ({
+        return data.coins.map((c: any) => ({
              symbol: c.item.symbol.toUpperCase(),
-             isTrending: true
+             isTrending: true,
+             trendingRank: c.item.score + 1 // Score 0 is Rank 1
         }));
     } catch (e) {
         return [];
@@ -83,9 +86,9 @@ async function getCandles(symbol: string, limit: number = 200): Promise<number[]
 // --- MAIN BOT ENGINE ---
 
 async function runBot() {
-    console.log(`\n👻 GHOST ENGINE SCOUT ACTIVATED... [${new Date().toISOString()}]`);
-    console.log("⚠️  Running Smart Money Strategy (Slots + Trailing Stop + Cooldown)");
-    await logToTerminal("👻 Scout Engine Scan Started (Smart Mode)...", 'info');
+    console.log(`\n[SYSTEM] GHOST ENGINE SCOUT ACTIVATED... [${new Date().toISOString()}]`);
+    console.log("[INFO] Running Smart Money Strategy (Slots + Trailing Stop + Cooldown)");
+    await logToTerminal("[SYSTEM] Scout Engine Scan Started (Smart Mode)...", 'info');
     
     // 1. Load Settings
     const { data: settings } = await supabase.from('sim_settings').select('*').limit(1).single();
@@ -115,7 +118,7 @@ async function runBot() {
 
         // 1. Check Hard Stop Loss
         if (stopLoss > 0 && currentPrice <= stopLoss) {
-            exitReason = "🛑 STOP LOSS HIT";
+            exitReason = "[STOP LIMIT]";
             isWin = false;
         } 
         
@@ -130,7 +133,7 @@ async function runBot() {
                     .update({ stop_loss: newTrailingStop })
                     .eq('symbol', position.symbol);
                 
-                await logToTerminal(`📈 TRAILING STOP UPDATED: ${symbol} locked at $${newTrailingStop.toFixed(4)}`, 'success');
+                await logToTerminal(`[TRAILING_STOP] UPDATED: ${symbol} locked at $${newTrailingStop.toFixed(4)}`, 'success');
             }
         }
 
@@ -159,7 +162,7 @@ async function runBot() {
                 closed_at: new Date().toISOString()
              });
 
-             await logToTerminal(`${exitReason}: ${symbol} | PnL: $${pnl.toFixed(2)}`, isWin ? 'success' : 'error');
+             await logToTerminal(`[SELL] ${exitReason}: ${symbol} | PnL: $${pnl.toFixed(2)}`, isWin ? 'success' : 'error');
              await discord.sendAlert(
                  isWin ? `✅ WIN: ${symbol} Closed` : `❌ LOSS: ${symbol} Closed`,
                  [
@@ -199,9 +202,12 @@ async function runBot() {
     const cooldownSymbols = recentLosses?.map((t: any) => t.symbol) || [];
 
     const trending = await getTrendingCoins();
+    // Top 3 Trending get "Hype" privileges
+    const topTrending = trending.filter(t => t.trendingRank && t.trendingRank <= 3).map(t => t.symbol);
+
     const scanList: CoinScope[] = [
         ...COINS.map(s => ({ symbol: s })), 
-        ...trending.filter(t => !COINS.includes(t.symbol))
+        ...trending.filter(t => !COINS.includes(t.symbol)).slice(0, 5) // Take top 5 trending
     ];
     
     for (const coin of scanList) {
@@ -233,6 +239,9 @@ async function runBot() {
         let buySignal = false;
         let reasoning = "";
 
+        // Logic Change: If Top 3 Trending, relax RSI to 65
+        const rsiThreshold = topTrending.includes(coin.symbol) ? 65 : STRATEGY.RSI_HYPE_ENTRY;
+
         // STRATEGY A: Volatile Bounce (Oversold + Lower Band)
         if (currentRSI < STRATEGY.RSI_OVERSOLD && currentPrice <= currentBB.lower) {
             buySignal = true;
@@ -240,9 +249,9 @@ async function runBot() {
         }
         
         // STRATEGY B: Hype Dip (Trending + RSI Pullback)
-        else if (coin.isTrending && currentRSI < STRATEGY.RSI_HYPE_ENTRY) {
+        else if (coin.isTrending && currentRSI < rsiThreshold) {
             buySignal = true;
-            reasoning = `🔥 HYPE DIP: Coin is Trending & RSI ${currentRSI.toFixed(1)} (Pullback)`;
+            reasoning = `[HYPE_DIP] Trends #${coin.trendingRank ?? '?'} & RSI ${currentRSI.toFixed(1)} < ${rsiThreshold}`;
         }
 
         if (buySignal) {
@@ -250,7 +259,7 @@ async function runBot() {
             const stopLoss = currentPrice * 0.98; // Start with tighter 2% stop
             // No fixed Take Profit anymore.
             
-            await logToTerminal(`⚡ SIGNAL FOUND: ${coin.symbol} | Strategy: ${reasoning}`, 'info');
+            await logToTerminal(`[SIGNAL] ${coin.symbol} | Strategy: ${reasoning}`, 'info');
 
             // Use Slot Size from above
             const amountUsd = targetSlotSize;
@@ -273,7 +282,7 @@ async function runBot() {
             
             await supabase.from('sim_settings').update({ balance_usdt: currentBalance - amountUsd }).eq('id', settings.id);
 
-            await logToTerminal(`🚀 BOUGHT ${coin.symbol} @ $${currentPrice.toFixed(4)} | Size: $${amountUsd.toFixed(0)}`, 'success');
+            await logToTerminal(`[BUY] ${coin.symbol} @ $${currentPrice.toFixed(4)} | Size: $${amountUsd.toFixed(0)}`, 'success');
             await discord.sendAlert(`🚀 ENTRY: ${coin.symbol} ${coin.isTrending ? '(🔥 Trending)' : ''}`, [
                 { name: "Strategy", value: reasoning, inline: false },
                 { name: "Plan", value: `Trailing Stop Mode | Initial SL: $${stopLoss.toFixed(4)} (-2%)`, inline: false }
@@ -284,8 +293,26 @@ async function runBot() {
         }
     }
 
+    // --- POST RUN: FORCE REPORT CHECK ---
+    if (settings.force_discord_report) {
+         console.log("📣 FORCE REPORT TRIGGERED");
+         // Send massive specific report
+         let report = `📊 **SESSION REPORT**\nBalance: $${currentBalance.toFixed(2)}\nPositions: ${portfolio.length}\n`;
+         portfolio.forEach((p: any) => {
+             report += `• ${p.symbol}: Entry $${p.avg_buy_price} | Stop $${p.stop_loss}\n`;
+         });
+         
+         await discord.sendAlert("📢 MARKET SNAPSHOT (REQUESTED)", [
+             { name: "Portfolio Value", value: `$${totalEquity.toFixed(2)}`, inline: true },
+             { name: "Cash", value: `$${currentBalance.toFixed(2)}`, inline: true }
+         ], 0x0099ff);
+
+         // Reset flag
+         await supabase.from('sim_settings').update({ force_discord_report: false }).eq('id', settings.id);
+    }
+
     await supabase.from('sim_settings').update({ last_run: new Date().toISOString() }).eq('id', settings.id);
-    console.log("🏁 Run Complete.");
+    console.log("[SYSTEM] Run Complete.");
 }
 
 // Run for roughly 8 minutes (Leaving 2 mins buffer for the next 10-min schedule)

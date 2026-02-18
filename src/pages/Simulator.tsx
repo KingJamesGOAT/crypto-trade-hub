@@ -11,6 +11,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Wallet, Activity, Layers, Coins, RotateCcw, Loader2 } from "lucide-react"
 import { useBinanceStream } from "@/hooks/useBinanceStream"
 import { TrendBias } from "@/components/TrendBias"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { createClient } from "@supabase/supabase-js"
+import { MessageSquare } from "lucide-react"
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+)
 
 const WATCHLIST_COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "SUIUSDT", "TRXUSDT", "LINKUSDT"]
 
@@ -21,9 +30,44 @@ function PriceDisplay({ price }: { price?: number }) {
 }
 
 export function Simulator() {
-    const { balance, updateBalance, portfolio, isBotActive, toggleBot, isLoading } = useSimulator()
+    const { balance, updateBalance, portfolio, isBotActive, toggleBot, isLoading, resetSimulator, triggerDiscordReport } = useSimulator()
     const [fundAmount, setFundAmount] = useState<string>("")
     const [prices, setPrices] = useState<Record<string, number>>({})
+    const [archives, setArchives] = useState<any[]>([])
+    const [showResumeDialog, setShowResumeDialog] = useState(false)
+    const [activeTab, setActiveTab] = useState("live")
+
+    useEffect(() => {
+        const fetchArchives = async () => {
+            const { data } = await supabase.from('sim_archives').select('*').order('id', { ascending: false })
+            if (data) setArchives(data)
+        }
+        fetchArchives()
+    }, [activeTab]) // Refresh when tab changes
+
+    // Resume Check
+    useEffect(() => {
+        if (!isLoading && !isBotActive && portfolio.length > 0) {
+            // Only show if we haven't already dismissed it (could use local storage, but for now just show)
+            // To prevent annoying loops, check if we just loaded
+            const hasSeen = sessionStorage.getItem('resume_prompt_seen')
+            if (!hasSeen) {
+                setShowResumeDialog(true)
+                sessionStorage.setItem('resume_prompt_seen', 'true')
+            }
+        }
+    }, [isLoading, isBotActive, portfolio.length])
+
+    const handleResume = () => {
+        toggleBot()
+        setShowResumeDialog(false)
+    }
+
+    const handleArchiveAndReset = async () => {
+        await resetSimulator()
+        setShowResumeDialog(false)
+        setActiveTab("archives")
+    }
     
     // Live Prices for ALL coins
     const { streamData } = useBinanceStream(WATCHLIST_COINS)
@@ -47,20 +91,35 @@ export function Simulator() {
 
     return (
         <div className="space-y-6 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto">
-            <div className="flex items-center justify-between space-y-2 mb-4">
-                <div className="space-y-1">
-                    <h2 className="text-2xl font-bold tracking-tight text-white uppercase font-mono border-l-4 border-green-500 pl-4">
-                        Ghost Command Center
-                    </h2>
-                    <p className="text-xs text-muted-foreground pl-4 font-mono">
-                        System Online | v.2.0.0 | Connected to Neural Net
-                    </p>
+            {/* TABS HEADER */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <TabsList className="bg-black/40 border border-emerald-500/20">
+                        <TabsTrigger value="live" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 font-mono text-xs uppercase tracking-wider">
+                            Live Command
+                        </TabsTrigger>
+                        <TabsTrigger value="archives" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 font-mono text-xs uppercase tracking-wider">
+                            Session Archives
+                        </TabsTrigger>
+                    </TabsList>
                 </div>
-                {/* Trend Bias Widget */}
-                <div className="hidden md:block">
-                    <TrendBias />
-                </div>
-            </div>
+
+                <TabsContent value="live" className="space-y-6">
+                    {/* LIVE VIEW CONTENT */}
+                     <div className="flex items-center justify-between space-y-2 mb-4">
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-bold tracking-tight text-white uppercase font-mono border-l-4 border-green-500 pl-4">
+                                Ghost Command Center
+                            </h2>
+                            <p className="text-xs text-muted-foreground pl-4 font-mono">
+                                System Online | v.2.0.0 | Connected to Neural Net
+                            </p>
+                        </div>
+                        {/* Trend Bias Widget */}
+                        <div className="hidden md:block">
+                            <TrendBias />
+                        </div>
+                    </div>
 
             {/* CONTROL PANEL ROW */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -89,7 +148,7 @@ export function Simulator() {
                             <Button size="icon" onClick={handleFund} className="h-9 w-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md shrink-0" title="Deposit">
                                 <span className="text-lg leading-none pb-1">+</span>
                             </Button>
-                            <Button size="icon" variant="ghost" onClick={() => updateBalance(10000)} className="h-9 w-9 text-muted-foreground hover:text-white rounded-md shrink-0" title="Reset">
+                            <Button size="icon" variant="ghost" onClick={handleArchiveAndReset} className="h-9 w-9 text-muted-foreground hover:text-white rounded-md shrink-0 border border-white/10" title="Archive & Reset Session">
                                 <RotateCcw className="h-4 w-4" />
                             </Button>
                         </div>
@@ -109,21 +168,26 @@ export function Simulator() {
                             </div>
                         </div>
 
-                        <Button 
-                            className={`w-full h-9 font-bold tracking-wider transition-all shadow-lg ${
-                                isBotActive 
-                                    ? "bg-red-500/80 hover:bg-red-500 text-white border border-red-400/20" 
-                                    : "bg-emerald-500 hover:bg-emerald-400 text-black border border-emerald-400/20"
-                            }`}
-                            onClick={toggleBot}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                isBotActive ? "STOP ENGINE" : "START ENGINE"
-                            )}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button 
+                                className={`flex-1 h-9 font-bold tracking-wider transition-all shadow-lg ${
+                                    isBotActive 
+                                        ? "bg-red-500/80 hover:bg-red-500 text-white border border-red-400/20" 
+                                        : "bg-emerald-500 hover:bg-emerald-400 text-black border border-emerald-400/20"
+                                }`}
+                                onClick={toggleBot}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    isBotActive ? "STOP ENGINE" : "START ENGINE"
+                                )}
+                            </Button>
+                            <Button size="icon" variant="outline" className="h-9 w-9 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300" title="Force Discord Report" onClick={triggerDiscordReport}>
+                                <MessageSquare className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </Card>
 
@@ -174,9 +238,16 @@ export function Simulator() {
                                     // Generate "Smart Audit" derived from state
                                     const isTrailing = pnlPercent > 6
                                     const stopLoss = item.stop_loss
-                                    const auditReason = isTrailing 
-                                        ? `🚀 MOON BAG MODE: Profit locked. Trailing stop active at $${stopLoss.toFixed(4)}. Riding the wave until structure breaks.`
-                                        : `🛡️ DEFENSE MODE: Holding position. Price is ${Math.abs(pnlPercent).toFixed(1)}% from entry. Stop Loss set at $${stopLoss.toFixed(4)}.`
+                                    const createdAt = new Date((item as any).created_at || Date.now())
+                                    const hoursHeld = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60)
+
+                                    let auditReason = `🛡️ DEFENSE MODE: Holding position. Price is ${Math.abs(pnlPercent).toFixed(1)}% from entry. Stop Loss set at $${stopLoss.toFixed(4)}.`
+
+                                    if (hoursHeld > 4 && pnlPercent < 1 && pnlPercent > -1) {
+                                        auditReason = "⚠️ STAGNANT: Capital inefficient. Monitoring for breakdown."
+                                    } else if (isTrailing) {
+                                        auditReason = `🚀 MOON BAG MODE: Profit locked. Trailing stop active at $${stopLoss.toFixed(4)}. Riding the wave until structure breaks.`
+                                    }
 
                                     const tradeData = {
                                         symbol: item.symbol,
@@ -282,6 +353,80 @@ export function Simulator() {
                     </CardContent>
                 </Card>
             </div>
+            </TabsContent>
+
+            <TabsContent value="archives">
+                <Card className="border-blue-500/20 bg-black/40 backdrop-blur-md">
+                    <CardHeader>
+                        <CardTitle className="text-white font-mono uppercase tracking-wider flex items-center gap-2">
+                            <Activity className="h-5 w-5 text-blue-500" /> Session Archives
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="border-white/10 hover:bg-transparent">
+                                    <TableHead className="text-white/60 font-mono">Date</TableHead>
+                                    <TableHead className="text-white/60 font-mono text-right">Duration</TableHead>
+                                    <TableHead className="text-white/60 font-mono text-right">Trades</TableHead>
+                                    <TableHead className="text-white/60 font-mono text-right">Win Rate</TableHead>
+                                    <TableHead className="text-white/60 font-mono text-right">Total PnL</TableHead>
+                                    <TableHead className="text-white/60 font-mono text-right">Final Balance</TableHead>
+                                    <TableHead className="text-white/60 font-mono text-right">Best Trade</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {archives.map((a) => (
+                                    <TableRow key={a.id} className="border-white/5 hover:bg-white/5 font-mono text-sm">
+                                        <TableCell className="text-muted-foreground">{new Date(a.start_date || a.created_at).toLocaleDateString()}</TableCell>
+                                        <TableCell className="text-right text-muted-foreground">
+                                            {a.start_date && a.end_date 
+                                                ? Math.round((new Date(a.end_date).getTime() - new Date(a.start_date).getTime()) / (1000 * 60 * 60)) + ' hrs' 
+                                                : '-'}
+                                        </TableCell>
+                                        <TableCell className="text-right text-white">{a.trade_count}</TableCell>
+                                        <TableCell className="text-right text-blue-400">{Number(a.win_rate).toFixed(1)}%</TableCell>
+                                        <TableCell className={`text-right font-bold ${Number(a.total_pnl) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                            ${Number(a.total_pnl).toLocaleString()}
+                                        </TableCell>
+                                        <TableCell className="text-right text-white">${Number(a.final_balance).toLocaleString()}</TableCell>
+                                        <TableCell className="text-right text-emerald-400 text-xs">{a.best_trade || '-'}</TableCell>
+                                    </TableRow>
+                                ))}
+                                {archives.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No archived sessions found.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            </Tabs>
+
+            <Dialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
+                <DialogContent className="bg-[#0a0a0a] border-white/10 text-white sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-xl font-mono uppercase tracking-wider text-amber-500">
+                             <Activity className="h-5 w-5 animate-pulse" /> Session Interrupted
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400 pt-2">
+                             System detected an active portfolio from a previous session.
+                             <br/><br/>
+                             You have {portfolio.length} open positions.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex gap-2 sm:justify-between w-full mt-4">
+                        <Button variant="outline" onClick={handleArchiveAndReset} className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 flex-1">
+                            Archive & Reset
+                        </Button>
+                        <Button onClick={handleResume} className="bg-emerald-600 hover:bg-emerald-700 text-white flex-1 font-bold">
+                            Resume Session
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

@@ -15,10 +15,10 @@ import { Backtest } from "@/pages/Backtest"
 import { useAuth } from "@/context/AuthContext"
 
 function RootRedirect() {
-  const { isAuthenticated, username } = useAuth()
+  const { isAuthenticated } = useAuth()
   return (
     <Navigate 
-      to={isAuthenticated && username === 'blackswan' ? "/home" : "/learning"} 
+      to={isAuthenticated ? "/home" : "/learning"} 
       replace 
     />
   )

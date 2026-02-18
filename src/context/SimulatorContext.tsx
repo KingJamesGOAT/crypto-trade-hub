@@ -40,6 +40,7 @@ interface SimulatorContextType {
   toggleBot: () => void
   resetSimulator: () => void
   updateBalance: (newBalance: number) => Promise<void>
+  triggerDiscordReport: () => Promise<void>
 }
 
 const SimulatorContext = createContext<SimulatorContextType | undefined>(undefined)
@@ -152,21 +153,61 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
         toast({ title: "Connection Error", description: "Supabase keys missing.", variant: "destructive" })
         return
     }
-    if (!confirm("Are you sure? This deletes all trade history.")) return
+    // Note: Confirmation should be handled by UI before calling this
     
     setIsLoading(true)
+    
+    // 1. Calculate Stats for Archive
+    const { data: trades } = await supabase.from('sim_trades').select('*')
+    const tradeCount = trades?.length || 0
+    let winRate = 0
+    let totalPnL = 0
+    let bestTrade = "None"
+    let maxPnL = -Infinity
+
+    if (trades && tradeCount > 0) {
+        const wins = trades.filter(t => t.pnl > 0).length
+        winRate = (wins / tradeCount) * 100
+        totalPnL = trades.reduce((acc, t) => acc + t.pnl, 0)
+        
+        trades.forEach(t => {
+            if (t.pnl > maxPnL) {
+                maxPnL = t.pnl
+                bestTrade = `${t.symbol} +$${t.pnl.toFixed(0)}`
+            }
+        })
+    }
+
+    // 2. Archive
+    await supabase.from('sim_archives').insert({
+        start_date: new Date().toISOString(), // Ideal would be to store session start in settings, but this is ok for now
+        end_date: new Date().toISOString(),
+        final_balance: balance,
+        total_pnl: totalPnL,
+        win_rate: winRate,
+        trade_count: tradeCount,
+        best_trade: bestTrade
+    })
+
+    // 3. Wipe
     await supabase.from('sim_trades').delete().neq('id', 0)
     await supabase.from('sim_portfolio').delete().neq('symbol', '0')
-    await supabase.from('sim_logs').delete().neq('id', 0) // Clear logs too
-    await supabase.from('sim_balance_history').delete().neq('id', 0) // Clear history
+    await supabase.from('sim_logs').delete().neq('id', 0) 
+    await supabase.from('sim_balance_history').delete().neq('id', 0)
     await supabase.from('sim_settings').update({ balance_usdt: 10000.00 }).gt('id', 0)
     
     await fetchData()
-    toast({ title: "Simulator Reset", description: "Balance restored to $10,000" })
+    toast({ title: "Session Archived & Reset", description: `Saved to Archives. Balance restored to $10,000.` })
+  }
+
+  const triggerDiscordReport = async () => {
+    if (!supabase) return
+    await supabase.from('sim_settings').update({ force_discord_report: true }).gt('id', 0)
+    toast({ title: "Report Requested", description: "Bot will send full report on next tick." })
   }
 
   return (
-    <SimulatorContext.Provider value={{ balance, portfolio, logs, history, isLoading, isBotActive, toggleBot, resetSimulator, updateBalance }}>
+    <SimulatorContext.Provider value={{ balance, portfolio, logs, history, isLoading, isBotActive, toggleBot, resetSimulator, updateBalance, triggerDiscordReport }}>
       {children}
     </SimulatorContext.Provider>
   )

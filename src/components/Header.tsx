@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/context/AuthContext"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 
 interface HeaderProps {
     toggleSidebar: () => void
@@ -34,9 +34,9 @@ export function Header({ toggleSidebar }: HeaderProps) {
         </Button>
         
         <div className="flex items-center gap-4 mr-4">
-            <span className="text-lg font-bold tracking-tight hidden md:inline-block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+            <Link to="/home" className="text-lg font-bold tracking-tight hidden md:inline-block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 hover:opacity-80 transition-opacity">
                 CryptoTradeHub
-            </span>
+            </Link>
             <div className="hidden lg:block h-6 w-px bg-white/10" />
             <SessionClock />
         </div>
