@@ -288,20 +288,29 @@ async function runBot() {
     console.log("🏁 Run Complete.");
 }
 
+// Run for roughly 8 minutes (Leaving 2 mins buffer for the next 10-min schedule)
+const MAX_RUNTIME = 8 * 60 * 1000; 
+const START_TIME = Date.now();
 const RUN_INTERVAL = 60 * 1000; // 1 minute
 
 async function startLoop() {
-    while (true) {
+    console.log("⚡ Bot Loop Started...");
+    
+    // Check if we have time left
+    while (Date.now() - START_TIME < MAX_RUNTIME) {
         try {
             await runBot();
         } catch (e) {
-            console.error("💥 Bot Crash Recovered:", e);
-            await logToTerminal(`💥 Critical Error: ${e instanceof Error ? e.message : String(e)}`, 'error');
+            console.error("💥 Critical Error:", e);
+            // Log to Supabase so you see it in the terminal
+            await logToTerminal(`💥 Crash: ${e instanceof Error ? e.message : String(e)}`, 'error');
         }
         
         console.log(`⏳ Sleeping for ${RUN_INTERVAL / 1000}s...`);
         await new Promise(r => setTimeout(r, RUN_INTERVAL));
     }
+    
+    console.log("🛑 Time limit reached. Shutting down for next schedule.");
 }
 
 startLoop();
