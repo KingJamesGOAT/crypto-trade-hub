@@ -22,16 +22,16 @@ export function HypeCloud() {
     }, [])
 
     return (
-        <Card className="h-full border-yellow-500/20 bg-black/40 backdrop-blur-md shadow-[0_0_15px_rgba(234,179,8,0.1)] flex flex-col">
+        <Card className="h-full border-yellow-500/20 bg-black/40 backdrop-blur-md shadow-[0_0_15px_rgba(234,179,8,0.1)] flex flex-col overflow-hidden">
              <CardHeader className="pb-2 border-b border-white/5">
                 <CardTitle className="text-sm font-medium flex items-center gap-2 text-yellow-500 uppercase tracking-wider">
                     <Zap className="h-4 w-4" /> Market Hype & Volume
                 </CardTitle>
             </CardHeader>
-            <CardContent className="p-0 flex-1 grid grid-cols-2 divide-x divide-white/10">
+            <CardContent className="p-0 flex-1 grid grid-cols-2 divide-x divide-white/10 min-h-0">
                 {/* 1. Heavy Hitters (Volume) */}
-                <div className="flex flex-col">
-                    <div className="bg-white/5 px-3 py-2 text-[10px] uppercase text-muted-foreground font-bold flex items-center gap-1">
+                <div className="flex flex-col min-h-0">
+                    <div className="bg-white/5 px-3 py-2 text-[10px] uppercase text-muted-foreground font-bold flex items-center gap-1 shrink-0">
                         <BarChart3 className="h-3 w-3" /> Top Volume (24h)
                     </div>
                     <ScrollArea className="flex-1">
@@ -61,8 +61,8 @@ export function HypeCloud() {
                 </div>
 
                 {/* 2. Social Trends */}
-                <div className="flex flex-col">
-                     <div className="bg-white/5 px-3 py-2 text-[10px] uppercase text-muted-foreground font-bold flex items-center gap-1">
+                <div className="flex flex-col min-h-0">
+                     <div className="bg-white/5 px-3 py-2 text-[10px] uppercase text-muted-foreground font-bold flex items-center gap-1 shrink-0">
                         <TrendingUp className="h-3 w-3" /> Trending Search
                     </div>
                     <ScrollArea className="flex-1">

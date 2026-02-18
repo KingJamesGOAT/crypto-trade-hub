@@ -27,7 +27,7 @@ export function Home() {
             </div>
 
             {/* 1.5 MARKET HYPE ROW */}
-            <div className="h-[350px] mb-8">
+            <div className="h-[400px] mb-8">
                 <HypeCloud />
             </div>
 
