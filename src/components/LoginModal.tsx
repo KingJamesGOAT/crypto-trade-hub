@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-// import { Input } from "@/components/ui/input";
-// import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, LogIn } from "lucide-react";
@@ -13,15 +13,25 @@ interface LoginModalProps {
 
 export function LoginModal({ open, onOpenChange }: LoginModalProps) {
   const { login } = useAuth();
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
+    setError("");
     try {
-      await login();
-      onOpenChange(false);
+      const success = await login(password);
+      if (success) {
+        onOpenChange(false);
+        setPassword("");
+      } else {
+        setError("Incorrect password");
+      }
     } catch (e) {
       console.error(e);
+      setError("An error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -36,19 +46,29 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
             Sign In
           </DialogTitle>
           <DialogDescription>
-            Access your synchronized portfolio and AI features securely via Puter.js.
+            Enter your access code to continue.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex flex-col gap-4 py-4">
-          <Button onClick={handleLogin} className="w-full" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign In with Puter
-          </Button>
-          <p className="text-xs text-center text-muted-foreground">
-             No password required. Secure identity provided by Puter.com OS.
-          </p>
-        </div>
+        <form onSubmit={handleLogin} className="flex flex-col gap-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="password">Access Code</Label>
+            <Input 
+                id="password" 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter code"
+            />
+            {error && <p className="text-sm text-red-500">{error}</p>}
+          </div>
+          <DialogFooter>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign In
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
