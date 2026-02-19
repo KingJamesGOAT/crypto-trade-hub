@@ -1,11 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-// We assume 'puter' is available globally via CDN as per your gemini-service.ts
-declare const puter: any;
 
 interface AuthContextType {
   isAuthenticated: boolean;
   username: string | null;
-  login: () => Promise<void>;
+  login: (password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -17,77 +15,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // 1. Check Puter Session on Mount
   useEffect(() => {
-    let attempts = 0;
-    const maxAttempts = 10; // 5 seconds (10 * 500ms)
-
-    const initAuth = async () => {
-      // Check if Puter is declared globally
-      if (typeof puter !== 'undefined') {
-        try {
-          if (puter.auth.isSignedIn()) {
-            const user = await puter.auth.getUser();
-            
-            // 🔒 Security Check: Whitelist Admin
-            if (user.username === 'CryptoTradeHub') {
-                setUsername('blackswan'); // 🥸 Alias as requested
-                setIsAuthenticated(true);
-            } else {
-                console.warn(`Unauthorized access attempt by: ${user.username}`);
-                await puter.auth.signOut();
-                // We don't alert here to avoid spamming on reload, just deny access
-                setIsAuthenticated(false);
-            }
-          }
-        } catch (err) {
-          console.warn("Puter auth check failed", err);
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        // Puter script not loaded yet, retry
-        attempts++;
-        if (attempts < maxAttempts) {
-          setTimeout(initAuth, 500);
-        } else {
-          // Timed out waiting for Puter
-          console.warn("Puter.js failed to load within 5 seconds");
-          setIsLoading(false);
-        }
-      }
-    };
-    
-    initAuth();
+    // Check local storage for existing session
+    const storedAuth = localStorage.getItem('cth_auth_session');
+    if (storedAuth === 'true') {
+      setIsAuthenticated(true);
+      setUsername('Admin');
+    }
+    setIsLoading(false);
   }, []);
 
-  // 2. Login via Puter Popup
-  const login = async () => {
-    try {
-      if (typeof puter === 'undefined') {
-        alert("Puter.js not loaded. Cannot sign in.");
-        return;
-      }
-      // This triggers the Puter.com secure popup
-      await puter.auth.signIn();
-      const user = await puter.auth.getUser();
-      
-      // 🔒 Security Check
-      if (user.username === 'CryptoTradeHub') {
-          setUsername('blackswan'); // Alias
-          setIsAuthenticated(true);
-      } else {
-          await puter.auth.signOut();
-          alert("⛔ ACCESS DENIED: You are not the authorized Admin (blackswan).");
-          setIsAuthenticated(false);
-      }
-    } catch (error) {
-      console.error("Login failed:", error);
+  const login = async (password: string): Promise<boolean> => {
+    // Simple password check
+    if (password === '090402') {
+      setIsAuthenticated(true);
+      setUsername('Admin');
+      localStorage.setItem('cth_auth_session', 'true');
+      return true;
+    } else {
+      return false;
     }
   };
 
   const logout = () => {
-    puter.auth.signOut();
+    localStorage.removeItem('cth_auth_session');
     setUsername(null);
     setIsAuthenticated(false);
   };

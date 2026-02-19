@@ -6,10 +6,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { BookOpen, CheckCircle2, Circle, ChevronRight, GraduationCap, PlayCircle, Quote, Terminal } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useAuth } from "@/context/AuthContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { BookOpen, CheckCircle2, Circle, ChevronRight, GraduationCap, PlayCircle, Quote, Terminal, Lock } from "lucide-react";
 
 export function Learning() {
   // Persistence: Load progress
@@ -29,6 +41,24 @@ export function Learning() {
   const handleModuleComplete = (id: string) => {
     if (!completedModules.includes(id)) {
       setCompletedModules(prev => [...prev, id]);
+    }
+  };
+
+  const { login, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    const success = await login(password);
+    if (success) {
+      setIsLoginOpen(false);
+      navigate("/home");
+    } else {
+      setError("Incorrect password");
     }
   };
 
@@ -93,13 +123,53 @@ export function Learning() {
             {/* Mobile Nav Trigger could go here */}
             
             <div className="mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                    <Badge variant="outline" className="text-blue-400 border-blue-900 bg-blue-950/30">
-                        {COURSE_CATEGORIES.find(c => c.id === activeModule.categoryId)?.name}
-                    </Badge>
-                    <span className="text-xs text-slate-500 flex items-center">
-                        <BookOpen className="h-3 w-3 mr-1" /> {activeModule.readTime} read
-                    </span>
+                <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Badge variant="outline" className="text-blue-400 border-blue-900 bg-blue-950/30">
+                            {COURSE_CATEGORIES.find(c => c.id === activeModule.categoryId)?.name}
+                        </Badge>
+                        <span className="text-xs text-slate-500 flex items-center">
+                            <BookOpen className="h-3 w-3 mr-1" /> {activeModule.readTime} read
+                        </span>
+                    </div>
+
+                    {!isAuthenticated && (
+                        <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-slate-500 hover:text-white">
+                                    <Lock className="h-4 w-4 mr-2" />
+                                    <span>Login</span>
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-slate-900 border-slate-800 text-white">
+                                <DialogHeader>
+                                    <DialogTitle>Admin Access</DialogTitle>
+                                    <DialogDescription className="text-slate-400">
+                                        Enter the access code to unlock the full platform.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <form onSubmit={handleLogin} className="space-y-4 pt-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="password">Access Code</Label>
+                                        <Input 
+                                            id="password" 
+                                            type="password" 
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="Enter code"
+                                            className="bg-slate-950 border-slate-800 text-white placeholder:text-slate-600 focus-visible:ring-blue-600"
+                                        />
+                                        {error && <p className="text-red-400 text-sm">{error}</p>}
+                                    </div>
+                                    <DialogFooter>
+                                        <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium">
+                                            Unlock
+                                        </Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </div>
                 
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
