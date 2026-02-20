@@ -111,7 +111,7 @@ export function MarketIntelligence() {
                         <Newspaper className="h-3 w-3" />
                          Latest Briefing ({new Date(briefing.created_at).toLocaleDateString()})
                     </div>
-                    <p className="text-xs text-white/80 leading-relaxed font-mono">
+                    <p className="text-xs text-white/80 leading-relaxed font-mono line-clamp-6">
                         {briefing.summary}
                     </p>
                 </div>

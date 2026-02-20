@@ -1,5 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
 import { DiscordAgent } from './services/discord';
@@ -9,6 +10,7 @@ dotenv.config();
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const NEWS_API_KEY = process.env.NEWS_API_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY || !GEMINI_API_KEY) {
     console.error("❌ MISSING KEYS: Supabase or Gemini API Key missing.");
@@ -19,9 +21,24 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const discord = new DiscordAgent();
 
 async function fetchMarketContext() {
-    // 1. Fetch Generic Global Macro (Mocked/RSS or real API if avail, using wide context)
-    // For this implementation, we will fetch generic data from public crypto endpoints + static macro knowns
-    
+    let newsContext = "No recent news available.";
+    if (NEWS_API_KEY) {
+        try {
+            // Fetch top crypto news from the last 24h
+            const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const { data: newsData } = await axios.get(
+                `https://newsapi.org/v2/everything?q=crypto OR bitcoin OR ethereum&language=en&sortBy=popularity&from=${twoDaysAgo}&apiKey=${NEWS_API_KEY}`
+            );
+            
+            if (newsData.articles && newsData.articles.length > 0) {
+                const headlines = newsData.articles.slice(0, 5).map((a: any) => `- ${a.title}`).join('\n');
+                newsContext = `Top Recent Headlines:\n${headlines}`;
+            }
+        } catch (e) {
+            console.error("News fetch failed", e);
+        }
+    }
+
     try {
         const [global, trending] = await Promise.all([
             axios.get("https://api.coingecko.com/api/v3/global"),
@@ -38,60 +55,77 @@ async function fetchMarketContext() {
         - Global Volume: $${(totalVol / 1e9).toFixed(2)} Billion
         - Trending Coins: ${trendList}
         - Date: ${new Date().toISOString()}
+        
+        ${newsContext}
         `;
     } catch (e) {
-        console.error("Error fetching market data", e);
-        return "Market Data unavailable.";
+        return `Market Data unavailable.\n\n${newsContext}`;
     }
 }
 
 async function generateBriefing() {
     console.log("🤖 BRIEFING AGENT: Starting Daily Digest...");
 
-    await discord.sendAlert("Agent Waking Up", [{ name: "Status", value: "Scanning markets" }], 0x00ff00);
-
     const marketData = await fetchMarketContext();
     
-    // Use gemini-1.5-flash for better free tier limits and speed
     const prompt = `
-    You are a Senior Global Macro Strategist for a hedge fund. 
-    Write a concise but professional "4-Hour Market Update" for the crypto traders.
+    You are a Senior Global Macro Strategist for a crypto hedge fund. 
+    Analyze the provided Market Data and News Headlines.
     
     Context:
     ${marketData}
     
-    Style: 
-    - Bloomberg Terminal style. 
-    - No Emojis. 
-    - Short paragraphs.
-    - Bullet points for "Key Catalysts".
-    - Tone: Serious, Institutional, Direct.
+    You must return a raw JSON object (NO markdown wrapping like \`\`\`json) with the following strictly named keys:
     
-    Structure:
-    1. HEADLINE (Uppercase)
-    2. MACRO VIEW (2 sentences)
-    3. CRYPTO FLOWS (Based on the trending coins)
-    4. RISKS (Speculate on current general risks like Inflation, Regulation, or Hype)
+    1. "ui_sentiment_score": A float between -1.0 (Extreme Bear) and 1.0 (Extreme Bull).
+    2. "ui_summary": A single punchy, 1-sentence headline for the dashboard UI (max 100 chars).
+    3. "ui_narratives": An array of exactly 3 string tags representing the current meta (e.g. ["Altseason", "L2 Scaling", "DeFi 2.0"]).
+    4. "discord_report": A fully formatted Markdown string designed for a Discord webhook or long-form email. 
     
-    Output strictly in Markdown.
+    RULES FOR 'discord_report':
+    - Start with a bold **Daily Strategist Brief** header.
+    - Write exactly 5 to 6 lines of dense, institutional text summarizing the market flow, the news, and what to look out for over the next few days. Do not write short 1-line blurbs. Give a real analysis paragraph.
+    - End the report with the 3 ui_narratives formatted as hashtags on separate lines.
+    - Do not use emojis in the main paragraph. Use a serious, Bloomberg-terminal tone.
     `;
 
-    try {
-        const result = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-            {
-                contents: [{ parts: [{ text: prompt }] }]
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY as string);
+    const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        generationConfig: {
+            temperature: 0.4,
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    ui_sentiment_score: { type: SchemaType.NUMBER, description: "Between -1.0 and 1.0" },
+                    ui_summary: { type: SchemaType.STRING, description: "1 sentence UI headline" },
+                    ui_narratives: { 
+                        type: SchemaType.ARRAY, 
+                        items: { type: SchemaType.STRING },
+                        description: "Exactly 3 tags"
+                    },
+                    discord_report: { type: SchemaType.STRING, description: "Full markdown report" }
+                },
+                required: ["ui_sentiment_score", "ui_summary", "ui_narratives", "discord_report"]
             }
-        );
-        const text = result.data.candidates[0].content.parts[0].text;
+        }
+    });
+
+    try {
+        const result = await model.generateContent(prompt);
+        const rawText = result.response.text();
+        const parsed = JSON.parse(rawText);
 
         console.log("✅ Briefing Generated.");
-        console.log(text);
 
-        // Save to Database
+        // Save to Database (Map the JSON to the UI table columns)
         await supabase.from('market_briefings').insert({
-            title: `MARKET UPDATE ${new Date().toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' })}`,
-            content: text,
+            title: `MARKET UPDATE`,
+            summary: parsed.ui_summary,
+            content: parsed.discord_report, // Save full report in case we want to show it later
+            sentiment_score: parsed.ui_sentiment_score,
+            key_narratives: parsed.ui_narratives,
             created_at: new Date().toISOString()
         });
         
@@ -99,11 +133,14 @@ async function generateBriefing() {
 
         // Send to Discord
         console.log("📨 Sending to Discord...");
-        const safeText = text.length > 1000 ? text.substring(0, 1000) + '...' : text;
-        await discord.sendBriefing(safeText);
+        
+        // Add footer to the Discord report
+        const finalDiscordMessage = `${parsed.discord_report}\n\n*Generated by Gemini 1.5 Flash • ${new Date().toLocaleTimeString('en-US', { timeZone: 'Europe/Zurich' })} (Zurich)*`;
+        
+        await discord.sendBriefing(finalDiscordMessage);
         console.log("✅ Sent to Discord.");
-    } catch (e) {
-        console.error("❌ AI Generation Error:", e);
+    } catch (e: any) {
+        console.error("❌ AI Generation Error:", e.message || e);
     }
 }
 
