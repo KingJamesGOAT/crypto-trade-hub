@@ -10,7 +10,6 @@ dotenv.config();
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const NEWS_API_KEY = process.env.NEWS_API_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY || !GEMINI_API_KEY) {
     console.error("❌ MISSING KEYS: Supabase or Gemini API Key missing.");
@@ -22,21 +21,17 @@ const discord = new DiscordAgent();
 
 async function fetchMarketContext() {
     let newsContext = "No recent news available.";
-    if (NEWS_API_KEY) {
-        try {
-            // Fetch top crypto news from the last 24h
-            const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const { data: newsData } = await axios.get(
-                `https://newsapi.org/v2/everything?q=crypto OR bitcoin OR ethereum&language=en&sortBy=popularity&from=${twoDaysAgo}&apiKey=${NEWS_API_KEY}`
-            );
-            
-            if (newsData.articles && newsData.articles.length > 0) {
-                const headlines = newsData.articles.slice(0, 5).map((a: any) => `- ${a.title}`).join('\n');
-                newsContext = `Top Recent Headlines:\n${headlines}`;
-            }
-        } catch (e) {
-            console.error("News fetch failed", e);
+    
+    try {
+        const response = await axios.get("https://min-api.cryptocompare.com/data/v2/news/?lang=EN");
+        const data = response.data;
+        
+        if (data.Message === "News list successfully returned" && data.Data && data.Data.length > 0) {
+            const headlines = data.Data.slice(0, 5).map((a: any) => `- ${a.title}`).join('\n');
+            newsContext = `Top Recent Headlines:\n${headlines}`;
         }
+    } catch (e) {
+        console.error("News fetch failed", e);
     }
 
     try {
