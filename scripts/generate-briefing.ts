@@ -1,6 +1,5 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
 import { DiscordAgent } from './services/discord';
@@ -84,18 +83,19 @@ async function generateBriefing() {
     - Do not use emojis in the main paragraph. Use a serious, Bloomberg-terminal tone.
     `;
 
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY as string);
-    const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-pro",
-        generationConfig: {
-            temperature: 0.4,
-            responseMimeType: "application/json"
-        }
-    });
-
     try {
-        const result = await model.generateContent(prompt);
-        let rawText = result.response.text();
+        const result = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.4
+                }
+            },
+            { headers: { "Content-Type": "application/json" } }
+        );
+        
+        let rawText = result.data.candidates[0].content.parts[0].text;
         
         // Strip markdown code blocks if the model wrapped the JSON
         if (rawText.startsWith('```json')) {
@@ -129,7 +129,12 @@ async function generateBriefing() {
         await discord.sendBriefing(finalDiscordMessage);
         console.log("✅ Sent to Discord.");
     } catch (e: any) {
-        console.error("❌ AI Generation Error:", e.message || e);
+        // Deep error logging
+        if (e.response && e.response.data) {
+            console.error("❌ AI Generation Error Response:", JSON.stringify(e.response.data, null, 2));
+        } else {
+            console.error("❌ AI Generation Error:", e.message || e);
+        }
         process.exit(1); // Force GitHub Action to fail so the user sees it
     }
 }
