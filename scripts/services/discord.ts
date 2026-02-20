@@ -37,7 +37,7 @@ export class DiscordAgent {
                     title: title,
                     color: color,
                     fields: fields,
-                    footer: { text: "👻 Scout & Strategist | Powered by Gemini 2.5" },
+                    footer: { text: "Scout & Strategist | Powered by AI" },
                     timestamp: new Date().toISOString()
                 }]
             });
@@ -55,10 +55,12 @@ export class DiscordAgent {
         // Briefings bypass rate limit (assumed to be once/twice a day)
         
         const chunks = content.match(/.{1,1900}/g) || [content];
-        for (const chunk of chunks) {
+        for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            const prefix = i === 0 ? "**Daily Scout Report**\n\n" : "";
             try {
                 await axios.post(this.webhookUrl, { 
-                    content: `**☀️ Daily Scout Report**\n${chunk}` 
+                    content: `${prefix}${chunk}` 
                 });
             } catch (e: any) {
                 console.error("❌ Discord Briefing Failed:", e.message);
