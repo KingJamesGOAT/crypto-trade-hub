@@ -69,7 +69,9 @@ async function generateBriefing() {
     Context:
     ${marketData}
     
-    You must return a raw JSON object (NO markdown wrapping like \`\`\`json) with the following strictly named keys:
+    CRITICAL: You must return ONLY a raw JSON object. Do NOT wrap the JSON in markdown code blocks like \`\`\`json. Just start with { and end with }.
+    
+    The JSON must contain the following strictly named keys:
     
     1. "ui_sentiment_score": A float between -1.0 (Extreme Bear) and 1.0 (Extreme Bull).
     2. "ui_summary": A single punchy, 1-sentence headline for the dashboard UI (max 100 chars).
@@ -77,10 +79,11 @@ async function generateBriefing() {
     4. "discord_report": A fully formatted Markdown string designed for a Discord webhook or long-form email. 
     
     RULES FOR 'discord_report':
-    - Start with a bold **Daily Strategist Brief** header.
-    - Write exactly 5 to 6 lines of dense, institutional text summarizing the market flow, the news, and what to look out for over the next few days. Do not write short 1-line blurbs. Give a real analysis paragraph.
+    - Do NOT start with a title or header. Just start directly with the analysis.
+    - Write exactly 5 to 6 lines of dense, institutional text summarizing the market flow, the news, and what to look out for over the next few days. 
+    - Include the most important news of the day.
     - End the report with the 3 ui_narratives formatted as hashtags on separate lines.
-    - Do not use emojis in the main paragraph. Use a serious, Bloomberg-terminal tone.
+    - ABSOLUTELY NO EMOJIS in the text. Use a serious, Bloomberg-terminal tone.
     `;
 
     try {

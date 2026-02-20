@@ -14,6 +14,7 @@ interface Briefing {
     created_at: string
     sentiment_score: number
     summary: string
+    content: string
     key_narratives: string[]
 }
 
@@ -109,10 +110,10 @@ export function MarketIntelligence() {
                 <div className="space-y-2 pt-2 border-t border-white/5">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase">
                         <Newspaper className="h-3 w-3" />
-                         Latest Briefing ({new Date(briefing.created_at).toLocaleDateString()})
+                         Daily Strategist Brief ({new Date(briefing.created_at).toLocaleDateString()})
                     </div>
-                    <p className="text-xs text-white/80 leading-relaxed font-mono line-clamp-6">
-                        {briefing.summary}
+                    <p className="text-xs text-white/80 leading-relaxed font-mono line-clamp-6 whitespace-pre-wrap">
+                        {briefing.content}
                     </p>
                 </div>
             </CardContent>
