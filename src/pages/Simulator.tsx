@@ -8,7 +8,7 @@ import { MarketIntelligence } from "@/components/MarketIntelligence"
 import { SignalCard } from "@/components/SignalCard"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Wallet, Activity, Layers, Coins, RotateCcw, Loader2 } from "lucide-react"
+import { Wallet, Activity, Layers, Coins, RotateCcw, Loader2, TrendingUp, TrendingDown } from "lucide-react"
 import { useBinanceStream } from "@/hooks/useBinanceStream"
 import { TrendBias } from "@/components/TrendBias"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -89,6 +89,15 @@ export function Simulator() {
         }
     }, [streamData])
 
+    // Calculate Global PnL
+    const globalPnL = portfolio.reduce((acc, item) => {
+        const livePrice = prices[item.symbol] || item.avg_buy_price
+        const pnlValue = (livePrice - item.avg_buy_price) * item.amount
+        return acc + pnlValue
+    }, 0)
+    
+    const isGlobalProfit = globalPnL >= 0
+
     return (
         <div className="space-y-6 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto">
             {/* TABS HEADER */}
@@ -134,6 +143,16 @@ export function Simulator() {
                             <div className="text-3xl font-bold tracking-tight text-white tabular-nums flex items-baseline gap-1">
                                 ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 <span className="text-sm font-normal text-muted-foreground">USDT</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="text-[10px] uppercase font-mono text-muted-foreground tracking-widest flex items-center gap-2 mb-1">
+                                <Activity className="h-3 w-3 text-blue-500" /> Global Open PnL
+                            </div>
+                            <div className={`text-xl font-bold tracking-tight tabular-nums flex items-center gap-2 ${isGlobalProfit ? "text-green-500" : "text-red-500"}`}>
+                                {isGlobalProfit ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                                {isGlobalProfit ? "+" : "-"}${Math.abs(globalPnL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                         </div>
 

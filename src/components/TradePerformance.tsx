@@ -148,7 +148,7 @@ export function TradePerformance() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-bold text-white">{metrics.bestPair.symbol.replace("USDT","")}</span>
-                                <span className="text-xs font-mono text-emerald-400">+${metrics.bestPair.pnl.toFixed(0)}</span>
+                                <span className="text-xs font-mono text-emerald-400">+{metrics.bestPair.pnl < 0 ? "-" : "$"}{Math.abs(metrics.bestPair.pnl).toFixed(0)}</span>
                             </div>
                         </div>
                     )}
@@ -161,7 +161,7 @@ export function TradePerformance() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-bold text-white">{metrics.worstPair.symbol.replace("USDT","")}</span>
-                                <span className="text-xs font-mono text-red-400">${metrics.worstPair.pnl.toFixed(0)}</span>
+                                <span className="text-xs font-mono text-red-400">-{metrics.worstPair.pnl < 0 ? "$" : ""}{Math.abs(metrics.worstPair.pnl).toFixed(0)}</span>
                             </div>
                         </div>
                     )}
