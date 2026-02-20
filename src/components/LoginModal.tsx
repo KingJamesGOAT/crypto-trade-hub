@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, LogIn } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface LoginModalProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface LoginModalProps {
 
 export function LoginModal({ open, onOpenChange }: LoginModalProps) {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -26,6 +28,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
       if (success) {
         onOpenChange(false);
         setPassword("");
+        navigate("/home");
       } else {
         setError("Incorrect password");
       }
