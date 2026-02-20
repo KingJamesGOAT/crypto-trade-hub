@@ -1,6 +1,5 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
 import { DiscordAgent } from './services/discord';
@@ -17,7 +16,6 @@ if (!SUPABASE_URL || !SUPABASE_KEY || !GEMINI_API_KEY) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const discord = new DiscordAgent();
 
 async function fetchMarketContext() {
@@ -50,11 +48,11 @@ async function fetchMarketContext() {
 async function generateBriefing() {
     console.log("🤖 BRIEFING AGENT: Starting Daily Digest...");
 
+    await discord.sendAlert("Agent Waking Up", [{ name: "Status", value: "Scanning markets" }], 0x00ff00);
+
     const marketData = await fetchMarketContext();
     
     // Use gemini-1.5-flash for better free tier limits and speed
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
     const prompt = `
     You are a Senior Global Macro Strategist for a hedge fund. 
     Write a concise but professional "4-Hour Market Update" for the crypto traders.
@@ -79,9 +77,13 @@ async function generateBriefing() {
     `;
 
     try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const result = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                contents: [{ parts: [{ text: prompt }] }]
+            }
+        );
+        const text = result.data.candidates[0].content.parts[0].text;
 
         console.log("✅ Briefing Generated.");
         console.log(text);
@@ -97,7 +99,8 @@ async function generateBriefing() {
 
         // Send to Discord
         console.log("📨 Sending to Discord...");
-        await discord.sendBriefing(text);
+        const safeText = text.length > 1000 ? text.substring(0, 1000) + '...' : text;
+        await discord.sendBriefing(safeText);
         console.log("✅ Sent to Discord.");
     } catch (e) {
         console.error("❌ AI Generation Error:", e);
