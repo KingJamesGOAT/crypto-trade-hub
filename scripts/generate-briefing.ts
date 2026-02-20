@@ -89,21 +89,7 @@ async function generateBriefing() {
         model: "gemini-1.5-pro",
         generationConfig: {
             temperature: 0.4,
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: SchemaType.OBJECT,
-                properties: {
-                    ui_sentiment_score: { type: SchemaType.NUMBER, description: "Between -1.0 and 1.0" },
-                    ui_summary: { type: SchemaType.STRING, description: "1 sentence UI headline" },
-                    ui_narratives: { 
-                        type: SchemaType.ARRAY, 
-                        items: { type: SchemaType.STRING },
-                        description: "Exactly 3 tags"
-                    },
-                    discord_report: { type: SchemaType.STRING, description: "Full markdown report" }
-                },
-                required: ["ui_sentiment_score", "ui_summary", "ui_narratives", "discord_report"]
-            }
+            responseMimeType: "application/json"
         }
     });
 
