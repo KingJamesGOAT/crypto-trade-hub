@@ -11,7 +11,7 @@ const supabase = createClient(
 
 interface Briefing {
     sentiment_score: number;
-    summary: string;
+    content: string;
     key_narratives: string[];
     created_at: string;
 }
@@ -62,8 +62,8 @@ export function DailyBriefingCard() {
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
                 <div className="space-y-4 flex-1">
-                    <p className="text-lg font-medium leading-relaxed text-slate-200">
-                        "{briefing.summary}"
+                    <p className="text-sm font-medium leading-relaxed text-slate-200 line-clamp-5 whitespace-pre-wrap">
+                        {briefing.content}
                     </p>
                     
                     <div className="flex flex-wrap gap-2 pt-2">
