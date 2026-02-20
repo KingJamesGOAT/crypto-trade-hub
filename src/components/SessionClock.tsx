@@ -19,25 +19,27 @@ export function SessionClock() {
     }, [])
 
     const updateSession = (now: Date) => {
-        // Convert to UTC hours for consistent checking
-        const utcHour = now.getUTCHours()
+        // Convert to UTC hours and add minutes for decimal precision 
+        const utcDecimal = now.getUTCHours() + now.getUTCMinutes() / 60;
+        const isWeekend = now.getUTCDay() === 0 || now.getUTCDay() === 6;
         
-        let newStatus = []
+        let newStatus = [];
         
-        // Market Hours (approx UTC)
-        // ASIA (Tokyo): 00:00 - 09:00
-        // LONDON: 07:00 - 16:00
-        // NY: 13:00 - 22:00
-        // ZURICH: 08:00 - 17:00 (Adding Zurich as it's the requested timezone context, often overlaps London)
-
-        if (utcHour >= 0 && utcHour < 9) {
-            newStatus.push({ label: "ASIA", color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" })
-        }
-        if (utcHour >= 7 && utcHour < 16) {
-             newStatus.push({ label: "LONDON", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" })
-        }
-        if (utcHour >= 13 && utcHour < 22) {
-             newStatus.push({ label: "NEW YORK", color: "bg-green-500/10 text-green-400 border-green-500/20" })
+        // TradFi Market Hours in UTC (Standard Time)
+        // Tokyo (ASIA): 09:00 - 15:00 JST -> 00:00 - 06:00 UTC
+        // London: 08:00 - 16:30 GMT -> 08:00 - 16:30 UTC
+        // New York (NYSE): 09:30 - 16:00 EST -> 14:30 - 21:00 UTC
+        
+        if (!isWeekend) {
+            if (utcDecimal >= 0 && utcDecimal < 6) {
+                newStatus.push({ label: "TOKYO", color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" })
+            }
+            if (utcDecimal >= 8 && utcDecimal < 16.5) {
+                 newStatus.push({ label: "LONDON", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" })
+            }
+            if (utcDecimal >= 14.5 && utcDecimal < 21) {
+                 newStatus.push({ label: "NEW YORK", color: "bg-green-500/10 text-green-400 border-green-500/20" })
+            }
         }
         
         setStatus(newStatus)
