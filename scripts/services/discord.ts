@@ -54,8 +54,12 @@ export class DiscordAgent {
         if (!this.webhookUrl) return;
         // Briefings bypass rate limit (assumed to be once/twice a day)
         
-        // Use [\\s\\S] to match all characters including newlines
-        const chunks = content.match(/[\\s\\S]{1,1900}/g) || [content];
+        // Split into chunks of 1900 chars safely without regex edge cases
+        const chunks: string[] = [];
+        for (let i = 0; i < content.length; i += 1900) {
+            chunks.push(content.substring(i, i + 1900));
+        }
+        
         for (let i = 0; i < chunks.length; i++) {
             const chunk = chunks[i];
             const prefix = i === 0 ? "Daily Scout Report\n\n" : "";
