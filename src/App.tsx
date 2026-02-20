@@ -26,31 +26,35 @@ function RootRedirect() {
 
 import { NewsProvider } from "@/context/NewsContext"
 
+function AppRoutes() {
+  const { isAuthenticated } = useAuth()
+  return (
+    <Router basename={import.meta.env.BASE_URL}>
+      <Layout>
+        <Routes>
+          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
+          <Route path="/backtest" element={<ProtectedRoute><Backtest /></ProtectedRoute>} />
+          <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
+          
+          <Route path="/learning" element={isAuthenticated ? <Navigate to="/home" replace /> : <Learning />} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          
+          <Route path="/" element={<RootRedirect />} />
+        </Routes>
+      </Layout>
+      <Toaster />
+    </Router>
+  )
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <AuthProvider>
         <SimulatorProvider>
           <NewsProvider>
-            <Router basename={import.meta.env.BASE_URL}>
-            <Layout>
-              <Routes>
-                {/* Public route */}
-                
-                {/* Protected routes */}
-                <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
-                <Route path="/backtest" element={<ProtectedRoute><Backtest /></ProtectedRoute>} />
-              <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
-              <Route path="/learning" element={<Learning />} />
-                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                
-                {/* Redirect root based on role */}
-                <Route path="/" element={<RootRedirect />} />
-              </Routes>
-            </Layout>
-            <Toaster />
-          </Router>
+            <AppRoutes />
           </NewsProvider>
         </SimulatorProvider>
       </AuthProvider>
