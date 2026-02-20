@@ -109,7 +109,15 @@ async function generateBriefing() {
 
     try {
         const result = await model.generateContent(prompt);
-        const rawText = result.response.text();
+        let rawText = result.response.text();
+        
+        // Strip markdown code blocks if the model wrapped the JSON
+        if (rawText.startsWith('```json')) {
+            rawText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        } else if (rawText.startsWith('```')) {
+            rawText = rawText.replace(/```\n?/g, '').trim();
+        }
+        
         const parsed = JSON.parse(rawText);
 
         console.log("✅ Briefing Generated.");
@@ -136,6 +144,7 @@ async function generateBriefing() {
         console.log("✅ Sent to Discord.");
     } catch (e: any) {
         console.error("❌ AI Generation Error:", e.message || e);
+        process.exit(1); // Force GitHub Action to fail so the user sees it
     }
 }
 
