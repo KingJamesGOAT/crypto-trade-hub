@@ -54,10 +54,11 @@ export class DiscordAgent {
         if (!this.webhookUrl) return;
         // Briefings bypass rate limit (assumed to be once/twice a day)
         
-        const chunks = content.match(/.{1,1900}/g) || [content];
+        // Use [\\s\\S] to match all characters including newlines
+        const chunks = content.match(/[\\s\\S]{1,1900}/g) || [content];
         for (let i = 0; i < chunks.length; i++) {
             const chunk = chunks[i];
-            const prefix = i === 0 ? "**Daily Scout Report**\n\n" : "";
+            const prefix = i === 0 ? "Daily Scout Report\n\n" : "";
             try {
                 await axios.post(this.webhookUrl, { 
                     content: `${prefix}${chunk}` 

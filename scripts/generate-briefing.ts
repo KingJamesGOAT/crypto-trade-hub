@@ -117,7 +117,7 @@ async function generateBriefing() {
         console.log("✅ Briefing Generated.");
 
         // Save to Database (Map the JSON to the UI table columns)
-        await supabase.from('market_briefings').insert({
+        const { error: dbError } = await supabase.from('market_briefings').insert({
             title: `MARKET UPDATE`,
             summary: parsed.ui_summary,
             content: parsed.discord_report, // Save full report in case we want to show it later
@@ -125,6 +125,10 @@ async function generateBriefing() {
             key_narratives: parsed.ui_narratives,
             created_at: new Date().toISOString()
         });
+        
+        if (dbError) {
+            throw new Error(`Supabase Insert Failed: ${dbError.message}`);
+        }
         
         console.log("💾 Saved to DB.");
 
